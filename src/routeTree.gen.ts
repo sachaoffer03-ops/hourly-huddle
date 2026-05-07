@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrousRouteImport } from './routes/trous'
 import { Route as StudiosRouteImport } from './routes/studios'
 import { Route as StaffAppRouteImport } from './routes/staff-app'
+import { Route as StaffRouteImport } from './routes/staff'
 import { Route as ReglagesRouteImport } from './routes/reglages'
 import { Route as PointageRouteImport } from './routes/pointage'
 import { Route as PlanningRouteImport } from './routes/planning'
@@ -40,6 +41,11 @@ const StudiosRoute = StudiosRouteImport.update({
 const StaffAppRoute = StaffAppRouteImport.update({
   id: '/staff-app',
   path: '/staff-app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffRoute = StaffRouteImport.update({
+  id: '/staff',
+  path: '/staff',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReglagesRoute = ReglagesRouteImport.update({
@@ -98,14 +104,14 @@ const IndexRoute = IndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const StaffIndexRoute = StaffIndexRouteImport.update({
-  id: '/staff/',
-  path: '/staff/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => StaffRoute,
 } as any)
 const StaffIdRoute = StaffIdRouteImport.update({
-  id: '/staff/$id',
-  path: '/staff/$id',
-  getParentRoute: () => rootRouteImport,
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => StaffRoute,
 } as any)
 const PlanningGenerateRoute = PlanningGenerateRouteImport.update({
   id: '/generate',
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/planning': typeof PlanningRouteWithChildren
   '/pointage': typeof PointageRoute
   '/reglages': typeof ReglagesRoute
+  '/staff': typeof StaffRouteWithChildren
   '/staff-app': typeof StaffAppRoute
   '/studios': typeof StudiosRoute
   '/trous': typeof TrousRoute
@@ -164,6 +171,7 @@ export interface FileRoutesById {
   '/planning': typeof PlanningRouteWithChildren
   '/pointage': typeof PointageRoute
   '/reglages': typeof ReglagesRoute
+  '/staff': typeof StaffRouteWithChildren
   '/staff-app': typeof StaffAppRoute
   '/studios': typeof StudiosRoute
   '/trous': typeof TrousRoute
@@ -185,6 +193,7 @@ export interface FileRouteTypes {
     | '/planning'
     | '/pointage'
     | '/reglages'
+    | '/staff'
     | '/staff-app'
     | '/studios'
     | '/trous'
@@ -223,6 +232,7 @@ export interface FileRouteTypes {
     | '/planning'
     | '/pointage'
     | '/reglages'
+    | '/staff'
     | '/staff-app'
     | '/studios'
     | '/trous'
@@ -243,11 +253,10 @@ export interface RootRouteChildren {
   PlanningRoute: typeof PlanningRouteWithChildren
   PointageRoute: typeof PointageRoute
   ReglagesRoute: typeof ReglagesRoute
+  StaffRoute: typeof StaffRouteWithChildren
   StaffAppRoute: typeof StaffAppRoute
   StudiosRoute: typeof StudiosRoute
   TrousRoute: typeof TrousRoute
-  StaffIdRoute: typeof StaffIdRoute
-  StaffIndexRoute: typeof StaffIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -271,6 +280,13 @@ declare module '@tanstack/react-router' {
       path: '/staff-app'
       fullPath: '/staff-app'
       preLoaderRoute: typeof StaffAppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff': {
+      id: '/staff'
+      path: '/staff'
+      fullPath: '/staff'
+      preLoaderRoute: typeof StaffRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reglages': {
@@ -352,17 +368,17 @@ declare module '@tanstack/react-router' {
     }
     '/staff/': {
       id: '/staff/'
-      path: '/staff'
+      path: '/'
       fullPath: '/staff/'
       preLoaderRoute: typeof StaffIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof StaffRoute
     }
     '/staff/$id': {
       id: '/staff/$id'
-      path: '/staff/$id'
+      path: '/$id'
       fullPath: '/staff/$id'
       preLoaderRoute: typeof StaffIdRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof StaffRoute
     }
     '/planning/generate': {
       id: '/planning/generate'
@@ -386,6 +402,18 @@ const PlanningRouteWithChildren = PlanningRoute._addFileChildren(
   PlanningRouteChildren,
 )
 
+interface StaffRouteChildren {
+  StaffIdRoute: typeof StaffIdRoute
+  StaffIndexRoute: typeof StaffIndexRoute
+}
+
+const StaffRouteChildren: StaffRouteChildren = {
+  StaffIdRoute: StaffIdRoute,
+  StaffIndexRoute: StaffIndexRoute,
+}
+
+const StaffRouteWithChildren = StaffRoute._addFileChildren(StaffRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ChecklistsRoute: ChecklistsRoute,
@@ -398,11 +426,10 @@ const rootRouteChildren: RootRouteChildren = {
   PlanningRoute: PlanningRouteWithChildren,
   PointageRoute: PointageRoute,
   ReglagesRoute: ReglagesRoute,
+  StaffRoute: StaffRouteWithChildren,
   StaffAppRoute: StaffAppRoute,
   StudiosRoute: StudiosRoute,
   TrousRoute: TrousRoute,
-  StaffIdRoute: StaffIdRoute,
-  StaffIndexRoute: StaffIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
