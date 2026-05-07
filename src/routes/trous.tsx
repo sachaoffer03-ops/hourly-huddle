@@ -15,7 +15,7 @@ function TrousPage() {
   const urgent = holeShifts.filter(h => h.urgency === 'urgent').length;
 
   return (
-    <div className="p-6" style={{}}>
+    <div className="p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
