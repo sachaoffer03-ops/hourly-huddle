@@ -595,7 +595,7 @@ function PlanningPage() {
       {viewMode === "semaine" && (
         <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
           {/* Day headers */}
-          <div className="grid grid-cols-8" style={{ borderBottom: "0.5px solid var(--border)" }}>
+        <div className="grid grid-cols-8" style={{ borderBottom: "0.5px solid var(--border)" }}>
             <div className="px-3 py-2" style={{ fontSize: 11, color: "var(--muted-foreground)" }} />
             {weekDays.map((d, i) => {
               const isToday = i === todayIdx;
@@ -611,7 +611,13 @@ function PlanningPage() {
                     backgroundColor: isToday ? "var(--coral-light)" : "transparent",
                   }}
                 >
-                  {dn} {d.getDate()}
+                  <div>{dn} {d.getDate()}</div>
+                  {studioFilter === "tous" && (
+                    <div className="grid grid-cols-2 gap-1 mt-1.5" style={{ fontSize: 9, fontWeight: 400, color: "var(--muted-foreground)" }}>
+                      <span>Rhodes</span>
+                      <span>Châtelain</span>
+                    </div>
+                  )}
                 </button>
               );
             })}
