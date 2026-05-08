@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AlertTriangle, Send, UserPlus, Sparkles, ChevronDown, ChevronUp, Check, Search, ExternalLink } from "lucide-react";
-import { holeShifts, employees, roleColors, getUrgencyColor, type HoleShift, type Role, type Studio } from "@/lib/mock-data";
+import { holeShifts, employees, roleColors, type HoleShift, type Role, type Studio } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/trous")({
   component: TrousPage,
