@@ -84,11 +84,12 @@ function generateShifts(weekDays: Date[]): PlanningShift[] {
     const isToday = shiftDate.toDateString() === now.toDateString();
 
     for (let slot = 0; slot < 4; slot++) {
-      const count = slot === 0 || slot === 3 ? 2 : 3;
-      for (let i = 0; i < count; i++) {
-        const emp = names[(id + day * 3 + slot) % names.length];
+      // Both studios run in parallel — generate shifts for each
+      for (const studio of studios) {
+        const count = slot === 0 || slot === 3 ? 1 : 2;
+        for (let i = 0; i < count; i++) {
+        const emp = names[(id + day * 3 + slot + (studio === "Skult Châtelain" ? 7 : 0)) % names.length];
         const role = emp.roles[0];
-        const studio = day < 4 ? "Skult Rhodes" : "Skult Châtelain";
         const conf = isPast ? "confirmé" as const : confirmations[id % confirmations.length];
         const delay = (id % 7 === 3) ? 8 + (id % 12) : undefined;
         let ptg: ShiftPointage;
@@ -115,6 +116,7 @@ function generateShifts(weekDays: Date[]): PlanningShift[] {
           clockIn: ptg === "retard" ? `${timeSlotDefs[slot].start.replace("h00", `h${String(delay || 0).padStart(2, "0")}`)}` : (ptg === "à-temps" ? timeSlotDefs[slot].start : undefined),
           phone: emp.phone,
         });
+        }
       }
     }
   }
@@ -593,7 +595,7 @@ function PlanningPage() {
       {viewMode === "semaine" && (
         <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
           {/* Day headers */}
-          <div className="grid grid-cols-8" style={{ borderBottom: "0.5px solid var(--border)" }}>
+        <div className="grid grid-cols-8" style={{ borderBottom: "0.5px solid var(--border)" }}>
             <div className="px-3 py-2" style={{ fontSize: 11, color: "var(--muted-foreground)" }} />
             {weekDays.map((d, i) => {
               const isToday = i === todayIdx;
@@ -609,7 +611,13 @@ function PlanningPage() {
                     backgroundColor: isToday ? "var(--coral-light)" : "transparent",
                   }}
                 >
-                  {dn} {d.getDate()}
+                  <div>{dn} {d.getDate()}</div>
+                  {studioFilter === "tous" && (
+                    <div className="grid grid-cols-2 gap-1 mt-1.5" style={{ fontSize: 9, fontWeight: 400, color: "var(--muted-foreground)" }}>
+                      <span>Rhodes</span>
+                      <span>Châtelain</span>
+                    </div>
+                  )}
                 </button>
               );
             })}
@@ -622,6 +630,71 @@ function PlanningPage() {
               {weekDays.map((_, dayIdx) => {
                 const cellShifts = filtered.filter((s) => s.day === dayIdx && s.slot === slotIdx);
                 const isToday = dayIdx === todayIdx;
+                const splitByStudio = studioFilter === "tous";
+                const renderShift = (shift: PlanningShift) =>
+                  shift.hole ? (
+                    <div
+                      key={shift.id}
+                      onClick={() => setHoleShift(shift)}
+                      className="rounded-md px-2 py-1.5 flex items-center gap-1 transition-all"
+                      style={{ fontSize: 10, backgroundColor: "var(--danger-bg)", color: "var(--danger-text)", border: "1px dashed var(--danger-text)", cursor: "pointer" }}
+                    >
+                      <AlertTriangle size={10} />
+                      Trou · {shift.role}
+                    </div>
+                  ) : (
+                    <div
+                      key={shift.id}
+                      draggable
+                      onDragStart={() => handleDragStart(shift.id)}
+                      onClick={() => setSelectedShift(shift)}
+                      className="rounded-md px-2 py-1.5 transition-all group"
+                      style={{ fontSize: 10, backgroundColor: roleColors[shift.role].bg, color: roleColors[shift.role].text, cursor: "pointer" }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.85"; (e.currentTarget as HTMLElement).style.transform = "scale(1.02)"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; (e.currentTarget as HTMLElement).style.transform = "scale(1)"; }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1 min-w-0">
+                          <GripVertical size={8} style={{ opacity: 0.4, flexShrink: 0 }} />
+                          <span style={{ fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{shift.name}</span>
+                        </div>
+                        <StatusDot confirmation={shift.confirmation} pointage={shift.pointage} delayMinutes={shift.delayMinutes} />
+                      </div>
+                    </div>
+                  );
+
+                if (splitByStudio) {
+                  const rhodes = cellShifts.filter((s) => s.studio === "Skult Rhodes");
+                  const chatelain = cellShifts.filter((s) => s.studio === "Skult Châtelain");
+                  return (
+                    <div
+                      key={dayIdx}
+                      className="grid grid-cols-2"
+                      style={{ borderLeft: "0.5px solid var(--border)", backgroundColor: isToday ? "rgba(240,153,123,0.04)" : "transparent" }}
+                    >
+                      <div
+                        className="px-1 py-1 flex flex-col gap-1"
+                        style={{ borderRight: "0.5px dashed var(--border)" }}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => handleDrop(dayIdx, slotIdx)}
+                      >
+                        {rhodes.length === 0 ? (
+                          <div style={{ fontSize: 9, color: "var(--muted-foreground)", opacity: 0.5, padding: "2px 4px" }}>—</div>
+                        ) : rhodes.map(renderShift)}
+                      </div>
+                      <div
+                        className="px-1 py-1 flex flex-col gap-1"
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => handleDrop(dayIdx, slotIdx)}
+                      >
+                        {chatelain.length === 0 ? (
+                          <div style={{ fontSize: 9, color: "var(--muted-foreground)", opacity: 0.5, padding: "2px 4px" }}>—</div>
+                        ) : chatelain.map(renderShift)}
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <div
                     key={dayIdx}
@@ -630,39 +703,7 @@ function PlanningPage() {
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={() => handleDrop(dayIdx, slotIdx)}
                   >
-                    {cellShifts.map((shift) =>
-                      shift.hole ? (
-                        <div
-                          key={shift.id}
-                          onClick={() => setHoleShift(shift)}
-                          className="rounded-md px-2 py-1.5 flex items-center gap-1 transition-all"
-                          style={{ fontSize: 10, backgroundColor: "var(--danger-bg)", color: "var(--danger-text)", border: "1px dashed var(--danger-text)", cursor: "pointer" }}
-                        >
-                          <AlertTriangle size={10} />
-                          Trou · {shift.role}
-                        </div>
-                      ) : (
-                        <div
-                          key={shift.id}
-                          draggable
-                          onDragStart={() => handleDragStart(shift.id)}
-                          onClick={() => setSelectedShift(shift)}
-                          className="rounded-md px-2 py-1.5 transition-all group"
-                          style={{ fontSize: 10, backgroundColor: roleColors[shift.role].bg, color: roleColors[shift.role].text, cursor: "pointer" }}
-                          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.85"; (e.currentTarget as HTMLElement).style.transform = "scale(1.02)"; }}
-                          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; (e.currentTarget as HTMLElement).style.transform = "scale(1)"; }}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1">
-                              <GripVertical size={8} style={{ opacity: 0.4 }} />
-                              <span style={{ fontWeight: 500 }}>{shift.name}</span>
-                            </div>
-                            <StatusDot confirmation={shift.confirmation} pointage={shift.pointage} delayMinutes={shift.delayMinutes} />
-                          </div>
-                          <div style={{ opacity: 0.7, marginTop: 1 }}>{shift.time}</div>
-                        </div>
-                      )
-                    )}
+                    {cellShifts.map(renderShift)}
                   </div>
                 );
               })}
