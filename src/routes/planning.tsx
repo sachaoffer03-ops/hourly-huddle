@@ -116,6 +116,7 @@ function generateShifts(weekDays: Date[]): PlanningShift[] {
           clockIn: ptg === "retard" ? `${timeSlotDefs[slot].start.replace("h00", `h${String(delay || 0).padStart(2, "0")}`)}` : (ptg === "à-temps" ? timeSlotDefs[slot].start : undefined),
           phone: emp.phone,
         });
+        }
       }
     }
   }
