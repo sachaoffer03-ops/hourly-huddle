@@ -11,7 +11,6 @@ import {
   Users,
   Camera,
   Sparkles,
-  Calendar,
   CalendarOff,
   PartyPopper,
   SlidersHorizontal,
