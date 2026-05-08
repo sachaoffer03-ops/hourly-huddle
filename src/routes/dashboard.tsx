@@ -82,7 +82,7 @@ function DashboardPage() {
         </div>
 
         {/* Right: action panels */}
-        <div className="col-span-2 flex flex-col gap-5">
+        <div className="md:col-span-2 flex flex-col gap-5">
           {/* Actions en attente */}
           <div
             className="rounded-xl p-5"
