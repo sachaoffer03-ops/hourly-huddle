@@ -55,7 +55,7 @@ function DashboardPage() {
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-4 gap-4 mt-5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-5">
         <KpiCard label="Cette semaine" value="68" unit="shifts" change="↑ 12% vs sem. dern." changeColor="var(--success-text)" />
         <KpiCard label="Heures prestées" value="476" unit="h" change="Cible mois : 1 840h" changeColor="var(--muted-foreground)" />
         <KpiCard label="Score staff moyen" value="8.6" unit="/10" change="+0.2 ce mois" changeColor="var(--success-text)" />
