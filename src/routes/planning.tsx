@@ -427,23 +427,21 @@ function FillHoleModal({ shift, onClose, onFill }: { shift: PlanningShift; onClo
 }
 
 // ── Main Planning Page ────────────────────────────────────
+const fmtTime = (s: string) => s.replace("h00", ":00").replace("h", ":");
+
 function PlanningPage() {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth());
   const [year, setYear] = useState(now.getFullYear());
   const [weekOffset, setWeekOffset] = useState(0);
-  const [viewMode, setViewMode] = useState<ViewMode>("semaine");
-  const [dayViewIdx, setDayViewIdx] = useState(now.getDay() === 0 ? 6 : now.getDay() - 1);
-  const [roleFilter, setRoleFilter] = useState<Role | "tous">("tous");
-  const [studioFilter, setStudioFilter] = useState<Studio | "tous">("tous");
+  const [selectedStudio, setSelectedStudio] = useState<Studio>("Skult Rhodes");
+  const [selectedDayIdx, setSelectedDayIdx] = useState<number | null>(null);
   const [selectedShift, setSelectedShift] = useState<PlanningShift | null>(null);
   const [holeShift, setHoleShift] = useState<PlanningShift | null>(null);
-  const [dragShift, setDragShift] = useState<string | null>(null);
 
   const weekDays = useMemo(() => getWeekDays(year, month, weekOffset), [year, month, weekOffset]);
   const [shifts, setShifts] = useState<PlanningShift[]>(() => generateShifts(weekDays));
 
-  // Regenerate shifts when week changes
   const lastWeekKey = useRef(`${year}-${month}-${weekOffset}`);
   const weekKey = `${year}-${month}-${weekOffset}`;
   if (weekKey !== lastWeekKey.current) {
@@ -456,40 +454,15 @@ function PlanningPage() {
     return weekDays.findIndex((d) => d.toDateString() === today.toDateString());
   }, [weekDays]);
 
-  const filtered = shifts.filter((s) => {
-    if (roleFilter !== "tous" && s.role !== roleFilter) return false;
-    if (studioFilter !== "tous" && s.studio !== studioFilter) return false;
-    return true;
-  });
+  const studioShifts = useMemo(() => shifts.filter((s) => s.studio === selectedStudio), [shifts, selectedStudio]);
+  const realShifts = studioShifts.filter((s) => !s.hole);
+  const holes = studioShifts.filter((s) => s.hole);
+  const roleTotals = roles.map((r) => ({ role: r, count: realShifts.filter((s) => s.role === r).length }));
 
-  // Navigation
   const goToday = () => { setMonth(now.getMonth()); setYear(now.getFullYear()); setWeekOffset(0); };
-  const goPrev = () => {
-    if (viewMode === "jour") {
-      if (dayViewIdx === 0) { setWeekOffset((w) => w - 1); setDayViewIdx(6); }
-      else setDayViewIdx((d) => d - 1);
-    } else {
-      setWeekOffset((w) => w - 1);
-    }
-  };
-  const goNext = () => {
-    if (viewMode === "jour") {
-      if (dayViewIdx === 6) { setWeekOffset((w) => w + 1); setDayViewIdx(0); }
-      else setDayViewIdx((d) => d + 1);
-    } else {
-      setWeekOffset((w) => w + 1);
-    }
-  };
+  const goPrev = () => setWeekOffset((w) => w - 1);
+  const goNext = () => setWeekOffset((w) => w + 1);
 
-  // Drag & Drop
-  const handleDragStart = (shiftId: string) => setDragShift(shiftId);
-  const handleDrop = (targetDay: number, targetSlot: number) => {
-    if (!dragShift) return;
-    setShifts((prev) => prev.map((s) => s.id === dragShift ? { ...s, day: targetDay, slot: targetSlot } : s));
-    setDragShift(null);
-  };
-
-  // Fill hole
   const handleFillHole = (holeId: string, empId: string) => {
     const emp = employees.find((e) => e.id === empId);
     if (!emp) return;
@@ -500,307 +473,224 @@ function PlanningPage() {
     setHoleShift(null);
   };
 
-  const displayMonth = weekDays[3] ? monthNames[weekDays[3].getMonth()] : monthNames[month];
-  const displayYear = weekDays[3] ? weekDays[3].getFullYear() : year;
+  // Compute ISO-ish week number
+  const weekNumber = useMemo(() => {
+    const d = new Date(weekDays[3]);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+    const yearStart = new Date(d.getFullYear(), 0, 1);
+    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  }, [weekDays]);
 
-  // Day view label
-  const dayViewDate = weekDays[dayViewIdx];
-  const dayViewLabel = dayViewDate ? `${dayNamesFull[dayViewDate.getDay()]} ${dayViewDate.getDate()} ${monthNames[dayViewDate.getMonth()]}` : "";
+  const startD = weekDays[0];
+  const endD = weekDays[6];
+  const sameMonth = startD.getMonth() === endD.getMonth();
+  const weekRangeLabel = sameMonth
+    ? `Semaine du ${startD.getDate()} au ${endD.getDate()} ${monthNames[endD.getMonth()].toLowerCase()} ${endD.getFullYear()}`
+    : `Semaine du ${startD.getDate()} ${monthNames[startD.getMonth()].toLowerCase()} au ${endD.getDate()} ${monthNames[endD.getMonth()].toLowerCase()} ${endD.getFullYear()}`;
 
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-3">
-          <button onClick={goPrev} className="rounded-md p-1 transition-colors" style={{ border: "0.5px solid var(--border)" }}>
-            <ChevronLeft size={16} />
-          </button>
-          <span style={{ fontSize: 16, fontWeight: 500 }}>
-            {viewMode === "jour" ? dayViewLabel : `${displayMonth} ${displayYear}`}
-          </span>
-          <button onClick={goNext} className="rounded-md p-1 transition-colors" style={{ border: "0.5px solid var(--border)" }}>
-            <ChevronRight size={16} />
-          </button>
-          <button onClick={goToday} className="rounded-md px-3 py-1 ml-2 transition-colors" style={{ fontSize: 12, border: "0.5px solid var(--border)", color: "var(--foreground)" }}>
-            Aujourd'hui
-          </button>
+      <div className="flex items-start justify-between gap-6 mb-5 flex-wrap">
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 500, marginBottom: 2 }}>Planning</h1>
+          <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>{weekRangeLabel}</div>
         </div>
-        <div className="flex items-center gap-2">
-          {/* View mode */}
-          <div className="flex rounded-md overflow-hidden" style={{ border: "0.5px solid var(--border)" }}>
-            {(["jour", "semaine"] as ViewMode[]).map((v) => (
+
+        {/* Studio toggle */}
+        <div className="flex rounded-full p-1" style={{ backgroundColor: "var(--muted)" }}>
+          {studios.map((s) => {
+            const active = selectedStudio === s;
+            return (
               <button
-                key={v}
-                onClick={() => setViewMode(v)}
-                className="px-3 py-1.5 transition-colors"
+                key={s}
+                onClick={() => setSelectedStudio(s)}
+                className="rounded-full px-5 py-1.5 transition-colors"
                 style={{
-                  fontSize: 11, fontWeight: viewMode === v ? 500 : 400,
-                  backgroundColor: viewMode === v ? "var(--foreground)" : "transparent",
-                  color: viewMode === v ? "var(--card)" : "var(--muted-foreground)",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  backgroundColor: active ? "var(--foreground)" : "transparent",
+                  color: active ? "var(--card)" : "var(--muted-foreground)",
                 }}
               >
-                {v === "jour" ? "Jour" : "Semaine"}
+                {s.replace("Skult ", "")}
               </button>
-            ))}
+            );
+          })}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="flex items-center rounded-md" style={{ border: "0.5px solid var(--border)" }}>
+            <button onClick={goPrev} className="p-1.5" style={{ color: "var(--muted-foreground)" }}>
+              <ChevronLeft size={14} />
+            </button>
+            <button onClick={goToday} className="px-2 py-1.5" style={{ fontSize: 12, fontWeight: 500, borderLeft: "0.5px solid var(--border)", borderRight: "0.5px solid var(--border)" }}>
+              Sem. {weekNumber} · {monthNames[weekDays[3].getMonth()]} {weekDays[3].getFullYear()}
+            </button>
+            <button onClick={goNext} className="p-1.5" style={{ color: "var(--muted-foreground)" }}>
+              <ChevronRight size={14} />
+            </button>
           </div>
           <a
             href="/planning/generate"
             className="rounded-md px-4 py-2 flex items-center gap-1.5 transition-colors"
-            style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)" }}
+            style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--coral)", color: "#fff" }}
           >
-            Générer le planning
+            + Ajouter un shift
           </a>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
-        {(["tous", ...roles] as const).map((r) => (
-          <button
-            key={r}
-            onClick={() => setRoleFilter(r as Role | "tous")}
-            className="rounded-full px-2.5 py-1 flex items-center gap-1.5 transition-colors"
-            style={{
-              fontSize: 11,
-              fontWeight: roleFilter === r ? 500 : 400,
-              backgroundColor: roleFilter === r ? (r === "tous" ? "var(--foreground)" : roleColors[r as Role].bg) : "transparent",
-              color: roleFilter === r ? (r === "tous" ? "var(--card)" : roleColors[r as Role].text) : "var(--muted-foreground)",
-              border: roleFilter === r ? "none" : "0.5px solid var(--border)",
-            }}
-          >
-            {r !== "tous" && <span className="rounded-full" style={{ width: 6, height: 6, backgroundColor: roleColors[r as Role].dot }} />}
-            {r === "tous" ? "Tous les rôles" : r}
-          </button>
+      {/* Legend */}
+      <div className="flex items-center gap-5 mb-3 flex-wrap" style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
+        {roles.map((r) => (
+          <span key={r} className="flex items-center gap-1.5">
+            <span className="rounded-full" style={{ width: 8, height: 8, backgroundColor: roleColors[r].dot }} />
+            {r}
+          </span>
         ))}
-        <span style={{ width: 1, height: 16, backgroundColor: "var(--border)", display: "inline-block", margin: "0 4px" }} />
-        {(["tous", ...studios] as const).map((s) => (
-          <button
-            key={s}
-            onClick={() => setStudioFilter(s as Studio | "tous")}
-            className="rounded-full px-2.5 py-1 transition-colors"
-            style={{
-              fontSize: 11,
-              fontWeight: studioFilter === s ? 500 : 400,
-              backgroundColor: studioFilter === s ? "var(--foreground)" : "transparent",
-              color: studioFilter === s ? "var(--card)" : "var(--muted-foreground)",
-              border: studioFilter === s ? "none" : "0.5px solid var(--border)",
-            }}
-          >
-            {s === "tous" ? "Tous les studios" : s.replace("Skult ", "")}
-          </button>
-        ))}
+        <span className="flex items-center gap-1.5">
+          <span style={{ width: 14, height: 0, borderTop: "1.5px dashed var(--coral)" }} />
+          Trou à combler
+        </span>
       </div>
 
-      {/* ── WEEK VIEW ── */}
-      {viewMode === "semaine" && (
-        <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
-          {/* Day headers */}
-        <div className="grid grid-cols-8" style={{ borderBottom: "0.5px solid var(--border)" }}>
-            <div className="px-3 py-2" style={{ fontSize: 11, color: "var(--muted-foreground)" }} />
-            {weekDays.map((d, i) => {
-              const isToday = i === todayIdx;
-              const dn = dayNamesShort[d.getDay()];
-              return (
-                <button
-                  key={i}
-                  className="px-3 py-2 text-center transition-colors"
-                  onClick={() => { setViewMode("jour"); setDayViewIdx(i); }}
-                  style={{
-                    fontSize: 11, fontWeight: 500, cursor: "pointer",
-                    color: isToday ? "var(--coral-dark)" : "var(--muted-foreground)",
-                    backgroundColor: isToday ? "var(--coral-light)" : "transparent",
-                  }}
-                >
-                  <div>{dn} {d.getDate()}</div>
-                  {studioFilter === "tous" && (
-                    <div className="grid grid-cols-2 gap-1 mt-1.5" style={{ fontSize: 9, fontWeight: 400, color: "var(--muted-foreground)" }}>
-                      <span>Rhodes</span>
-                      <span>Châtelain</span>
-                    </div>
+      {/* Grid */}
+      <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
+        {/* Day headers */}
+        <div className="grid" style={{ gridTemplateColumns: "140px repeat(7, 1fr)", borderBottom: "0.5px solid var(--border)" }}>
+          <div className="px-4 py-3" style={{ fontSize: 11, color: "var(--muted-foreground)", fontWeight: 500 }}>Poste</div>
+          {weekDays.map((d, i) => {
+            const isSelected = selectedDayIdx === i;
+            const isToday = i === todayIdx;
+            return (
+              <button
+                key={i}
+                onClick={() => setSelectedDayIdx(isSelected ? null : i)}
+                className="px-3 py-3 text-center transition-colors"
+                style={{
+                  fontSize: 12,
+                  fontWeight: 500,
+                  borderLeft: "0.5px solid var(--border)",
+                  backgroundColor: isSelected ? "var(--foreground)" : "transparent",
+                  color: isSelected ? "var(--card)" : "var(--foreground)",
+                  cursor: "pointer",
+                }}
+              >
+                <div style={{ fontSize: 11, fontWeight: 400, opacity: isSelected ? 0.7 : 0.6, marginBottom: 2 }}>{dayNamesShort[d.getDay()]}</div>
+                <div style={{ fontSize: 13 }}>
+                  {d.getDate()} {monthNames[d.getMonth()].slice(0, 3).toLowerCase()}
+                  {isToday && !isSelected && (
+                    <span className="rounded-full ml-1" style={{ display: "inline-block", width: 5, height: 5, backgroundColor: "var(--coral)", verticalAlign: "middle" }} />
                   )}
-                </button>
-              );
-            })}
-          </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
 
-          {/* Time rows */}
-          {timeSlotDefs.map((slot, slotIdx) => (
-            <div key={slot.label} className="grid grid-cols-8" style={{ borderBottom: "0.5px solid var(--border)", minHeight: 80 }}>
-              <div className="px-3 py-2 flex items-start" style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{slot.label}</div>
+        {/* Role rows */}
+        {roles.map((role) => {
+          const rc = roleColors[role];
+          return (
+            <div
+              key={role}
+              className="grid"
+              style={{ gridTemplateColumns: "140px repeat(7, 1fr)", borderBottom: "0.5px solid var(--border)", minHeight: 110 }}
+            >
+              <div className="px-4 py-3 flex items-center gap-2" style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--muted)" }}>
+                <span className="rounded-full" style={{ width: 8, height: 8, backgroundColor: rc.dot }} />
+                {role}
+              </div>
               {weekDays.map((_, dayIdx) => {
-                const cellShifts = filtered.filter((s) => s.day === dayIdx && s.slot === slotIdx);
-                const isToday = dayIdx === todayIdx;
-                const splitByStudio = studioFilter === "tous";
-                const renderShift = (shift: PlanningShift) =>
-                  shift.hole ? (
-                    <div
-                      key={shift.id}
-                      onClick={() => setHoleShift(shift)}
-                      className="rounded-md px-2 py-1.5 flex items-center gap-1 transition-all"
-                      style={{ fontSize: 10, backgroundColor: "var(--danger-bg)", color: "var(--danger-text)", border: "1px dashed var(--danger-text)", cursor: "pointer" }}
-                    >
-                      <AlertTriangle size={10} />
-                      Trou · {shift.role}
-                    </div>
-                  ) : (
-                    <div
-                      key={shift.id}
-                      draggable
-                      onDragStart={() => handleDragStart(shift.id)}
-                      onClick={() => setSelectedShift(shift)}
-                      className="rounded-md px-2 py-1.5 transition-all group"
-                      style={{ fontSize: 10, backgroundColor: roleColors[shift.role].bg, color: roleColors[shift.role].text, cursor: "pointer" }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.85"; (e.currentTarget as HTMLElement).style.transform = "scale(1.02)"; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; (e.currentTarget as HTMLElement).style.transform = "scale(1)"; }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1 min-w-0">
-                          <GripVertical size={8} style={{ opacity: 0.4, flexShrink: 0 }} />
-                          <span style={{ fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{shift.name}</span>
-                        </div>
-                        <StatusDot confirmation={shift.confirmation} pointage={shift.pointage} delayMinutes={shift.delayMinutes} />
-                      </div>
-                    </div>
-                  );
-
-                if (splitByStudio) {
-                  const rhodes = cellShifts.filter((s) => s.studio === "Skult Rhodes");
-                  const chatelain = cellShifts.filter((s) => s.studio === "Skult Châtelain");
-                  return (
-                    <div
-                      key={dayIdx}
-                      className="grid grid-cols-2"
-                      style={{ borderLeft: "0.5px solid var(--border)", backgroundColor: isToday ? "rgba(240,153,123,0.04)" : "transparent" }}
-                    >
-                      <div
-                        className="px-1 py-1 flex flex-col gap-1"
-                        style={{ borderRight: "0.5px dashed var(--border)" }}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={() => handleDrop(dayIdx, slotIdx)}
-                      >
-                        {rhodes.length === 0 ? (
-                          <div style={{ fontSize: 9, color: "var(--muted-foreground)", opacity: 0.5, padding: "2px 4px" }}>—</div>
-                        ) : rhodes.map(renderShift)}
-                      </div>
-                      <div
-                        className="px-1 py-1 flex flex-col gap-1"
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={() => handleDrop(dayIdx, slotIdx)}
-                      >
-                        {chatelain.length === 0 ? (
-                          <div style={{ fontSize: 9, color: "var(--muted-foreground)", opacity: 0.5, padding: "2px 4px" }}>—</div>
-                        ) : chatelain.map(renderShift)}
-                      </div>
-                    </div>
-                  );
-                }
-
+                const cellShifts = studioShifts.filter((s) => s.day === dayIdx && s.role === role);
+                const isSelected = selectedDayIdx === dayIdx;
                 return (
                   <div
                     key={dayIdx}
-                    className="px-1 py-1 flex flex-col gap-1"
-                    style={{ borderLeft: "0.5px solid var(--border)", backgroundColor: isToday ? "rgba(240,153,123,0.04)" : "transparent" }}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => handleDrop(dayIdx, slotIdx)}
+                    className="p-1.5 flex flex-col gap-1.5"
+                    style={{
+                      borderLeft: "0.5px solid var(--border)",
+                      backgroundColor: isSelected ? "rgba(15,15,15,0.03)" : "transparent",
+                    }}
                   >
-                    {cellShifts.map(renderShift)}
+                    {cellShifts.map((shift) =>
+                      shift.hole ? (
+                        <button
+                          key={shift.id}
+                          onClick={() => setHoleShift(shift)}
+                          className="rounded-md px-2 py-1.5 text-left transition-all"
+                          style={{
+                            fontSize: 11,
+                            backgroundColor: "var(--coral-light)",
+                            color: "var(--coral-dark)",
+                            border: "1px dashed var(--coral)",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <div style={{ fontWeight: 500 }}>+ Libre</div>
+                          <div style={{ fontSize: 10, opacity: 0.85, marginTop: 1 }}>
+                            {fmtTime(shift.startHour)}–{fmtTime(shift.endHour)}
+                          </div>
+                        </button>
+                      ) : (
+                        <button
+                          key={shift.id}
+                          onClick={() => setSelectedShift(shift)}
+                          className="rounded-md px-2 py-1.5 text-left transition-all"
+                          style={{
+                            fontSize: 11,
+                            backgroundColor: rc.bg,
+                            color: rc.text,
+                            cursor: "pointer",
+                          }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.85"; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <span style={{ fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {shift.name.split(" ")[0]}
+                            </span>
+                            <StatusDot confirmation={shift.confirmation} pointage={shift.pointage} delayMinutes={shift.delayMinutes} />
+                          </div>
+                          <div style={{ fontSize: 10, opacity: 0.85, marginTop: 1 }}>
+                            {fmtTime(shift.startHour)}–{fmtTime(shift.endHour)}
+                          </div>
+                        </button>
+                      )
+                    )}
                   </div>
                 );
               })}
             </div>
+          );
+        })}
+      </div>
+
+      {/* Footer summary */}
+      <div
+        className="rounded-xl border mt-4 px-5 py-3 flex items-center justify-between gap-4 flex-wrap"
+        style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
+      >
+        <div className="flex items-center gap-3" style={{ fontSize: 12 }}>
+          <span style={{ fontWeight: 500 }}>Semaine {selectedStudio.replace("Skult ", "")}</span>
+          <span style={{ color: "var(--muted-foreground)" }}>·</span>
+          <span style={{ color: "var(--muted-foreground)" }}>{realShifts.length} shifts planifiés</span>
+          {holes.length > 0 && (
+            <>
+              <span style={{ color: "var(--muted-foreground)" }}>·</span>
+              <span style={{ color: "var(--coral-dark)", fontWeight: 500 }}>{holes.length} trous à combler</span>
+            </>
+          )}
+        </div>
+        <div className="flex items-center gap-4" style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
+          {roleTotals.map(({ role, count }) => (
+            <span key={role} className="flex items-center gap-1.5">
+              <span className="rounded-full" style={{ width: 6, height: 6, backgroundColor: roleColors[role].dot }} />
+              {count} {role}
+            </span>
           ))}
-        </div>
-      )}
-
-      {/* ── DAY VIEW ── */}
-      {viewMode === "jour" && (
-        <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
-          {timeSlotDefs.map((slot, slotIdx) => {
-            const cellShifts = filtered.filter((s) => s.day === dayViewIdx && s.slot === slotIdx);
-            return (
-              <div key={slot.label} style={{ borderBottom: "0.5px solid var(--border)" }}>
-                <div className="px-4 py-2" style={{ fontSize: 12, fontWeight: 500, color: "var(--muted-foreground)", backgroundColor: "var(--muted)" }}>
-                  {slot.time}
-                </div>
-                <div
-                  className="px-4 py-2 flex flex-col gap-2"
-                  style={{ minHeight: 60 }}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => handleDrop(dayViewIdx, slotIdx)}
-                >
-                  {cellShifts.length === 0 && (
-                    <div style={{ fontSize: 11, color: "var(--muted-foreground)", padding: "8px 0" }}>Aucun shift</div>
-                  )}
-                  {cellShifts.map((shift) =>
-                    shift.hole ? (
-                      <div
-                        key={shift.id}
-                        onClick={() => setHoleShift(shift)}
-                        className="rounded-lg px-3 py-2.5 flex items-center gap-2 transition-all"
-                        style={{ fontSize: 12, backgroundColor: "var(--danger-bg)", color: "var(--danger-text)", border: "1px dashed var(--danger-text)", cursor: "pointer" }}
-                      >
-                        <AlertTriangle size={14} />
-                        <div>
-                          <div style={{ fontWeight: 500 }}>Trou non rempli</div>
-                          <div style={{ fontSize: 11, opacity: 0.8 }}>{shift.role} · {shift.studio}</div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div
-                        key={shift.id}
-                        draggable
-                        onDragStart={() => handleDragStart(shift.id)}
-                        onClick={() => setSelectedShift(shift)}
-                        className="rounded-lg px-3 py-2.5 flex items-center justify-between transition-all"
-                        style={{ fontSize: 12, backgroundColor: roleColors[shift.role].bg, color: roleColors[shift.role].text, cursor: "pointer" }}
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.85"; }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <GripVertical size={12} style={{ opacity: 0.4 }} />
-                          <div className="rounded-full flex items-center justify-center" style={{ width: 28, height: 28, backgroundColor: "rgba(255,255,255,0.3)", fontSize: 10, fontWeight: 500 }}>
-                            {shift.name.charAt(0)}{shift.name.split(" ")[1]?.charAt(0)}
-                          </div>
-                          <div>
-                            <div style={{ fontWeight: 500 }}>{shift.name}</div>
-                            <div style={{ fontSize: 10, opacity: 0.7 }}>{shift.role} · {shift.studio}</div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <StatusDot confirmation={shift.confirmation} pointage={shift.pointage} delayMinutes={shift.delayMinutes} />
-                          <span style={{ fontSize: 11, opacity: 0.7 }}>{shift.time}</span>
-                        </div>
-                      </div>
-                    )
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Legend */}
-      <div className="flex items-center gap-4 mt-4 flex-wrap" style={{ fontSize: 10, color: "var(--muted-foreground)" }}>
-        <div className="flex items-center gap-1.5">
-          <span className="rounded-full px-1" style={{ backgroundColor: "var(--success-bg)", color: "var(--success-text)" }}><Check size={7} /></span>
-          Pointé a l'heure
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="rounded-full px-1" style={{ backgroundColor: "var(--warning-bg)", color: "var(--warning-text)" }}><Clock size={7} /></span>
-          Retard
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="rounded-full px-1" style={{ backgroundColor: "var(--info-bg)", color: "var(--info-text)" }}><CheckCheck size={7} /></span>
-          Confirmé
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="rounded-full px-1" style={{ backgroundColor: "var(--warning-bg)", color: "var(--warning-text)" }}><Clock size={7} /></span>
-          En attente
-        </div>
-        <div className="flex items-center gap-1.5">
-          <GripVertical size={10} />
-          Glisser-déposer
         </div>
       </div>
 
