@@ -84,11 +84,12 @@ function generateShifts(weekDays: Date[]): PlanningShift[] {
     const isToday = shiftDate.toDateString() === now.toDateString();
 
     for (let slot = 0; slot < 4; slot++) {
-      const count = slot === 0 || slot === 3 ? 2 : 3;
-      for (let i = 0; i < count; i++) {
-        const emp = names[(id + day * 3 + slot) % names.length];
+      // Both studios run in parallel — generate shifts for each
+      for (const studio of studios) {
+        const count = slot === 0 || slot === 3 ? 1 : 2;
+        for (let i = 0; i < count; i++) {
+        const emp = names[(id + day * 3 + slot + (studio === "Skult Châtelain" ? 7 : 0)) % names.length];
         const role = emp.roles[0];
-        const studio = day < 4 ? "Skult Rhodes" : "Skult Châtelain";
         const conf = isPast ? "confirmé" as const : confirmations[id % confirmations.length];
         const delay = (id % 7 === 3) ? 8 + (id % 12) : undefined;
         let ptg: ShiftPointage;
