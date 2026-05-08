@@ -122,7 +122,6 @@ function FilterRow({
 }
 
 function HoleCard({ hole, expanded, onToggle }: { hole: HoleShift; expanded: boolean; onToggle: () => void }) {
-  const urgencyColor = getUrgencyColor(hole.urgency);
   const roleColor = roleColors[hole.role];
 
   return (
@@ -133,7 +132,7 @@ function HoleCard({ hole, expanded, onToggle }: { hole: HoleShift; expanded: boo
       <button onClick={onToggle} className="w-full flex items-center gap-4 px-5 py-4 text-left">
         <span className="rounded-full shrink-0" style={{ width: 10, height: 10, backgroundColor: roleColor.dot }} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <span style={{ fontSize: 14, fontWeight: 500 }}>{hole.role}</span>
             <span style={{ fontSize: 13, color: "var(--muted-foreground)" }}>·</span>
             <span style={{ fontSize: 13 }}>{hole.dateLabel}</span>
@@ -142,9 +141,6 @@ function HoleCard({ hole, expanded, onToggle }: { hole: HoleShift; expanded: boo
             <span style={{ fontSize: 13, color: "var(--muted-foreground)" }}>·</span>
             <span style={{ fontSize: 13, color: "var(--muted-foreground)" }}>{hole.studio}</span>
           </div>
-          <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, backgroundColor: urgencyColor.bg, color: urgencyColor.text, fontWeight: 500 }}>
-            {urgencyColor.label}
-          </span>
         </div>
         {expanded ? <ChevronUp size={16} style={{ color: "var(--muted-foreground)" }} /> : <ChevronDown size={16} style={{ color: "var(--muted-foreground)" }} />}
       </button>
