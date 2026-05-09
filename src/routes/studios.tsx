@@ -171,6 +171,10 @@ function StudiosPage() {
 
   const [infos, setInfos] = useState(initialInfos);
   const [activeRoles, setActiveRoles] = useState(initialActive);
+  const [customRoles, setCustomRoles] = useState<Record<Studio, string[]>>({
+    "Skult Rhodes": [],
+    "Skult Châtelain": [],
+  });
   const [week, setWeek] = useState(initialWeek);
   const [roleHours, setRoleHours] = useState(initialRoleHours);
   const [needs, setNeeds] = useState(initialNeeds);
@@ -240,6 +244,19 @@ function StudiosPage() {
                 : [...p[studio], role],
             }))
           }
+          customRoles={customRoles[studio]}
+          onAddCustomRole={(name) =>
+            setCustomRoles((p) => ({
+              ...p,
+              [studio]: p[studio].includes(name) ? p[studio] : [...p[studio], name],
+            }))
+          }
+          onRemoveCustomRole={(name) =>
+            setCustomRoles((p) => ({
+              ...p,
+              [studio]: p[studio].filter((r) => r !== name),
+            }))
+          }
         />
       )}
       {activeSubTab === 1 && (
@@ -287,13 +304,27 @@ function InformationsTab({
   onChange,
   activeRoles,
   onToggleRole,
+  customRoles,
+  onAddCustomRole,
+  onRemoveCustomRole,
 }: {
   info: StudioInfo;
   onChange: (patch: Partial<StudioInfo>) => void;
   activeRoles: Role[];
   onToggleRole: (r: Role) => void;
+  customRoles: string[];
+  onAddCustomRole: (name: string) => void;
+  onRemoveCustomRole: (name: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [newRole, setNewRole] = useState("");
+
+  const submitNewRole = () => {
+    const v = newRole.trim();
+    if (!v) return;
+    onAddCustomRole(v);
+    setNewRole("");
+  };
 
   return (
     <div className="grid grid-cols-3 gap-4">
@@ -407,6 +438,40 @@ function InformationsTab({
               </button>
             </div>
           ))}
+          {customRoles.map((role) => (
+            <div
+              key={role}
+              className="flex items-center justify-between rounded-lg px-3 py-2"
+              style={{ backgroundColor: "var(--muted)" }}
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className="rounded-full"
+                  style={{ width: 8, height: 8, backgroundColor: "var(--muted-foreground)" }}
+                />
+                <span style={{ fontSize: 13 }}>{role}</span>
+                <span
+                  className="rounded-full px-1.5 py-0.5"
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 500,
+                    color: "var(--muted-foreground)",
+                    border: "0.5px solid var(--border)",
+                  }}
+                >
+                  Personnalisé
+                </span>
+              </div>
+              <button
+                onClick={() => onRemoveCustomRole(role)}
+                className="rounded-md p-1"
+                style={{ color: "var(--muted-foreground)" }}
+                title="Supprimer ce poste"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          ))}
         </div>
 
         {allRoles.filter((r) => !activeRoles.includes(r)).length > 0 && (
@@ -449,6 +514,52 @@ function InformationsTab({
             </div>
           </div>
         )}
+
+        <div className="mt-3 pt-3" style={{ borderTop: "0.5px solid var(--border)" }}>
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 500,
+              color: "var(--muted-foreground)",
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              marginBottom: 6,
+            }}
+          >
+            Créer un nouveau poste
+          </div>
+          <div className="flex items-center gap-1.5">
+            <input
+              value={newRole}
+              onChange={(e) => setNewRole(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") submitNewRole();
+              }}
+              placeholder="Ex. Pâtissier"
+              className="flex-1 rounded-md px-2 py-1.5"
+              style={{
+                fontSize: 12,
+                border: "0.5px solid var(--border)",
+                backgroundColor: "var(--card)",
+              }}
+            />
+            <button
+              onClick={submitNewRole}
+              disabled={!newRole.trim()}
+              className="rounded-md px-2.5 py-1.5 flex items-center gap-1"
+              style={{
+                fontSize: 11,
+                fontWeight: 500,
+                backgroundColor: "var(--foreground)",
+                color: "var(--card)",
+                opacity: newRole.trim() ? 1 : 0.4,
+              }}
+            >
+              <Plus size={11} />
+              Créer
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
