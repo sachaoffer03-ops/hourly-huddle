@@ -244,6 +244,19 @@ function StudiosPage() {
                 : [...p[studio], role],
             }))
           }
+          customRoles={customRoles[studio]}
+          onAddCustomRole={(name) =>
+            setCustomRoles((p) => ({
+              ...p,
+              [studio]: p[studio].includes(name) ? p[studio] : [...p[studio], name],
+            }))
+          }
+          onRemoveCustomRole={(name) =>
+            setCustomRoles((p) => ({
+              ...p,
+              [studio]: p[studio].filter((r) => r !== name),
+            }))
+          }
         />
       )}
       {activeSubTab === 1 && (
