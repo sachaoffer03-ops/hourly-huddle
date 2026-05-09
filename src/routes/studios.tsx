@@ -513,7 +513,6 @@ function InformationsTab({
                 ))}
             </div>
           </div>
-          </div>
         )}
 
         <div className="mt-3 pt-3" style={{ borderTop: "0.5px solid var(--border)" }}>
