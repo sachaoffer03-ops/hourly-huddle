@@ -1025,11 +1025,73 @@ function BesoinsTab({
 }
 
 /* ------------------------------------------------------------------ */
-/* Exceptions — version sobre                                          */
+/* Exceptions — version sobre + édition complète                       */
 /* ------------------------------------------------------------------ */
 
+type ExceptionType = "fermeture" | "événement" | "ajustement";
+
+interface ExceptionItem {
+  id: string;
+  dateLabel: string;
+  type: ExceptionType;
+  title: string;
+  description: string;
+  hoursAdjust?: string;
+  impact: { role: Role; delta: number }[];
+}
+
+const exceptionTypes: ExceptionType[] = ["fermeture", "événement", "ajustement"];
+
 function ExceptionsTab({ studio }: { studio: Studio }) {
-  const items = studioExceptions.filter((e) => e.studio === studio);
+  const [items, setItems] = useState<ExceptionItem[]>(() =>
+    studioExceptions
+      .filter((e) => e.studio === studio)
+      .map((e) => ({
+        id: e.id,
+        dateLabel: e.dateLabel,
+        type: e.type,
+        title: e.title,
+        description: e.description,
+        hoursAdjust: e.hoursAdjust,
+        impact: e.impact,
+      })),
+  );
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<ExceptionItem | null>(null);
+
+  const startCreate = () => {
+    setEditingId("__new__");
+    setDraft({
+      id: `ex-${Date.now()}`,
+      dateLabel: "",
+      type: "fermeture",
+      title: "",
+      description: "",
+      hoursAdjust: "",
+      impact: [],
+    });
+  };
+  const startEdit = (it: ExceptionItem) => {
+    setEditingId(it.id);
+    setDraft({ ...it, impact: [...it.impact] });
+  };
+  const cancel = () => {
+    setEditingId(null);
+    setDraft(null);
+  };
+  const save = () => {
+    if (!draft || !draft.title.trim() || !draft.dateLabel.trim()) return;
+    setItems((prev) =>
+      editingId === "__new__"
+        ? [...prev, draft]
+        : prev.map((i) => (i.id === editingId ? draft : i)),
+    );
+    cancel();
+  };
+  const remove = (id: string) => {
+    setItems((prev) => prev.filter((i) => i.id !== id));
+    if (editingId === id) cancel();
+  };
 
   return (
     <>
@@ -1053,6 +1115,7 @@ function ExceptionsTab({ studio }: { studio: Studio }) {
           </div>
         </div>
         <button
+          onClick={startCreate}
           className="rounded-md flex items-center gap-1.5 px-3 py-1.5"
           style={{
             fontSize: 12,
@@ -1066,7 +1129,17 @@ function ExceptionsTab({ studio }: { studio: Studio }) {
         </button>
       </div>
 
-      {items.length === 0 ? (
+      {editingId === "__new__" && draft && (
+        <ExceptionForm
+          draft={draft}
+          setDraft={setDraft}
+          onCancel={cancel}
+          onSave={save}
+          title="Nouvelle exception"
+        />
+      )}
+
+      {items.length === 0 && editingId !== "__new__" ? (
         <div
           className="rounded-xl border p-10 text-center"
           style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
@@ -1081,12 +1154,33 @@ function ExceptionsTab({ studio }: { studio: Studio }) {
           style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
         >
           {items.map((ex, idx) => {
+            const isEditing = editingId === ex.id;
             const typeLabel =
               ex.type === "fermeture"
                 ? "Fermeture"
                 : ex.type === "événement"
                   ? "Événement"
                   : "Ajustement";
+            if (isEditing && draft) {
+              return (
+                <div
+                  key={ex.id}
+                  className="p-4"
+                  style={{
+                    borderBottom: idx < items.length - 1 ? "0.5px solid var(--border)" : "none",
+                  }}
+                >
+                  <ExceptionForm
+                    draft={draft}
+                    setDraft={setDraft}
+                    onCancel={cancel}
+                    onSave={save}
+                    title="Modifier l'exception"
+                    embedded
+                  />
+                </div>
+              );
+            }
             return (
               <div
                 key={ex.id}
@@ -1134,14 +1228,18 @@ function ExceptionsTab({ studio }: { studio: Studio }) {
 
                 <div className="flex items-center gap-1 shrink-0">
                   <button
+                    onClick={() => startEdit(ex)}
                     className="rounded-md p-1.5"
                     style={{ color: "var(--muted-foreground)" }}
+                    title="Modifier"
                   >
                     <Pencil size={12} />
                   </button>
                   <button
+                    onClick={() => remove(ex.id)}
                     className="rounded-md p-1.5"
                     style={{ color: "var(--muted-foreground)" }}
+                    title="Supprimer"
                   >
                     <Trash2 size={12} />
                   </button>
@@ -1155,15 +1253,303 @@ function ExceptionsTab({ studio }: { studio: Studio }) {
   );
 }
 
+function ExceptionForm({
+  draft,
+  setDraft,
+  onCancel,
+  onSave,
+  title,
+  embedded = false,
+}: {
+  draft: ExceptionItem;
+  setDraft: (d: ExceptionItem) => void;
+  onCancel: () => void;
+  onSave: () => void;
+  title: string;
+  embedded?: boolean;
+}) {
+  const setImpact = (role: Role, delta: number) => {
+    const others = draft.impact.filter((i) => i.role !== role);
+    setDraft({
+      ...draft,
+      impact: delta === 0 ? others : [...others, { role, delta }],
+    });
+  };
+  const getImpact = (role: Role) => draft.impact.find((i) => i.role === role)?.delta ?? 0;
+
+  return (
+    <div
+      className={embedded ? "rounded-lg p-4" : "rounded-xl border p-4 mb-4"}
+      style={{
+        backgroundColor: embedded ? "var(--muted)" : "var(--card)",
+        borderColor: "var(--border)",
+      }}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div style={{ fontSize: 13, fontWeight: 500 }}>{title}</div>
+        <button
+          onClick={onCancel}
+          className="rounded-md p-1"
+          style={{ color: "var(--muted-foreground)" }}
+        >
+          <X size={14} />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3 mb-3">
+        <FormField label="Date">
+          <input
+            value={draft.dateLabel}
+            onChange={(e) => setDraft({ ...draft, dateLabel: e.target.value })}
+            placeholder="Sam. 14 juin"
+            className="w-full rounded-md px-2 py-1.5"
+            style={{ fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "var(--card)" }}
+          />
+        </FormField>
+        <FormField label="Type">
+          <select
+            value={draft.type}
+            onChange={(e) => setDraft({ ...draft, type: e.target.value as ExceptionType })}
+            className="w-full rounded-md px-2 py-1.5"
+            style={{ fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "var(--card)" }}
+          >
+            {exceptionTypes.map((t) => (
+              <option key={t} value={t}>
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </option>
+            ))}
+          </select>
+        </FormField>
+        <FormField label="Horaires (optionnel)">
+          <input
+            value={draft.hoursAdjust ?? ""}
+            onChange={(e) => setDraft({ ...draft, hoursAdjust: e.target.value })}
+            placeholder="18h–02h"
+            className="w-full rounded-md px-2 py-1.5"
+            style={{ fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "var(--card)" }}
+          />
+        </FormField>
+      </div>
+
+      <FormField label="Titre">
+        <input
+          value={draft.title}
+          onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+          placeholder="Jazz live, Fermeture exceptionnelle…"
+          className="w-full rounded-md px-2 py-1.5"
+          style={{ fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "var(--card)" }}
+        />
+      </FormField>
+
+      <div className="mt-3">
+        <FormField label="Description">
+          <textarea
+            value={draft.description}
+            onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+            rows={2}
+            className="w-full rounded-md px-2 py-1.5"
+            style={{
+              fontSize: 13,
+              border: "0.5px solid var(--border)",
+              backgroundColor: "var(--card)",
+              resize: "vertical",
+            }}
+          />
+        </FormField>
+      </div>
+
+      <div className="mt-3">
+        <div
+          style={{
+            fontSize: 10,
+            fontWeight: 500,
+            color: "var(--muted-foreground)",
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            marginBottom: 6,
+          }}
+        >
+          Impact staff (par rôle)
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          {allRoles.map((r) => (
+            <div
+              key={r}
+              className="flex items-center justify-between rounded-md px-2 py-1.5"
+              style={{ backgroundColor: "var(--card)", border: "0.5px solid var(--border)" }}
+            >
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="rounded-full"
+                  style={{ width: 6, height: 6, backgroundColor: roleColors[r].dot }}
+                />
+                <span style={{ fontSize: 11 }}>{r}</span>
+              </div>
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={() => setImpact(r, getImpact(r) - 1)}
+                  className="rounded p-0.5"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  <Minus size={10} />
+                </button>
+                <span style={{ fontSize: 11, minWidth: 18, textAlign: "center", fontWeight: 500 }}>
+                  {getImpact(r) > 0 ? `+${getImpact(r)}` : getImpact(r)}
+                </span>
+                <button
+                  onClick={() => setImpact(r, getImpact(r) + 1)}
+                  className="rounded p-0.5"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  <Plus size={10} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-end gap-2 mt-4">
+        <button
+          onClick={onCancel}
+          className="rounded-md px-3 py-1.5"
+          style={{ fontSize: 12, fontWeight: 500, border: "0.5px solid var(--border)" }}
+        >
+          Annuler
+        </button>
+        <button
+          onClick={onSave}
+          disabled={!draft.title.trim() || !draft.dateLabel.trim()}
+          className="rounded-md flex items-center gap-1.5 px-3 py-1.5"
+          style={{
+            fontSize: 12,
+            fontWeight: 500,
+            backgroundColor: "var(--foreground)",
+            color: "var(--card)",
+            opacity: draft.title.trim() && draft.dateLabel.trim() ? 1 : 0.4,
+          }}
+        >
+          <Check size={12} />
+          Enregistrer
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div
+        style={{
+          fontSize: 10,
+          fontWeight: 500,
+          color: "var(--muted-foreground)",
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+          marginBottom: 4,
+        }}
+      >
+        {label}
+      </div>
+      {children}
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
-/* Checklists                                                          */
+/* Checklists — édition complète                                        */
 /* ------------------------------------------------------------------ */
+
+interface ChecklistItem {
+  id: string;
+  label: string;
+  photoRequired: boolean;
+  aiValidation: boolean;
+}
+
+interface ChecklistModel {
+  id: string;
+  role: Role;
+  items: ChecklistItem[];
+  completionRate: number;
+}
 
 function ChecklistsTab({ studio }: { studio: Studio }) {
-  const items = checklistTemplates.filter((c) => c.studio === studio);
-  const [openId, setOpenId] = useState<string | null>(items[0]?.id ?? null);
+  const [models, setModels] = useState<ChecklistModel[]>(() =>
+    checklistTemplates
+      .filter((c) => c.studio === studio)
+      .map((c) => ({
+        id: c.id,
+        role: c.role,
+        completionRate: c.completionRate,
+        items: c.items.map((it) => ({
+          id: it.id,
+          label: it.label,
+          photoRequired: it.photoRequired,
+          aiValidation: it.aiValidation,
+        })),
+      })),
+  );
+  const [openId, setOpenId] = useState<string | null>(models[0]?.id ?? null);
+  const [editingModelId, setEditingModelId] = useState<string | null>(null);
+  const [newTaskByModel, setNewTaskByModel] = useState<Record<string, string>>({});
+  const [creatingNew, setCreatingNew] = useState(false);
 
-  const missingRoles = allRoles.filter((r) => !items.some((c) => c.role === r));
+  const missingRoles = allRoles.filter((r) => !models.some((c) => c.role === r));
+
+  const updateModel = (id: string, patch: Partial<ChecklistModel>) =>
+    setModels((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
+
+  const addTask = (modelId: string) => {
+    const label = (newTaskByModel[modelId] ?? "").trim();
+    if (!label) return;
+    setModels((prev) =>
+      prev.map((m) =>
+        m.id === modelId
+          ? {
+              ...m,
+              items: [
+                ...m.items,
+                { id: `t-${Date.now()}`, label, photoRequired: false, aiValidation: false },
+              ],
+            }
+          : m,
+      ),
+    );
+    setNewTaskByModel((p) => ({ ...p, [modelId]: "" }));
+  };
+
+  const updateItem = (modelId: string, itemId: string, patch: Partial<ChecklistItem>) =>
+    setModels((prev) =>
+      prev.map((m) =>
+        m.id === modelId
+          ? { ...m, items: m.items.map((it) => (it.id === itemId ? { ...it, ...patch } : it)) }
+          : m,
+      ),
+    );
+
+  const removeItem = (modelId: string, itemId: string) =>
+    setModels((prev) =>
+      prev.map((m) =>
+        m.id === modelId ? { ...m, items: m.items.filter((it) => it.id !== itemId) } : m,
+      ),
+    );
+
+  const removeModel = (id: string) => {
+    setModels((prev) => prev.filter((m) => m.id !== id));
+    if (openId === id) setOpenId(null);
+    if (editingModelId === id) setEditingModelId(null);
+  };
+
+  const createModel = (role: Role) => {
+    const id = `c-${Date.now()}`;
+    setModels((prev) => [...prev, { id, role, items: [], completionRate: 0 }]);
+    setOpenId(id);
+    setCreatingNew(false);
+  };
+
+  const availableRolesForNew = allRoles.filter((r) => !models.some((m) => m.role === r));
 
   return (
     <>
@@ -1175,12 +1561,15 @@ function ChecklistsTab({ studio }: { studio: Studio }) {
           </div>
         </div>
         <button
+          onClick={() => setCreatingNew(true)}
+          disabled={availableRolesForNew.length === 0}
           className="rounded-md flex items-center gap-1.5 px-3 py-1.5"
           style={{
             fontSize: 12,
             fontWeight: 500,
             backgroundColor: "var(--foreground)",
             color: "var(--card)",
+            opacity: availableRolesForNew.length === 0 ? 0.4 : 1,
           }}
         >
           <Plus size={12} />
@@ -1188,9 +1577,44 @@ function ChecklistsTab({ studio }: { studio: Studio }) {
         </button>
       </div>
 
+      {creatingNew && (
+        <div
+          className="rounded-xl border p-4 mb-3"
+          style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div style={{ fontSize: 13, fontWeight: 500 }}>Choisir un rôle</div>
+            <button
+              onClick={() => setCreatingNew(false)}
+              className="rounded-md p-1"
+              style={{ color: "var(--muted-foreground)" }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {availableRolesForNew.map((r) => (
+              <button
+                key={r}
+                onClick={() => createModel(r)}
+                className="rounded-full px-3 py-1.5 flex items-center gap-1.5"
+                style={{ fontSize: 12, fontWeight: 500, border: "0.5px solid var(--border)" }}
+              >
+                <span
+                  className="rounded-full"
+                  style={{ width: 8, height: 8, backgroundColor: roleColors[r].dot }}
+                />
+                {r}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-3 mb-4">
-        {items.map((c) => {
+        {models.map((c) => {
           const open = openId === c.id;
+          const editing = editingModelId === c.id;
           return (
             <div
               key={c.id}
@@ -1209,7 +1633,8 @@ function ChecklistsTab({ studio }: { studio: Studio }) {
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 500 }}>{c.role}</div>
                     <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
-                      {c.items.length} tâches · {c.completionRate}% de complétion moyenne
+                      {c.items.length} tâche{c.items.length > 1 ? "s" : ""} ·{" "}
+                      {c.completionRate}% de complétion moyenne
                     </div>
                   </div>
                 </div>
@@ -1220,52 +1645,126 @@ function ChecklistsTab({ studio }: { studio: Studio }) {
 
               {open && (
                 <div className="px-5 py-4" style={{ borderTop: "0.5px solid var(--border)" }}>
-                  <div className="flex flex-col gap-2 mb-4">
-                    {c.items.map((it) => (
-                      <div
-                        key={it.id}
-                        className="flex items-center justify-between rounded-lg px-3 py-2"
-                        style={{ backgroundColor: "var(--muted)" }}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div
-                            className="rounded"
-                            style={{
-                              width: 14,
-                              height: 14,
-                              border: "0.5px solid var(--border)",
-                              backgroundColor: "var(--card)",
-                            }}
-                          />
-                          <span style={{ fontSize: 13 }}>{it.label}</span>
+                  {c.items.length === 0 ? (
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: "var(--muted-foreground)",
+                        marginBottom: 12,
+                        fontStyle: "italic",
+                      }}
+                    >
+                      Aucune tâche pour ce modèle.
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2 mb-3">
+                      {c.items.map((it) => (
+                        <div
+                          key={it.id}
+                          className="flex items-center justify-between rounded-lg px-3 py-2"
+                          style={{ backgroundColor: "var(--muted)" }}
+                        >
+                          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                            <div
+                              className="rounded"
+                              style={{
+                                width: 14,
+                                height: 14,
+                                border: "0.5px solid var(--border)",
+                                backgroundColor: "var(--card)",
+                                flexShrink: 0,
+                              }}
+                            />
+                            {editing ? (
+                              <input
+                                value={it.label}
+                                onChange={(e) =>
+                                  updateItem(c.id, it.id, { label: e.target.value })
+                                }
+                                className="flex-1 rounded-md px-2 py-1"
+                                style={{
+                                  fontSize: 13,
+                                  border: "0.5px solid var(--border)",
+                                  backgroundColor: "var(--card)",
+                                }}
+                              />
+                            ) : (
+                              <span style={{ fontSize: 13 }}>{it.label}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 ml-2">
+                            <ToggleTag
+                              icon={Camera}
+                              label="Photo"
+                              active={it.photoRequired}
+                              onClick={() =>
+                                updateItem(c.id, it.id, { photoRequired: !it.photoRequired })
+                              }
+                            />
+                            <ToggleTag
+                              icon={Sparkles}
+                              label="IA"
+                              active={it.aiValidation}
+                              onClick={() =>
+                                updateItem(c.id, it.id, { aiValidation: !it.aiValidation })
+                              }
+                            />
+                            {editing && (
+                              <button
+                                onClick={() => removeItem(c.id, it.id)}
+                                className="rounded-md p-1"
+                                style={{ color: "var(--muted-foreground)" }}
+                                title="Supprimer"
+                              >
+                                <Trash2 size={11} />
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          {it.photoRequired && <Tag icon={Camera} label="Photo" />}
-                          {it.aiValidation && <Tag icon={Sparkles} label="IA" />}
-                          <button
-                            className="rounded-md p-1"
-                            style={{ color: "var(--muted-foreground)" }}
-                          >
-                            <Pencil size={11} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 mb-3">
+                    <input
+                      value={newTaskByModel[c.id] ?? ""}
+                      onChange={(e) =>
+                        setNewTaskByModel((p) => ({ ...p, [c.id]: e.target.value }))
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") addTask(c.id);
+                      }}
+                      placeholder="Nouvelle tâche…"
+                      className="flex-1 rounded-md px-2.5 py-1.5"
+                      style={{
+                        fontSize: 13,
+                        border: "0.5px solid var(--border)",
+                        backgroundColor: "var(--card)",
+                      }}
+                    />
                     <button
+                      onClick={() => addTask(c.id)}
+                      disabled={!(newTaskByModel[c.id] ?? "").trim()}
                       className="rounded-md flex items-center gap-1.5 px-3 py-1.5"
                       style={{
                         fontSize: 12,
                         fontWeight: 500,
-                        border: "0.5px solid var(--border)",
+                        backgroundColor: "var(--foreground)",
+                        color: "var(--card)",
+                        opacity: (newTaskByModel[c.id] ?? "").trim() ? 1 : 0.4,
                       }}
                     >
                       <Plus size={12} />
-                      Ajouter une tâche
+                      Ajouter
                     </button>
+                  </div>
+
+                  <div
+                    className="flex items-center justify-between pt-3"
+                    style={{ borderTop: "0.5px solid var(--border)" }}
+                  >
                     <button
+                      onClick={() => setEditingModelId(editing ? null : c.id)}
                       className="rounded-md flex items-center gap-1.5 px-3 py-1.5"
                       style={{
                         fontSize: 12,
@@ -1273,8 +1772,23 @@ function ChecklistsTab({ studio }: { studio: Studio }) {
                         border: "0.5px solid var(--border)",
                       }}
                     >
-                      <Pencil size={12} />
-                      Modifier le modèle
+                      {editing ? <Check size={12} /> : <Pencil size={12} />}
+                      {editing ? "Terminer" : "Modifier le modèle"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm(`Supprimer le modèle ${c.role} ?`)) removeModel(c.id);
+                      }}
+                      className="rounded-md flex items-center gap-1.5 px-3 py-1.5"
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 500,
+                        color: "var(--danger-text)",
+                        border: "0.5px solid var(--border)",
+                      }}
+                    >
+                      <Trash2 size={12} />
+                      Supprimer le modèle
                     </button>
                   </div>
                 </div>
@@ -1296,6 +1810,7 @@ function ChecklistsTab({ studio }: { studio: Studio }) {
             {missingRoles.map((r) => (
               <button
                 key={r}
+                onClick={() => createModel(r)}
                 className="rounded-full px-2.5 py-1 flex items-center gap-1.5"
                 style={{
                   fontSize: 11,
@@ -1318,20 +1833,32 @@ function ChecklistsTab({ studio }: { studio: Studio }) {
   );
 }
 
-function Tag({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
+function ToggleTag({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: React.ElementType;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
   return (
-    <span
+    <button
+      onClick={onClick}
       className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5"
       style={{
         fontSize: 10,
         fontWeight: 500,
-        backgroundColor: "var(--card)",
-        color: "var(--muted-foreground)",
+        backgroundColor: active ? "var(--coral-light)" : "var(--card)",
+        color: active ? "var(--coral-dark)" : "var(--muted-foreground)",
         border: "0.5px solid var(--border)",
       }}
     >
       <Icon size={9} />
       {label}
-    </span>
+    </button>
   );
 }
+
