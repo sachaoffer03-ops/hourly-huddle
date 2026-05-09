@@ -78,8 +78,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Shifty — Skult Studios" },
-      { name: "description", content: "Gestion du staff pour Skult Studios" },
+      { title: "Shyft" },
+      { name: "description", content: "Gestion du staff" },
+      { property: "og:title", content: "Shyft" },
+      { name: "twitter:title", content: "Shyft" },
+      { property: "og:description", content: "Gestion du staff" },
+      { name: "twitter:description", content: "Gestion du staff" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/Hsva0WbyaxZG6VrOhSmBnA7xHDJ2/social-images/social-1778369622840-cropped-sophos-favicon.png.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/Hsva0WbyaxZG6VrOhSmBnA7xHDJ2/social-images/social-1778369622840-cropped-sophos-favicon.png.webp" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
