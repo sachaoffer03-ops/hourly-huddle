@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { AlertTriangle, Send, UserPlus, Sparkles, ChevronDown, ChevronUp, Check, Search, ExternalLink } from "lucide-react";
+import { Send, UserPlus, Sparkles, ChevronDown, ChevronUp, Check, Search, ExternalLink, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
 import { holeShifts, employees, roleColors, type HoleShift, type Role, type Studio } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/trous")({
@@ -170,7 +171,10 @@ function HoleAssign({ hole }: { hole: HoleShift }) {
       .sort((a, b) => b.score - a.score);
   }, [query, recommendedIds]);
 
-  const setStatus = (id: string, label: string) => setActionState((s) => ({ ...s, [id]: label }));
+  const setStatus = (id: string, label: string, name: string) => {
+    setActionState((s) => ({ ...s, [id]: label }));
+    toast.success(`${name} ${label.toLowerCase()} pour ce shift`);
+  };
 
   return (
     <div className="px-5 pb-5" style={{ borderTop: "0.5px solid var(--border)" }}>
@@ -200,8 +204,8 @@ function HoleAssign({ hole }: { hole: HoleShift }) {
                   recommended
                   isLast={i === recommended.length - 1}
                   status={actionState[emp.employeeId]}
-                  onPropose={() => setStatus(emp.employeeId, "Proposé")}
-                  onAssign={() => setStatus(emp.employeeId, "Assigné")}
+                  onPropose={() => setStatus(emp.employeeId, "Proposé", emp.name)}
+                  onAssign={() => setStatus(emp.employeeId, "Assigné", emp.name)}
                 />
               );
             })}
@@ -247,8 +251,8 @@ function HoleAssign({ hole }: { hole: HoleShift }) {
                   available={eligible ? eligible.available : true}
                   isLast={i === filteredEmployees.length - 1}
                   status={actionState[e.id]}
-                  onPropose={() => setStatus(e.id, "Proposé")}
-                  onAssign={() => setStatus(e.id, "Assigné")}
+                  onPropose={() => setStatus(e.id, "Proposé", `${e.firstName} ${e.lastName}`)}
+                  onAssign={() => setStatus(e.id, "Assigné", `${e.firstName} ${e.lastName}`)}
                 />
               );
             })

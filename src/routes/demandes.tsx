@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Check, X, Clock, AlertCircle, ChevronDown } from "lucide-react";
+import { Check, X, Clock, ChevronDown } from "lucide-react";
+import { toast } from "sonner";
 import { modificationRequests, roleColors, employees, type ModificationRequest } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/demandes")({
@@ -27,8 +28,10 @@ function DemandesPage() {
   const handled = requests.filter((r) => r.status !== "en-attente");
 
   const handleAction = (id: string, action: "acceptée" | "refusée") => {
+    const r = requests.find((x) => x.id === id);
     setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: action } : r)));
     setExpandedId(null);
+    if (r) toast.success(`Demande ${action} pour ${r.employeeName}`);
   };
 
   return (
