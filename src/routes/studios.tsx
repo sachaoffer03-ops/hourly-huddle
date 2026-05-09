@@ -304,13 +304,27 @@ function InformationsTab({
   onChange,
   activeRoles,
   onToggleRole,
+  customRoles,
+  onAddCustomRole,
+  onRemoveCustomRole,
 }: {
   info: StudioInfo;
   onChange: (patch: Partial<StudioInfo>) => void;
   activeRoles: Role[];
   onToggleRole: (r: Role) => void;
+  customRoles: string[];
+  onAddCustomRole: (name: string) => void;
+  onRemoveCustomRole: (name: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [newRole, setNewRole] = useState("");
+
+  const submitNewRole = () => {
+    const v = newRole.trim();
+    if (!v) return;
+    onAddCustomRole(v);
+    setNewRole("");
+  };
 
   return (
     <div className="grid grid-cols-3 gap-4">
