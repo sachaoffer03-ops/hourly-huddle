@@ -171,6 +171,10 @@ function StudiosPage() {
 
   const [infos, setInfos] = useState(initialInfos);
   const [activeRoles, setActiveRoles] = useState(initialActive);
+  const [customRoles, setCustomRoles] = useState<Record<Studio, string[]>>({
+    "Skult Rhodes": [],
+    "Skult Châtelain": [],
+  });
   const [week, setWeek] = useState(initialWeek);
   const [roleHours, setRoleHours] = useState(initialRoleHours);
   const [needs, setNeeds] = useState(initialNeeds);
