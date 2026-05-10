@@ -1,8 +1,29 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { GraduationCap, Play, ChevronDown, ChevronUp, Bell, Check, Plus, Pencil, Trash2, X } from "lucide-react";
+import { useState, useRef } from "react";
+import { GraduationCap, Play, ChevronDown, ChevronUp, Bell, Check, Plus, Pencil, Trash2, X, Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { trainingPaths as seedPaths, roleColors, employees, type TrainingPath, type TrainingModule, type Role } from "@/lib/mock-data";
+import { supabase } from "@/integrations/supabase/client";
+
+type VideoItem = TrainingModule["videos"][number] & { url?: string; storagePath?: string };
+
+const formatDuration = (sec: number): string => {
+  if (!isFinite(sec) || sec <= 0) return "—";
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  return m > 0 ? `${m}:${String(s).padStart(2, "0")}` : `0:${String(s).padStart(2, "0")}`;
+};
+
+const probeDuration = (file: File): Promise<number> => new Promise((resolve) => {
+  try {
+    const url = URL.createObjectURL(file);
+    const v = document.createElement("video");
+    v.preload = "metadata";
+    v.src = url;
+    v.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(v.duration); };
+    v.onerror = () => { URL.revokeObjectURL(url); resolve(0); };
+  } catch { resolve(0); }
+});
 
 export const Route = createFileRoute("/formation")({
   component: FormationPage,
@@ -64,8 +85,65 @@ function FormationPage() {
     toast.success("Parcours créé");
   };
 
+  // ── Video upload ────────────────────────────
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingTarget = useRef<{ pathId: string; modId: string } | null>(null);
+  const [uploading, setUploading] = useState<string | null>(null); // module id being uploaded to
+  const [playing, setPlaying] = useState<{ url: string; title: string } | null>(null);
+
+  const triggerUpload = (pathId: string, modId: string) => {
+    pendingTarget.current = { pathId, modId };
+    fileInputRef.current?.click();
+  };
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    const target = pendingTarget.current;
+    if (!file || !target) return;
+    if (!file.type.startsWith("video/")) { toast.error("Le fichier doit être une vidéo"); return; }
+
+    setUploading(target.modId);
+    try {
+      const duration = await probeDuration(file);
+      const ext = file.name.split(".").pop() || "mp4";
+      const path = `${target.pathId}/${target.modId}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("formation-videos").upload(path, file, {
+        cacheControl: "3600", upsert: false, contentType: file.type,
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from("formation-videos").getPublicUrl(path);
+      const baseTitle = file.name.replace(/\.[^.]+$/, "");
+      const newVideo: VideoItem = {
+        id: `vid-${Date.now()}`,
+        title: baseTitle,
+        duration: formatDuration(duration),
+        url: data.publicUrl,
+        storagePath: path,
+      };
+      setPaths((prev) => prev.map((p) => p.id !== target.pathId ? p : recount({
+        ...p,
+        modules: p.modules.map((m) => m.id !== target.modId ? m : { ...m, videos: [...m.videos, newVideo] }),
+      })));
+      toast.success(`"${baseTitle}" uploadée`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Échec de l'upload");
+    } finally {
+      setUploading(null);
+      pendingTarget.current = null;
+    }
+  };
+
+  const playVideo = (url: string | undefined, title: string) => {
+    if (!url) { toast.info("Aucune vidéo associée — utilise le mode édition pour en uploader une"); return; }
+    setPlaying({ url, title });
+  };
+
   return (
     <div className="p-6">
+      <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFile} style={{ display: "none" }} />
+      {playing && <VideoPlayerModal url={playing.url} title={playing.title} onClose={() => setPlaying(null)} />}
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div>
           <h1 style={{ fontSize: 18, fontWeight: 500, marginBottom: 2 }}>Formation</h1>
@@ -105,7 +183,9 @@ function FormationPage() {
             onToggleEdit={() => setEditingPath(editingPath === path.id ? null : path.id)}
             onUpdate={(fn) => updatePath(path.id, fn)}
             onDelete={() => deletePath(path.id)}
-            completed={completed} onToggleVideo={toggleVideo} />
+            completed={completed} onToggleVideo={toggleVideo}
+            uploading={uploading} onUpload={(modId) => triggerUpload(path.id, modId)}
+            onPlayVideo={playVideo} />
         ))}
       </div>
 
@@ -120,7 +200,9 @@ function FormationPage() {
             onToggleEdit={() => setEditingPath(editingPath === path.id ? null : path.id)}
             onUpdate={(fn) => updatePath(path.id, fn)}
             onDelete={() => deletePath(path.id)}
-            completed={completed} onToggleVideo={toggleVideo} />
+            completed={completed} onToggleVideo={toggleVideo}
+            uploading={uploading} onUpload={(modId: string) => triggerUpload(path.id, modId)}
+            onPlayVideo={playVideo} />
         ))}
       </div>
     </div>
@@ -190,6 +272,7 @@ function SectionLabel({ label, sub }: { label: string; sub: string }) {
 
 function PathCard({
   path, expanded, editing, onToggle, onToggleEdit, onUpdate, onDelete, completed, onToggleVideo,
+  uploading, onUpload, onPlayVideo,
 }: {
   path: TrainingPath;
   expanded: boolean;
@@ -200,6 +283,9 @@ function PathCard({
   onDelete: () => void;
   completed: Set<string>;
   onToggleVideo: (id: string, title: string) => void;
+  uploading: string | null;
+  onUpload: (modId: string) => void;
+  onPlayVideo: (url: string | undefined, title: string) => void;
 }) {
   const roleColor = path.role ? roleColors[path.role] : null;
   const completionColor = path.avgCompletion >= 75 ? "var(--success-text)" : path.avgCompletion >= 50 ? "var(--warning-text)" : "var(--danger-text)";
@@ -231,17 +317,6 @@ function PathCard({
     if (!window.confirm("Supprimer ce module ?")) return;
     onUpdate((p) => ({ ...p, modules: p.modules.filter((m) => m.id !== modId) }));
   };
-  const addVideo = (modId: string) => {
-    const t = window.prompt("Titre de la vidéo");
-    if (!t || !t.trim()) return;
-    const d = window.prompt("Durée (ex: 4min)", "5min") || "5min";
-    onUpdate((p) => ({
-      ...p,
-      modules: p.modules.map((m) => m.id === modId
-        ? { ...m, videos: [...m.videos, { id: `vid-${Date.now()}`, title: t.trim(), duration: d }] }
-        : m),
-    }));
-  };
   const renameVideo = (modId: string, vidId: string, current: string) => {
     const t = window.prompt("Titre de la vidéo", current);
     if (t && t.trim()) onUpdate((p) => ({
@@ -251,11 +326,13 @@ function PathCard({
         : m),
     }));
   };
-  const deleteVideo = (modId: string, vidId: string) => {
+  const deleteVideo = async (modId: string, video: VideoItem) => {
+    const sp = video.storagePath;
+    if (sp) { try { await supabase.storage.from("formation-videos").remove([sp]); } catch (e) { console.error(e); } }
     onUpdate((p) => ({
       ...p,
       modules: p.modules.map((m) => m.id === modId
-        ? { ...m, videos: m.videos.filter((v) => v.id !== vidId) }
+        ? { ...m, videos: m.videos.filter((v) => v.id !== video.id) }
         : m),
     }));
   };
@@ -338,7 +415,9 @@ function PathCard({
                 {editing && (
                   <div className="flex items-center gap-1 shrink-0">
                     <button onClick={() => renameModule(mod.id, mod.title)} className="rounded-md p-1" style={{ color: "var(--muted-foreground)" }}><Pencil size={11} /></button>
-                    <button onClick={() => addVideo(mod.id)} className="rounded-md p-1 flex items-center gap-1" style={{ fontSize: 10, color: "var(--coral-dark)" }}><Plus size={11} /> vidéo</button>
+                    <button onClick={() => onUpload(mod.id)} disabled={uploading === mod.id} className="rounded-md p-1 flex items-center gap-1" style={{ fontSize: 10, color: "var(--coral-dark)" }}>
+                      {uploading === mod.id ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />} {uploading === mod.id ? "Upload..." : "vidéo"}
+                    </button>
                     <button onClick={() => deleteModule(mod.id)} className="rounded-md p-1" style={{ color: "var(--danger-text)" }}><Trash2 size={11} /></button>
                   </div>
                 )}
@@ -347,20 +426,24 @@ function PathCard({
                 {mod.videos.length === 0 && !editing && (
                   <div style={{ fontSize: 11, color: "var(--muted-foreground)", padding: "4px 8px" }}>Aucune vidéo</div>
                 )}
-                {mod.videos.map((video) => {
+                {mod.videos.map((rawVideo) => {
+                  const video = rawVideo as VideoItem;
                   const isDone = completed.has(video.id);
                   return (
                     <div key={video.id} className="flex items-center gap-2 rounded-md px-2 py-1.5"
                       style={{ backgroundColor: isDone ? "var(--success-bg)" : "transparent" }}>
-                      <button onClick={() => onToggleVideo(video.id, video.title)} className="flex items-center gap-2 flex-1 text-left">
+                      <button
+                        onClick={() => { onPlayVideo(video.url, video.title); if (video.url) onToggleVideo(video.id, video.title); }}
+                        className="flex items-center gap-2 flex-1 text-left">
                         {isDone ? <Check size={12} style={{ color: "var(--success-text)" }} /> : <Play size={12} style={{ color: "var(--coral)" }} />}
                         <span style={{ fontSize: 12, textDecoration: isDone ? "line-through" : "none", color: isDone ? "var(--success-text)" : "var(--foreground)" }}>{video.title}</span>
+                        {!video.url && <span className="rounded-full px-1.5 py-0.5" style={{ fontSize: 9, backgroundColor: "var(--muted)", color: "var(--muted-foreground)" }}>sans fichier</span>}
                         <span style={{ fontSize: 10, color: "var(--muted-foreground)", marginLeft: "auto" }}>{video.duration}</span>
                       </button>
                       {editing && (
                         <div className="flex items-center gap-1">
                           <button onClick={() => renameVideo(mod.id, video.id, video.title)} className="rounded-md p-1" style={{ color: "var(--muted-foreground)" }}><Pencil size={10} /></button>
-                          <button onClick={() => deleteVideo(mod.id, video.id)} className="rounded-md p-1" style={{ color: "var(--danger-text)" }}><Trash2 size={10} /></button>
+                          <button onClick={() => deleteVideo(mod.id, video)} className="rounded-md p-1" style={{ color: "var(--danger-text)" }}><Trash2 size={10} /></button>
                         </div>
                       )}
                     </div>
@@ -382,6 +465,20 @@ function MiniKpi({ label, value, sub, color }: { label: string; value: string; s
       <div className="flex items-baseline gap-1">
         <span style={{ fontSize: 22, fontWeight: 500, color: color || "var(--foreground)" }}>{value}</span>
         {sub && <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>{sub}</span>}
+      </div>
+    </div>
+  );
+}
+
+function VideoPlayerModal({ url, title, onClose }: { url: string; title: string; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.7)" }} onClick={onClose}>
+      <div className="rounded-xl overflow-hidden w-full max-w-3xl mx-4" style={{ backgroundColor: "var(--card)", border: "0.5px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: "0.5px solid var(--border)" }}>
+          <div style={{ fontSize: 13, fontWeight: 500 }}>{title}</div>
+          <button onClick={onClose} style={{ color: "var(--muted-foreground)" }}><X size={16} /></button>
+        </div>
+        <video src={url} controls autoPlay style={{ width: "100%", maxHeight: "70vh", backgroundColor: "#000" }} />
       </div>
     </div>
   );
