@@ -170,7 +170,9 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
         >
           <Plus size={16} />
         </button>
-      </div>
-    </header>
+        </div>
+      </header>
+      <CreateShiftModal open={shiftOpen} onClose={() => setShiftOpen(false)} />
+    </>
   );
 }
