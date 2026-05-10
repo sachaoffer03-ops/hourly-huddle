@@ -8,6 +8,7 @@ import {
   Clock,
   ClipboardCheck,
   MessageSquare,
+  PackageSearch,
   GraduationCap,
   FileText,
   BarChart3,
