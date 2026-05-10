@@ -128,6 +128,8 @@ export function RequestModificationSheet({ open, onClose, userId, shiftId }: { o
     return `${date} · ${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)} · ${s.business_role}`;
   };
 
+  const selected = shifts.find(s => s.id === selectedShift) || null;
+
   return (
     <Sheet open={open} onClose={onClose} title="Demande de modification">
       <FormField label="Quel shift ?" hint={shifts.length === 0 ? "Tu n'as aucun shift à venir." : "Choisis le shift concerné par ta demande."}>
@@ -136,23 +138,12 @@ export function RequestModificationSheet({ open, onClose, userId, shiftId }: { o
             Aucun shift à venir
           </div>
         ) : (
-          <div className="flex flex-col gap-1.5">
-            {shifts.map(s => {
-              const active = selectedShift === s.id;
-              return (
-                <button key={s.id} onClick={() => setSelectedShift(s.id)}
-                  className="rounded-md px-3 py-2.5 text-left transition-colors"
-                  style={{
-                    fontSize: 12, fontWeight: active ? 500 : 400,
-                    backgroundColor: active ? "var(--coral-light)" : "#fff",
-                    border: `0.5px solid ${active ? "var(--coral)" : "rgba(0,0,0,0.12)"}`,
-                    color: active ? "var(--coral-dark)" : "var(--foreground)",
-                  }}>
-                  {formatShiftLabel(s)}
-                </button>
-              );
-            })}
-          </div>
+          <ShiftDropdown
+            shifts={shifts}
+            value={selected}
+            onChange={(id) => setSelectedShift(id)}
+            formatLabel={formatShiftLabel}
+          />
         )}
       </FormField>
 
