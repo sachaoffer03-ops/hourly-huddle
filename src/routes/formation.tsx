@@ -52,7 +52,16 @@ function FormationPage() {
   const commonPaths = paths.filter((p) => p.type === "commun");
   const rolePaths = paths.filter((p) => p.type === "role");
   const totalVideos = paths.reduce((s, p) => s + p.videoCount, 0);
-  const lateCount = 4;
+  const lateEmployees = employees.slice(0, 4).map((e, i) => ({
+    id: e.id,
+    name: `${e.firstName} ${e.lastName}`,
+    role: e.roles[0],
+    studio: e.studio,
+    progress: [35, 50, 20, 60][i] ?? 40,
+    lastSeen: ["Il y a 8j", "Il y a 5j", "Il y a 12j", "Il y a 3j"][i] ?? "Récent",
+  }));
+  const lateCount = lateEmployees.length;
+  const [showLate, setShowLate] = useState(false);
 
   const toggleVideo = (id: string, title: string) => {
     setCompleted((prev) => {
