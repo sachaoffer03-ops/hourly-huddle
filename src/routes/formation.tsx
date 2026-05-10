@@ -426,20 +426,24 @@ function PathCard({
                 {mod.videos.length === 0 && !editing && (
                   <div style={{ fontSize: 11, color: "var(--muted-foreground)", padding: "4px 8px" }}>Aucune vidéo</div>
                 )}
-                {mod.videos.map((video) => {
+                {mod.videos.map((rawVideo) => {
+                  const video = rawVideo as VideoItem;
                   const isDone = completed.has(video.id);
                   return (
                     <div key={video.id} className="flex items-center gap-2 rounded-md px-2 py-1.5"
                       style={{ backgroundColor: isDone ? "var(--success-bg)" : "transparent" }}>
-                      <button onClick={() => onToggleVideo(video.id, video.title)} className="flex items-center gap-2 flex-1 text-left">
+                      <button
+                        onClick={() => { onPlayVideo(video.url, video.title); if (video.url) onToggleVideo(video.id, video.title); }}
+                        className="flex items-center gap-2 flex-1 text-left">
                         {isDone ? <Check size={12} style={{ color: "var(--success-text)" }} /> : <Play size={12} style={{ color: "var(--coral)" }} />}
                         <span style={{ fontSize: 12, textDecoration: isDone ? "line-through" : "none", color: isDone ? "var(--success-text)" : "var(--foreground)" }}>{video.title}</span>
+                        {!video.url && <span className="rounded-full px-1.5 py-0.5" style={{ fontSize: 9, backgroundColor: "var(--muted)", color: "var(--muted-foreground)" }}>sans fichier</span>}
                         <span style={{ fontSize: 10, color: "var(--muted-foreground)", marginLeft: "auto" }}>{video.duration}</span>
                       </button>
                       {editing && (
                         <div className="flex items-center gap-1">
                           <button onClick={() => renameVideo(mod.id, video.id, video.title)} className="rounded-md p-1" style={{ color: "var(--muted-foreground)" }}><Pencil size={10} /></button>
-                          <button onClick={() => deleteVideo(mod.id, video.id)} className="rounded-md p-1" style={{ color: "var(--danger-text)" }}><Trash2 size={10} /></button>
+                          <button onClick={() => deleteVideo(mod.id, video)} className="rounded-md p-1" style={{ color: "var(--danger-text)" }}><Trash2 size={10} /></button>
                         </div>
                       )}
                     </div>
