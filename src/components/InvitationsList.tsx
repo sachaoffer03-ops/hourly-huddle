@@ -295,6 +295,9 @@ export function InvitationsList({ onInviteClick }: { onInviteClick: () => void }
                   onCopy={() => copyLink(inv.token)}
                   onResend={() => resendEmail(inv)}
                   onRevoke={() => revoke(inv)}
+                  onPreview={() =>
+                    navigate({ to: "/activation", search: { token: "", preview: inv.id } })
+                  }
                 />
               ))}
             </tbody>
