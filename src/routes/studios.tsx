@@ -266,45 +266,22 @@ function StudiosPage() {
         style={{ borderBottom: "0.5px solid var(--border)" }}
       >
         {studioTabs.map((tab, i) => {
-          const isCustom = i >= baseStudioTabs.length;
           const isActive = activeStudio === i;
           return (
-            <div
+            <button
               key={tab}
-              className="flex items-center"
+              onClick={() => setActiveStudio(i)}
+              className="px-4 py-2 transition-colors"
               style={{
+                fontSize: 13,
+                fontWeight: isActive ? 500 : 400,
+                color: isActive ? "var(--foreground)" : "var(--muted-foreground)",
                 borderBottom: isActive ? "2px solid var(--foreground)" : "2px solid transparent",
                 marginBottom: -0.5,
               }}
             >
-              <button
-                onClick={() => setActiveStudio(i)}
-                className="pl-4 pr-2 py-2 transition-colors"
-                style={{
-                  fontSize: 13,
-                  fontWeight: isActive ? 500 : 400,
-                  color: isActive ? "var(--foreground)" : "var(--muted-foreground)",
-                }}
-              >
-                {tab}
-              </button>
-              {isCustom && (
-                <button
-                  onClick={() => {
-                    if (!confirm(`Supprimer le studio "${tab}" ? Cette action est définitive.`)) return;
-                    setExtraStudios((p) => p.filter((s) => s !== tab));
-                    if (activeStudio >= i) setActiveStudio(Math.max(0, activeStudio - 1));
-                  }}
-                  className="rounded-md p-1 mr-2 transition-colors"
-                  style={{ color: "var(--muted-foreground)" }}
-                  title="Supprimer ce studio"
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--danger-text)"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--muted-foreground)"; }}
-                >
-                  <X size={13} />
-                </button>
-              )}
-            </div>
+              {tab}
+            </button>
           );
         })}
         <button
