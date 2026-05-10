@@ -1,0 +1,10 @@
+ALTER TABLE public.user_business_roles DROP CONSTRAINT IF EXISTS user_business_roles_user_id_fkey;
+ALTER TABLE public.user_roles DROP CONSTRAINT IF EXISTS user_roles_user_id_fkey;
+ALTER TABLE public.shifts DROP CONSTRAINT IF EXISTS shifts_user_id_fkey;
+ALTER TABLE public.availabilities DROP CONSTRAINT IF EXISTS availabilities_user_id_fkey;
+ALTER TABLE public.signalements DROP CONSTRAINT IF EXISTS signalements_author_id_fkey;
+ALTER TABLE public.feedbacks DROP CONSTRAINT IF EXISTS feedbacks_author_id_fkey;
+ALTER TABLE public.modification_requests DROP CONSTRAINT IF EXISTS modification_requests_user_id_fkey;
+ALTER TABLE public.shift_reports DROP CONSTRAINT IF EXISTS shift_reports_author_id_fkey;
+ALTER TABLE public.shift_handoffs DROP CONSTRAINT IF EXISTS shift_handoffs_author_id_fkey;
+ALTER TABLE public.formation_completions DROP CONSTRAINT IF EXISTS formation_completions_user_id_fkey;
