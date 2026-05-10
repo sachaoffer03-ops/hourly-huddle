@@ -323,19 +323,55 @@ export function FormationsSheet({ open, onClose, userId }: { open: boolean; onCl
 }
 
 interface MyRequest {
-  id: string; type: string; reason: string; status: string; urgency: string; created_at: string; admin_response: string | null;
+  id: string; type: string; reason: string; status: string; urgency: string; created_at: string; admin_response: string | null; shift_id: string | null;
 }
+interface RequestShift { id: string; shift_date: string; start_time: string; end_time: string; business_role: string; }
 export function MyRequestsSheet({ open, onClose, userId }: { open: boolean; onClose: () => void; userId: string }) {
   const [items, setItems] = useState<MyRequest[]>([]);
+  const [shiftsById, setShiftsById] = useState<Record<string, RequestShift>>({});
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    (async () => {
-      const { data } = await supabase.from("modification_requests")
-        .select("id,type,reason,status,urgency,created_at,admin_response")
+    let cancelled = false;
+    const loadRequests = async () => {
+      setLoading(true);
+      const { data, error } = await supabase.from("modification_requests")
+        .select("id,type,reason,status,urgency,created_at,admin_response,shift_id")
         .eq("user_id", userId).order("created_at", { ascending: false }).limit(20);
-      setItems(data || []);
-    })();
+      if (cancelled) return;
+      if (error) {
+        toast.error("Impossible de charger tes demandes");
+        setItems([]);
+        setShiftsById({});
+        setLoading(false);
+        return;
+      }
+
+      const rows = (data || []) as MyRequest[];
+      setItems(rows);
+      const shiftIds = [...new Set(rows.map(r => r.shift_id).filter(Boolean) as string[])];
+      if (shiftIds.length === 0) {
+        setShiftsById({});
+        setLoading(false);
+        return;
+      }
+
+      const { data: shiftRows } = await supabase.from("shifts")
+        .select("id,shift_date,start_time,end_time,business_role")
+        .in("id", shiftIds);
+      if (!cancelled) {
+        setShiftsById(Object.fromEntries(((shiftRows || []) as RequestShift[]).map(s => [s.id, s])));
+        setLoading(false);
+      }
+    };
+    loadRequests();
+
+    const channel = supabase.channel(`my-requests-${userId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "modification_requests", filter: `user_id=eq.${userId}` }, loadRequests)
+      .subscribe();
+
+    return () => { cancelled = true; supabase.removeChannel(channel); };
   }, [open, userId]);
 
   const cancel = async (id: string) => {
@@ -351,31 +387,52 @@ export function MyRequestsSheet({ open, onClose, userId }: { open: boolean; onCl
     refused: { label: "Refusée", bg: "var(--danger-bg)", color: "var(--danger-text)" },
   };
   const typeLabels: Record<string, string> = { swap: "Échange", cancel: "Annulation", time_change: "Changement d'horaire" };
+  const urgencyLabels: Record<string, string> = { normal: "Normale", urgent: "Urgente", critique: "Critique" };
+
+  const formatShift = (shiftId: string | null) => {
+    if (!shiftId) return "Sans shift lié";
+    const shift = shiftsById[shiftId];
+    if (!shift) return "Shift non disponible";
+    const date = new Date(shift.shift_date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+    return `${date} · ${shift.start_time.slice(0,5)}–${shift.end_time.slice(0,5)} · ${shift.business_role}`;
+  };
+
+  const statusMessage = (r: MyRequest) => {
+    if (r.status === "accepted") return r.admin_response || "Ta demande a été acceptée.";
+    if (r.status === "refused") return r.admin_response || "Ta demande a été refusée.";
+    return "En attente de réponse de l'admin.";
+  };
 
   return (
     <Sheet open={open} onClose={onClose} title="Mes demandes">
-      {items.length === 0 ? (
+      {loading ? (
+        <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Chargement…</div>
+      ) : items.length === 0 ? (
         <div className="rounded-lg px-4 py-6 text-center" style={{ backgroundColor: "#fff", border: "0.5px solid rgba(0,0,0,0.08)", fontSize: 12, color: "var(--muted-foreground)" }}>
-          Aucune demande pour le moment
+          Aucune demande envoyée pour le moment.
         </div>
       ) : (
         <div className="flex flex-col gap-2">
           {items.map(r => {
-            const s = statusLabels[r.status] || statusLabels.pending;
+            const status = (r.status || "pending").toLowerCase();
+            const s = statusLabels[status] || statusLabels.pending;
             return (
               <div key={r.id} className="rounded-xl px-4 py-3" style={{ backgroundColor: "#fff", border: "0.5px solid rgba(0,0,0,0.08)" }}>
                 <div className="flex items-center justify-between mb-1">
                   <div style={{ fontSize: 13, fontWeight: 500 }}>{typeLabels[r.type] || r.type}</div>
                   <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, fontWeight: 500, backgroundColor: s.bg, color: s.color }}>{s.label}</span>
                 </div>
-                <div style={{ fontSize: 12, color: "var(--muted-foreground)", marginBottom: 4 }}>{fmtRelative(r.created_at)}</div>
+                <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 6 }}>
+                  {fmtRelative(r.created_at)} · Urgence {urgencyLabels[r.urgency] || r.urgency}
+                </div>
+                <div className="rounded-md px-3 py-2 mb-2" style={{ backgroundColor: "var(--muted)", fontSize: 12, color: "var(--muted-foreground)" }}>
+                  {formatShift(r.shift_id)}
+                </div>
                 <div style={{ fontSize: 13, lineHeight: 1.4 }}>{r.reason}</div>
-                {r.admin_response && (
-                  <div className="mt-2 rounded-md px-3 py-2" style={{ backgroundColor: "var(--muted)", fontSize: 12 }}>
-                    <span style={{ fontWeight: 500 }}>Réponse : </span>{r.admin_response}
-                  </div>
-                )}
-                {r.status === "pending" && (
+                <div className="mt-2 rounded-md px-3 py-2" style={{ backgroundColor: s.bg, color: s.color, fontSize: 12, lineHeight: 1.4 }}>
+                  {statusMessage(r)}
+                </div>
+                {status === "pending" && (
                   <button onClick={() => cancel(r.id)} className="mt-2" style={{ fontSize: 11, color: "var(--danger-text)" }}>Annuler la demande</button>
                 )}
               </div>
