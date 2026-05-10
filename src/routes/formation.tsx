@@ -140,6 +140,10 @@ function FormationPage() {
     setPlaying({ url, title });
   };
 
+  return (
+    <div className="p-6">
+      <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFile} style={{ display: "none" }} />
+      {playing && <VideoPlayerModal url={playing.url} title={playing.title} onClose={() => setPlaying(null)} />}
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div>
           <h1 style={{ fontSize: 18, fontWeight: 500, marginBottom: 2 }}>Formation</h1>
