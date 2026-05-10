@@ -18,8 +18,8 @@ function DashboardPage() {
       <div
         className="rounded-xl border p-6 md:p-8"
         style={{
-          backgroundColor: "var(--card)",
-          borderColor: "var(--border)",
+          backgroundColor: "var(--coral-light)",
+          borderColor: "transparent",
           borderRadius: 14,
         }}
       >
