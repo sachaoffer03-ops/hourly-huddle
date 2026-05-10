@@ -2,6 +2,7 @@ import { useRouterState, useNavigate } from "@tanstack/react-router";
 import { Bell, Search, Plus, Menu } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import logo from "@/assets/kadence-logo.png";
+import { CreateShiftModal } from "@/components/CreateShiftModal";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -24,7 +25,8 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
     select: (s) => s.location.pathname,
   });
   const navigate = useNavigate();
-  const openNewShift = () => navigate({ to: "/planning", search: { add: true } });
+  const [shiftOpen, setShiftOpen] = useState(false);
+  const openNewShift = () => setShiftOpen(true);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [notifOpen, setNotifOpen] = useState(false);
@@ -54,6 +56,7 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
   const pageTitle = pageTitles[currentPath] || "Dashboard";
 
   return (
+    <>
     <header
       className="flex items-center justify-between border-b px-4 md:px-6"
       style={{
@@ -168,7 +171,9 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
         >
           <Plus size={16} />
         </button>
-      </div>
-    </header>
+        </div>
+      </header>
+      <CreateShiftModal open={shiftOpen} onClose={() => setShiftOpen(false)} />
+    </>
   );
 }
