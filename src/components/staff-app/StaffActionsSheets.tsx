@@ -340,8 +340,8 @@ export function MyRequestsSheet({ open, onClose, userId }: { open: boolean; onCl
     const loadRequests = async () => {
       setLoading(true);
       const { data, error } = await supabase.from("modification_requests")
-        .select("id,type,reason,status,urgency,created_at,admin_response,shift_id")
-        .eq("user_id", userId).order("created_at", { ascending: false }).limit(20);
+        .select("id,type,reason,status,urgency,created_at,admin_response,shift_id,resolved_at")
+        .eq("user_id", userId).order("created_at", { ascending: false }).limit(50);
       if (cancelled) return;
       if (error) {
         toast.error("Impossible de charger tes demandes");
@@ -351,7 +351,7 @@ export function MyRequestsSheet({ open, onClose, userId }: { open: boolean; onCl
         return;
       }
 
-      const rows = (data || []) as MyRequest[];
+      const rows = (data || []) as MyRequestRow[];
       setItems(rows);
       const shiftIds = [...new Set(rows.map(r => r.shift_id).filter(Boolean) as string[])];
       if (shiftIds.length === 0) {
