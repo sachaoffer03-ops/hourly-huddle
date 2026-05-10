@@ -173,7 +173,6 @@ function StaffPage() {
           </button>
         </div>
       </div>
-      <InviteEmployeeModal open={inviteOpen} onClose={() => setInviteOpen(false)} />
 
       {/* Table */}
       <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
