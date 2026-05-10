@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Sheet, FormField, TextArea, PrimaryButton, fmtRelative } from "./shared";
-import { AlertCircle, GraduationCap, Check, Play, Replace, Clock, X as XIcon } from "lucide-react";
+import { AlertCircle, GraduationCap, Check, Play, Replace, Clock, X as XIcon, ChevronDown } from "lucide-react";
 
 type SignalCategory = "stock" | "materiel" | "hygiene" | "autre";
 const CATS: { key: SignalCategory; label: string }[] = [
@@ -98,7 +98,7 @@ export function RequestModificationSheet({ open, onClose, userId, shiftId }: { o
         .select("id,shift_date,start_time,end_time,business_role")
         .eq("user_id", userId)
         .gte("shift_date", today)
-        .order("shift_date").order("start_time").limit(20);
+        .order("shift_date").order("start_time");
       setShifts((data as ShiftOption[]) || []);
     })();
   }, [open, userId, shiftId]);
@@ -128,6 +128,8 @@ export function RequestModificationSheet({ open, onClose, userId, shiftId }: { o
     return `${date} · ${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)} · ${s.business_role}`;
   };
 
+  const selected = shifts.find(s => s.id === selectedShift) || null;
+
   return (
     <Sheet open={open} onClose={onClose} title="Demande de modification">
       <FormField label="Quel shift ?" hint={shifts.length === 0 ? "Tu n'as aucun shift à venir." : "Choisis le shift concerné par ta demande."}>
@@ -136,23 +138,12 @@ export function RequestModificationSheet({ open, onClose, userId, shiftId }: { o
             Aucun shift à venir
           </div>
         ) : (
-          <div className="flex flex-col gap-1.5">
-            {shifts.map(s => {
-              const active = selectedShift === s.id;
-              return (
-                <button key={s.id} onClick={() => setSelectedShift(s.id)}
-                  className="rounded-md px-3 py-2.5 text-left transition-colors"
-                  style={{
-                    fontSize: 12, fontWeight: active ? 500 : 400,
-                    backgroundColor: active ? "var(--coral-light)" : "#fff",
-                    border: `0.5px solid ${active ? "var(--coral)" : "rgba(0,0,0,0.12)"}`,
-                    color: active ? "var(--coral-dark)" : "var(--foreground)",
-                  }}>
-                  {formatShiftLabel(s)}
-                </button>
-              );
-            })}
-          </div>
+          <ShiftDropdown
+            shifts={shifts}
+            value={selected}
+            onChange={(id) => setSelectedShift(id)}
+            formatLabel={formatShiftLabel}
+          />
         )}
       </FormField>
 
@@ -393,5 +384,116 @@ export function MyRequestsSheet({ open, onClose, userId }: { open: boolean; onCl
         </div>
       )}
     </Sheet>
+  );
+}
+
+// ============================================================================
+// Sélecteur de shift : menu déroulant propre, groupé par mois
+// ============================================================================
+function ShiftDropdown({
+  shifts, value, onChange, formatLabel,
+}: {
+  shifts: ShiftOption[];
+  value: ShiftOption | null;
+  onChange: (id: string) => void;
+  formatLabel: (s: ShiftOption) => string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  // Group by "Mois Année"
+  const groups = shifts.reduce<Record<string, ShiftOption[]>>((acc, s) => {
+    const d = new Date(s.shift_date);
+    const key = d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+    (acc[key] = acc[key] || []).push(s);
+    return acc;
+  }, {});
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full rounded-md px-3 py-2.5 flex items-center justify-between text-left transition-colors"
+        style={{
+          fontSize: 12,
+          fontWeight: value ? 500 : 400,
+          backgroundColor: "#fff",
+          border: `0.5px solid ${open ? "var(--coral)" : "rgba(0,0,0,0.12)"}`,
+          color: value ? "var(--foreground)" : "var(--muted-foreground)",
+        }}
+      >
+        <span className="truncate">{value ? formatLabel(value) : "Sélectionne un shift"}</span>
+        <ChevronDown size={14} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s", flexShrink: 0, marginLeft: 8 }} />
+      </button>
+
+      {open && (
+        <div
+          className="absolute left-0 right-0 mt-1.5 rounded-lg overflow-hidden z-50"
+          style={{
+            backgroundColor: "#fff",
+            border: "0.5px solid rgba(0,0,0,0.12)",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+            maxHeight: 280,
+            overflowY: "auto",
+          }}
+        >
+          {Object.entries(groups).map(([month, list]) => (
+            <div key={month}>
+              <div
+                className="px-3 py-1.5 sticky top-0"
+                style={{
+                  fontSize: 10,
+                  fontWeight: 500,
+                  textTransform: "uppercase",
+                  letterSpacing: 0.5,
+                  color: "var(--muted-foreground)",
+                  backgroundColor: "var(--muted)",
+                  borderBottom: "0.5px solid rgba(0,0,0,0.06)",
+                }}
+              >
+                {month}
+              </div>
+              {list.map(s => {
+                const active = value?.id === s.id;
+                const d = new Date(s.shift_date);
+                const day = d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric" });
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => { onChange(s.id); setOpen(false); }}
+                    className="w-full px-3 py-2.5 flex items-center justify-between text-left transition-colors hover:bg-[var(--muted)]"
+                    style={{
+                      fontSize: 12,
+                      backgroundColor: active ? "var(--coral-light)" : "transparent",
+                      color: active ? "var(--coral-dark)" : "var(--foreground)",
+                      fontWeight: active ? 500 : 400,
+                    }}
+                  >
+                    <div className="flex flex-col">
+                      <span style={{ textTransform: "capitalize" }}>{day}</span>
+                      <span style={{ fontSize: 10, color: active ? "var(--coral-dark)" : "var(--muted-foreground)", marginTop: 1 }}>
+                        {s.start_time.slice(0,5)}–{s.end_time.slice(0,5)} · {s.business_role}
+                      </span>
+                    </div>
+                    {active && <Check size={14} style={{ color: "var(--coral)" }} />}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
