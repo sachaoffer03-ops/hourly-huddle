@@ -313,6 +313,14 @@ function ActivationPage() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "var(--background)" }}>
+      {isPreview && (
+        <div
+          className="px-4 py-2 text-center"
+          style={{ backgroundColor: "var(--foreground)", color: "var(--card)", fontSize: 11, fontWeight: 500, letterSpacing: "0.02em" }}
+        >
+          MODE APERÇU · Aucune donnée ne sera enregistrée
+        </div>
+      )}
       {/* Top bar */}
       <header className="px-4 md:px-8 py-5 flex items-center justify-between">
         <img src={logo} alt="Kadence" style={{ height: 24, width: "auto" }} />
