@@ -378,32 +378,44 @@ function Row({
         {inv.email}
       </td>
       <td className="px-4 py-3" style={{ fontSize: 12 }}>
-        {studioName}
+        {studioNames.length === 0 ? (
+          <span style={{ color: "var(--muted-foreground)" }}>—</span>
+        ) : (
+          <div className="flex flex-wrap gap-1">
+            {studioNames.slice(0, 2).map((n) => (
+              <span key={n} style={{ color: "var(--foreground)" }}>{n}</span>
+            )).reduce<React.ReactNode[]>((acc, el, i) => {
+              if (i > 0) acc.push(<span key={`sep-${i}`} style={{ color: "var(--muted-foreground)" }}>·</span>);
+              acc.push(el);
+              return acc;
+            }, [])}
+            {studioNames.length > 2 && (
+              <span style={{ color: "var(--muted-foreground)" }}>+{studioNames.length - 2}</span>
+            )}
+          </div>
+        )}
       </td>
       <td className="px-4 py-3">
-        {inv.contract ? (
-          <span
-            className="rounded-full px-2 py-0.5"
-            style={{
-              fontSize: 11,
-              backgroundColor:
-                inv.contract === "CDI"
-                  ? "var(--info-bg)"
-                  : inv.contract === "Flexi"
-                  ? "var(--warning-bg)"
-                  : "var(--muted)",
-              color:
-                inv.contract === "CDI"
-                  ? "var(--info-text)"
-                  : inv.contract === "Flexi"
-                  ? "var(--warning-text)"
-                  : "var(--muted-foreground)",
-            }}
-          >
-            {inv.contract}
-          </span>
-        ) : (
+        {contractsList.length === 0 ? (
           <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>—</span>
+        ) : (
+          <div className="flex flex-wrap gap-1">
+            {contractsList.map((c) => (
+              <span
+                key={c}
+                className="rounded-full px-2 py-0.5"
+                style={{
+                  fontSize: 11,
+                  backgroundColor:
+                    c === "CDI" ? "var(--info-bg)" : c === "Flexi" ? "var(--warning-bg)" : "var(--muted)",
+                  color:
+                    c === "CDI" ? "var(--info-text)" : c === "Flexi" ? "var(--warning-text)" : "var(--muted-foreground)",
+                }}
+              >
+                {c}
+              </span>
+            ))}
+          </div>
         )}
       </td>
       <td className="px-4 py-3">
