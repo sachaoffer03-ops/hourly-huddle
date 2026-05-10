@@ -772,6 +772,43 @@ function InformationsTab({
         </div>
       </div>
     </div>
+
+    <div
+      className="mt-4 rounded-xl border p-5 flex items-center justify-between"
+      style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
+    >
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 2 }}>Supprimer ce studio</div>
+        <div style={{ fontSize: 12, color: "var(--muted-foreground)", lineHeight: 1.5 }}>
+          Retire définitivement {info.name} et toutes ses données associées. Cette action est irréversible.
+        </div>
+      </div>
+      <button
+        onClick={onRequestDelete}
+        className="rounded-md flex items-center gap-1.5 px-3 py-1.5 transition-colors shrink-0"
+        style={{
+          fontSize: 12,
+          fontWeight: 500,
+          border: "0.5px solid var(--border)",
+          color: "var(--danger-text)",
+          backgroundColor: "transparent",
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLElement).style.backgroundColor = "var(--danger-text)";
+          (e.currentTarget as HTMLElement).style.color = "var(--card)";
+          (e.currentTarget as HTMLElement).style.borderColor = "var(--danger-text)";
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
+          (e.currentTarget as HTMLElement).style.color = "var(--danger-text)";
+          (e.currentTarget as HTMLElement).style.borderColor = "var(--border)";
+        }}
+      >
+        <Trash2 size={12} />
+        Supprimer le studio
+      </button>
+    </div>
+    </>
   );
 }
 
