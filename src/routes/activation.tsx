@@ -157,7 +157,10 @@ function ActivationPage() {
       setDone(true);
       return;
     }
-    if (invitation.contract === "Étudiant" && !studentValid)
+    const isStudent = (invitation.contracts && invitation.contracts.length > 0)
+      ? invitation.contracts.includes("Étudiant")
+      : invitation.contract === "Étudiant";
+    if (isStudent && !studentValid)
       return toast.error("Confirmez la validité de votre carte étudiant");
     if (!accept) return toast.error("Vous devez accepter les conditions");
 
