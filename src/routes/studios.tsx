@@ -536,6 +536,7 @@ function InformationsTab({
   };
 
   return (
+    <>
     <div className="grid grid-cols-3 gap-4">
       <div
         className="col-span-2 rounded-xl border p-5"
