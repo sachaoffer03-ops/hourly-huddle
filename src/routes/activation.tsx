@@ -315,10 +315,84 @@ function ActivationPage() {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "var(--background)" }}>
       {isPreview && (
         <div
-          className="px-4 py-2 text-center"
-          style={{ backgroundColor: "var(--foreground)", color: "var(--card)", fontSize: 11, fontWeight: 500, letterSpacing: "0.02em" }}
+          className="border-b"
+          style={{ backgroundColor: "var(--foreground)", borderColor: "var(--border)" }}
         >
-          MODE APERÇU · Aucune donnée ne sera enregistrée
+          <div className="max-w-5xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2" style={{ color: "var(--card)" }}>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 500,
+                  letterSpacing: "0.08em",
+                  padding: "2px 6px",
+                  borderRadius: 4,
+                  backgroundColor: "var(--coral)",
+                  color: "var(--coral-text)",
+                }}
+              >
+                APERÇU
+              </span>
+              <span style={{ fontSize: 12, opacity: 0.85 }}>
+                Aucune donnée ne sera enregistrée
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {["Bienvenue", "Mot de passe", "Identité", "Adresse", "RH", "Urgence", "Validation"].map(
+                (label, i) => {
+                  const active = i === step;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setStep(i);
+                        setDone(false);
+                      }}
+                      className="rounded-full px-2.5 py-1 transition-opacity"
+                      style={{
+                        fontSize: 11,
+                        fontWeight: active ? 500 : 400,
+                        backgroundColor: active ? "var(--card)" : "transparent",
+                        color: active ? "var(--foreground)" : "var(--card)",
+                        opacity: active ? 1 : 0.7,
+                        border: active ? "none" : "0.5px solid rgba(255,255,255,0.2)",
+                      }}
+                    >
+                      {i + 1}. {label}
+                    </button>
+                  );
+                },
+              )}
+              <button
+                onClick={() => {
+                  setStep(0);
+                  setDone(true);
+                }}
+                className="rounded-full px-2.5 py-1"
+                style={{
+                  fontSize: 11,
+                  backgroundColor: done ? "var(--card)" : "transparent",
+                  color: done ? "var(--foreground)" : "var(--card)",
+                  opacity: done ? 1 : 0.7,
+                  border: done ? "none" : "0.5px solid rgba(255,255,255,0.2)",
+                }}
+              >
+                ✓ Final
+              </button>
+            </div>
+            <button
+              onClick={() => navigate({ to: "/staff" })}
+              className="rounded-md px-3 py-1.5"
+              style={{
+                fontSize: 11,
+                fontWeight: 500,
+                backgroundColor: "var(--card)",
+                color: "var(--foreground)",
+              }}
+            >
+              ← Retour admin
+            </button>
+          </div>
         </div>
       )}
       {/* Top bar */}
