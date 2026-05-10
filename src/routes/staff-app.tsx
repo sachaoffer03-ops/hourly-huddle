@@ -96,7 +96,7 @@ function AccueilTab({ onNavigate }: { onNavigate: (t: Tab) => void }) {
 
       {/* Quick links */}
       <div className="grid grid-cols-2 gap-3 mt-5">
-        <QuickLink icon={<CalendarCheck size={18} />} label="Mes disponibilités" sub="Juin 2026" onClick={() => { /* tab change handled below */ window.dispatchEvent(new CustomEvent('staff-app-tab', { detail: 'dispos' })); }} />
+        <QuickLink icon={<CalendarCheck size={18} />} label="Mes disponibilités" sub="Juin 2026" onClick={() => onNavigate('dispos')} />
         <QuickLink icon={<GraduationCap size={18} />} label="Formation" sub="3 vidéos restantes" onClick={() => toast("Formation à venir", { description: "Cette section sera bientôt disponible" })} />
       </div>
     </div>
