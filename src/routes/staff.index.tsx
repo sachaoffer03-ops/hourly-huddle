@@ -21,6 +21,7 @@ function StaffPage() {
   const [search, setSearch] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [shiftOpen, setShiftOpen] = useState(false);
 
   const toggleContract = (f: ContractFilter) => {
     setContractFilters((prev) => {
