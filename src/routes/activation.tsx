@@ -32,7 +32,9 @@ interface Invitation {
   last_name: string;
   phone: string | null;
   studio_id: string | null;
+  studio_ids?: string[] | null;
   contract: string | null;
+  contracts?: string[] | null;
   status: string;
   expires_at: string;
 }
