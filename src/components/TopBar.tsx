@@ -2,6 +2,7 @@ import { useRouterState, useNavigate } from "@tanstack/react-router";
 import { Bell, Search, Plus, Menu } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import logo from "@/assets/kadence-logo.png";
+import { CreateShiftModal } from "@/components/CreateShiftModal";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
