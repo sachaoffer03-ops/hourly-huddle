@@ -409,10 +409,7 @@ function Row({
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-1 justify-end">
-          <IconBtn
-            label="Aperçu de l'onboarding"
-            onClick={() => window.open(`/activation?preview=${inv.id}`, "_blank")}
-          >
+          <IconBtn label="Aperçu de l'onboarding" onClick={onPreview}>
             <Eye size={13} />
           </IconBtn>
           {inv.status === "pending" && (
