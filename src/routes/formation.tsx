@@ -1,8 +1,29 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { GraduationCap, Play, ChevronDown, ChevronUp, Bell, Check, Plus, Pencil, Trash2, X } from "lucide-react";
+import { useState, useRef } from "react";
+import { GraduationCap, Play, ChevronDown, ChevronUp, Bell, Check, Plus, Pencil, Trash2, X, Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { trainingPaths as seedPaths, roleColors, employees, type TrainingPath, type TrainingModule, type Role } from "@/lib/mock-data";
+import { supabase } from "@/integrations/supabase/client";
+
+type VideoItem = TrainingModule["videos"][number] & { url?: string; storagePath?: string };
+
+const formatDuration = (sec: number): string => {
+  if (!isFinite(sec) || sec <= 0) return "—";
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  return m > 0 ? `${m}:${String(s).padStart(2, "0")}` : `0:${String(s).padStart(2, "0")}`;
+};
+
+const probeDuration = (file: File): Promise<number> => new Promise((resolve) => {
+  try {
+    const url = URL.createObjectURL(file);
+    const v = document.createElement("video");
+    v.preload = "metadata";
+    v.src = url;
+    v.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(v.duration); };
+    v.onerror = () => { URL.revokeObjectURL(url); resolve(0); };
+  } catch { resolve(0); }
+});
 
 export const Route = createFileRoute("/formation")({
   component: FormationPage,
