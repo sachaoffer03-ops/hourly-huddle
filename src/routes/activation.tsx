@@ -132,6 +132,13 @@ function ActivationPage() {
 
   const handleSubmit = async () => {
     if (!invitation) return;
+    if (isPreview) {
+      setSubmitting(true);
+      await new Promise((r) => setTimeout(r, 600));
+      setSubmitting(false);
+      setDone(true);
+      return;
+    }
     if (invitation.contract === "Étudiant" && !studentValid)
       return toast.error("Confirmez la validité de votre carte étudiant");
     if (!accept) return toast.error("Vous devez accepter les conditions");
