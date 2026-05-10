@@ -174,7 +174,7 @@ function AccueilTab({ profile, studios }: { profile: ProfileRow | null; studios:
         const dateLabel = active ? "Aujourd'hui" : new Date(s.shift_date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric" });
         const studioName = (s.studio_id && studios[s.studio_id]) || "—";
         return (
-          <div key={s.id} className="rounded-xl border px-4 py-3.5 flex items-center gap-3 mb-2" style={{ backgroundColor: active ? "var(--coral-light)" : "#fff", borderColor: active ? "var(--coral)" : "rgba(0,0,0,0.08)" }}>
+          <button key={s.id} onClick={() => setShiftDetail(s)} className="w-full rounded-xl border px-4 py-3.5 flex items-center gap-3 mb-2 text-left" style={{ backgroundColor: active ? "var(--coral-light)" : "#fff", borderColor: active ? "var(--coral)" : "rgba(0,0,0,0.08)" }}>
             <div className="rounded-lg flex items-center justify-center" style={{ width: 36, height: 36, backgroundColor: rc?.bg }}>
               <Clock size={16} style={{ color: rc?.text }} />
             </div>
@@ -183,12 +183,12 @@ function AccueilTab({ profile, studios }: { profile: ProfileRow | null; studios:
               <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{role} · {studioName.replace("Skult ", "")}</div>
             </div>
             {active && (
-              <button onClick={() => setEndShift(s)} className="rounded-md px-3 py-1.5 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 500, backgroundColor: "var(--foreground)", color: "#fff" }}>
+              <span onClick={(e) => { e.stopPropagation(); setEndShift(s); }} className="rounded-md px-3 py-1.5 flex items-center gap-1 cursor-pointer" style={{ fontSize: 11, fontWeight: 500, backgroundColor: "var(--foreground)", color: "#fff" }}>
                 <CheckSquare size={12} /> Fin de shift
-              </button>
+              </span>
             )}
             <ChevronRight size={16} style={{ color: "var(--muted-foreground)" }} />
-          </div>
+          </button>
         );
       })}
 
