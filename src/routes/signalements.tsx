@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { employees, getInitials } from "@/lib/mock-data";
+import { Dropdown } from "@/components/Dropdown";
 
 export const Route = createFileRoute("/signalements")({
   component: SignalementsPage,
