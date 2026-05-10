@@ -323,6 +323,7 @@ export function InvitationsList({ onInviteClick }: { onInviteClick: () => void }
                     onCopy={() => copyLink(inv.token)}
                     onResend={() => resendEmail(inv)}
                     onRevoke={() => revoke(inv)}
+                    onValidate={() => validateManually(inv)}
                     onPreview={() =>
                       window.open(`/activation?preview=${inv.id}`, "_blank", "noopener")
                     }
