@@ -93,12 +93,12 @@ function ChecklistsPage() {
   };
 
   const createTemplate = async () => {
-    if (templates.some(t => t.studio_id === tplStudio && t.business_role === tplRole)) {
+    if (templates.some(t => t.studio_id === activeStudio && t.business_role === tplRole)) {
       toast.error("Ce template existe déjà");
       return;
     }
     const { data, error } = await supabase.from("checklist_templates")
-      .insert({ studio_id: tplStudio, business_role: tplRole, items: [] })
+      .insert({ studio_id: activeStudio, business_role: tplRole, items: [] })
       .select().single();
     if (error || !data) { toast.error("Erreur"); return; }
     setSelected(data.id); setCreatingTpl(false);
