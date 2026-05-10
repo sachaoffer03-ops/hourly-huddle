@@ -410,19 +410,26 @@ function ProfilTab({ profile, businessRoles, studios, onNavigate }: { profile: P
   const fmtDate = (iso: string | null) => iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "—";
 
   return (
-    <div className="px-5 pt-6">
-      <div className="flex items-center gap-4 mb-6">
-        <div className="rounded-full flex items-center justify-center" style={{ width: 64, height: 64, backgroundColor: rc.bg, color: rc.text, fontSize: 20, fontWeight: 500 }}>
-          {initials || "—"}
-        </div>
-        <div>
-          <div style={{ fontSize: 18, fontWeight: 500 }}>{profile.first_name} {profile.last_name}</div>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
+    <div className="px-5 pt-12">
+      {/* Hero profil */}
+      <div className="rounded-2xl overflow-hidden mb-4" style={{ background: "linear-gradient(160deg, #1A1A1A 0%, #2A2A28 100%)", padding: 22 }}>
+        <div className="flex flex-col items-center text-center">
+          <div className="rounded-full flex items-center justify-center mb-3" style={{
+            width: 80, height: 80,
+            background: `linear-gradient(135deg, var(--coral) 0%, var(--coral-dark) 100%)`,
+            color: "#fff", fontSize: 26, fontWeight: 500,
+            boxShadow: "0 8px 24px rgba(240,153,123,0.35)",
+          }}>
+            {initials || "—"}
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 500, color: "#fff" }}>{profile.first_name} {profile.last_name}</div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 2 }}>{profile.email}</div>
+          <div className="flex items-center gap-1.5 mt-3 flex-wrap justify-center">
             {profile.contract && (
-              <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, backgroundColor: "var(--muted)", color: "var(--muted-foreground)" }}>{profile.contract}</span>
+              <span className="rounded-full px-2.5 py-1" style={{ fontSize: 10, fontWeight: 500, backgroundColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.85)", border: "0.5px solid rgba(255,255,255,0.12)" }}>{profile.contract}</span>
             )}
             {businessRoles.map(r => (
-              <span key={r} className="rounded-full px-1.5 py-0.5" style={{ fontSize: 10, backgroundColor: roleColors[r].bg, color: roleColors[r].text }}>{r}</span>
+              <span key={r} className="rounded-full px-2 py-1" style={{ fontSize: 10, fontWeight: 500, backgroundColor: roleColors[r].bg, color: roleColors[r].text }}>{r}</span>
             ))}
           </div>
         </div>
@@ -432,7 +439,7 @@ function ProfilTab({ profile, businessRoles, studios, onNavigate }: { profile: P
       {quotaUsed !== null && quotaMax !== null && quotaMax > 0 && (
         <div className="rounded-xl border p-4 mb-4" style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)" }}>
           <div className="flex items-center justify-between mb-2">
-            <span style={{ fontSize: 12, fontWeight: 500 }}>Contingent</span>
+            <span style={{ fontSize: 12, fontWeight: 500 }}>Contingent étudiant</span>
             <span style={{ fontSize: 12, fontWeight: 500, color: barColor }}>{quotaUsed}h / {quotaMax}h</span>
           </div>
           <div style={{ width: "100%", height: 6, borderRadius: 3, backgroundColor: "var(--muted)" }}>
