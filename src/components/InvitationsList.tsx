@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Mail,
   UserPlus,
+  Eye,
 } from "lucide-react";
 
 type Status = "pending" | "accepted" | "expired" | "revoked";
