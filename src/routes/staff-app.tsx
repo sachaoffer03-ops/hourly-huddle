@@ -200,12 +200,18 @@ function AccueilTab({ profile, studios }: { profile: ProfileRow | null; studios:
         <QuickLink icon={<GraduationCap size={18} />} label="Formations" sub="À voir / valider" onClick={() => setFormOpen(true)} />
       </div>
 
+      <ShiftDetailSheet
+        open={!!shiftDetail} onClose={() => setShiftDetail(null)}
+        shift={shiftDetail} studios={studios}
+        onEndShift={() => { if (shiftDetail) { setEndShift(shiftDetail); setShiftDetail(null); } }}
+        onRequestModif={() => { if (shiftDetail) { setReqShiftId(shiftDetail.id); setShiftDetail(null); setReqOpen(true); } }}
+      />
       <EndShiftSheet
         open={!!endShift} onClose={() => setEndShift(null)}
         shift={endShift} userId={user!.id}
       />
       <SignalementSheet open={signalOpen} onClose={() => setSignalOpen(false)} userId={user!.id} studioId={profile?.studio_id ?? null} />
-      <RequestModificationSheet open={reqOpen} onClose={() => setReqOpen(false)} userId={user!.id} shiftId={shifts[0]?.id ?? null} />
+      <RequestModificationSheet open={reqOpen} onClose={() => { setReqOpen(false); setReqShiftId(null); }} userId={user!.id} shiftId={reqShiftId} />
       <FormationsSheet open={formOpen} onClose={() => setFormOpen(false)} userId={user!.id} />
       <MyRequestsSheet open={myReqOpen} onClose={() => setMyReqOpen(false)} userId={user!.id} />
     </div>
