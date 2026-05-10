@@ -21,10 +21,10 @@ interface StudioRow { id: string; name: string; }
 function ChecklistsPage() {
   const [studios, setStudios] = useState<StudioRow[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [activeStudio, setActiveStudio] = useState<string>("");
   const [selected, setSelected] = useState<string>("");
   const [newItem, setNewItem] = useState("");
   const [creatingTpl, setCreatingTpl] = useState(false);
-  const [tplStudio, setTplStudio] = useState<string>("");
   const [tplRole, setTplRole] = useState<Role>("Barista");
 
   useEffect(() => {
@@ -36,8 +36,9 @@ function ChecklistsPage() {
       setStudios(sts || []);
       const tpls = (tps || []).map(t => ({ ...t, items: (t.items as unknown as Item[]) || [] })) as Template[];
       setTemplates(tpls);
-      if (tpls.length && !selected) setSelected(tpls[0].id);
-      if (sts && sts.length && !tplStudio) setTplStudio(sts[0].id);
+      if (sts && sts.length) {
+        setActiveStudio(prev => prev || sts[0].id);
+      }
     };
     load();
     const channel = supabase.channel("checklists-admin")
@@ -45,6 +46,20 @@ function ChecklistsPage() {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  // Templates filtrés sur le studio actif
+  const studioTemplates = useMemo(
+    () => templates.filter(t => t.studio_id === activeStudio),
+    [templates, activeStudio]
+  );
+
+  // Auto-sélection du premier template du studio actif
+  useEffect(() => {
+    if (studioTemplates.length === 0) { setSelected(""); return; }
+    if (!studioTemplates.some(t => t.id === selected)) {
+      setSelected(studioTemplates[0].id);
+    }
+  }, [studioTemplates, selected]);
 
   const studioName = (id: string | null) => studios.find(s => s.id === id)?.name || "Tous studios";
   const template = templates.find(t => t.id === selected) || null;
