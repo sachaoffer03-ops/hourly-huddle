@@ -207,8 +207,7 @@ function PlanningTab({ studios }: { studios: Record<string, string> }) {
 
   useEffect(() => {
     if (!user) return;
-    (async () => {
-      setLoading(true);
+    const load = async () => {
       const { data } = await supabase.from("shifts")
         .select("id,shift_date,start_time,end_time,business_role,studio_id")
         .eq("user_id", user.id)
@@ -216,7 +215,15 @@ function PlanningTab({ studios }: { studios: Record<string, string> }) {
         .order("shift_date").order("start_time");
       if (data) setShifts(data);
       setLoading(false);
-    })();
+    };
+    setLoading(true);
+    load();
+
+    const channel = supabase.channel(`shifts-planning-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "shifts", filter: `user_id=eq.${user.id}` }, () => load())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   const monthLabel = new Date().toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
