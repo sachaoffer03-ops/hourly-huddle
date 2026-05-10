@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Home, Calendar, CalendarCheck, User, ChevronRight, Clock, GraduationCap, ClipboardCheck, ArrowLeft, CheckSquare, AlertCircle, Replace, Inbox } from "lucide-react";
+import { Home, Calendar, CalendarCheck, User, ChevronRight, Clock, GraduationCap, ClipboardCheck, ArrowLeft, CheckSquare, AlertCircle, Replace, Inbox, MessageSquare, Bell, Info } from "lucide-react";
 import { roleColors, getQuotaStatus, type Role } from "@/lib/mock-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { EndShiftSheet } from "@/components/staff-app/EndShiftSheet";
 import { SignalementSheet, RequestModificationSheet, FormationsSheet, MyRequestsSheet } from "@/components/staff-app/StaffActionsSheets";
+import { ShiftDetailSheet, DocumentsSheet, NotificationsSheet } from "@/components/staff-app/ProfileSheets";
+import { ChatSheet } from "@/components/staff-app/ChatSheet";
 
 export const Route = createFileRoute("/staff-app")({
   component: StaffAppPage,
