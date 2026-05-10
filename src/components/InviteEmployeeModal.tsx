@@ -136,20 +136,20 @@ export function InviteEmployeeModal({ open, onClose, onCreated }: Props) {
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} style={inputStyle} required /></div>
               <div><label style={labelStyle}>Téléphone</label>
                 <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputCls} style={inputStyle} /></div>
-              <div><label style={labelStyle}>Studio</label>
+              <div><label style={labelStyle}>Studios <span style={{ color: "var(--muted-foreground)", fontWeight: 400 }}>(plusieurs possibles)</span></label>
                 <div className="flex flex-wrap gap-1 mt-2">
                   {studios.map((s) => (
-                    <button key={s.id} type="button" onClick={() => setStudioId(s.id)}
-                      className="rounded-full px-2.5 py-1 transition-colors" style={chip(studioId === s.id)}>
+                    <button key={s.id} type="button" onClick={() => toggleStudio(s.id)}
+                      className="rounded-full px-2.5 py-1 transition-colors" style={chip(studioIds.has(s.id))}>
                       {s.name}
                     </button>
                   ))}
                 </div></div>
-              <div><label style={labelStyle}>Type de contrat</label>
+              <div><label style={labelStyle}>Type(s) de contrat <span style={{ color: "var(--muted-foreground)", fontWeight: 400 }}>(plusieurs possibles)</span></label>
                 <div className="flex flex-wrap gap-1 mt-2">
                   {CONTRACTS.map((c) => (
-                    <button key={c} type="button" onClick={() => setContract(c)}
-                      className="rounded-full px-2.5 py-1 transition-colors" style={chip(contract === c)}>
+                    <button key={c} type="button" onClick={() => toggleContract(c)}
+                      className="rounded-full px-2.5 py-1 transition-colors" style={chip(contracts.has(c))}>
                       {c}
                     </button>
                   ))}
