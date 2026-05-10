@@ -110,6 +110,7 @@ function ActivationPage() {
   const goPrev = () => setStep((s) => Math.max(0, s - 1));
 
   const validateStep = () => {
+    if (isPreview) return goNext(); // skip validation in preview mode
     if (step === 1) {
       if (password.length < 8) return toast.error("Mot de passe : 8 caractères minimum");
       if (password !== confirm) return toast.error("Les mots de passe ne correspondent pas");
