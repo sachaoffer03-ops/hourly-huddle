@@ -177,6 +177,7 @@ export type Database = {
           app_role: Database["public"]["Enums"]["app_role"]
           business_roles: Database["public"]["Enums"]["business_role"][]
           contract: Database["public"]["Enums"]["contract_type"] | null
+          contracts: Database["public"]["Enums"]["contract_type"][]
           created_at: string
           created_by: string | null
           email: string
@@ -188,6 +189,7 @@ export type Database = {
           phone: string | null
           status: Database["public"]["Enums"]["invitation_status"]
           studio_id: string | null
+          studio_ids: string[]
           token: string
         }
         Insert: {
@@ -195,6 +197,7 @@ export type Database = {
           app_role?: Database["public"]["Enums"]["app_role"]
           business_roles?: Database["public"]["Enums"]["business_role"][]
           contract?: Database["public"]["Enums"]["contract_type"] | null
+          contracts?: Database["public"]["Enums"]["contract_type"][]
           created_at?: string
           created_by?: string | null
           email: string
@@ -206,6 +209,7 @@ export type Database = {
           phone?: string | null
           status?: Database["public"]["Enums"]["invitation_status"]
           studio_id?: string | null
+          studio_ids?: string[]
           token?: string
         }
         Update: {
@@ -213,6 +217,7 @@ export type Database = {
           app_role?: Database["public"]["Enums"]["app_role"]
           business_roles?: Database["public"]["Enums"]["business_role"][]
           contract?: Database["public"]["Enums"]["contract_type"] | null
+          contracts?: Database["public"]["Enums"]["contract_type"][]
           created_at?: string
           created_by?: string | null
           email?: string
@@ -224,6 +229,7 @@ export type Database = {
           phone?: string | null
           status?: Database["public"]["Enums"]["invitation_status"]
           studio_id?: string | null
+          studio_ids?: string[]
           token?: string
         }
         Relationships: [
@@ -700,6 +706,24 @@ export type Database = {
         }
         Relationships: []
       }
+      user_contracts: {
+        Row: {
+          contract: Database["public"]["Enums"]["contract_type"]
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          contract: Database["public"]["Enums"]["contract_type"]
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          contract?: Database["public"]["Enums"]["contract_type"]
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -714,6 +738,24 @@ export type Database = {
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_studios: {
+        Row: {
+          created_at: string
+          studio_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          studio_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          studio_id?: string
           user_id?: string
         }
         Relationships: []
