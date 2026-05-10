@@ -10,8 +10,10 @@ interface Body {
   first_name: string;
   last_name: string;
   phone?: string | null;
-  studio_id?: string | null;
-  contract?: string | null;
+  studio_id?: string | null; // legacy single (optional)
+  studio_ids?: string[];
+  contract?: string | null; // legacy single (optional)
+  contracts?: string[];
   business_roles: string[];
   app_role?: string;
   hire_date?: string | null;
@@ -41,14 +43,23 @@ Deno.serve(async (req) => {
 
     const body: Body = await req.json();
 
+    const studioIds = (body.studio_ids && body.studio_ids.length > 0)
+      ? body.studio_ids
+      : (body.studio_id ? [body.studio_id] : []);
+    const contracts = (body.contracts && body.contracts.length > 0)
+      ? body.contracts
+      : (body.contract ? [body.contract] : []);
+
     // Insert invitation
     const { data: inv, error: invErr } = await admin.from("invitations").insert({
       email: body.email,
       first_name: body.first_name,
       last_name: body.last_name,
       phone: body.phone ?? null,
-      studio_id: body.studio_id ?? null,
-      contract: body.contract ?? null,
+      studio_id: studioIds[0] ?? null, // legacy compat
+      studio_ids: studioIds,
+      contract: contracts[0] ?? null, // legacy compat
+      contracts: contracts,
       business_roles: body.business_roles ?? [],
       app_role: body.app_role ?? "employee",
       hire_date: body.hire_date ?? null,
