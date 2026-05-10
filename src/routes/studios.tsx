@@ -246,6 +246,19 @@ function StudiosPage() {
     setShowNewModal(false);
   };
 
+  const deleteStudio = (name: Studio) => {
+    const idx = studioTabs.indexOf(name);
+    if (baseStudioTabs.includes(name)) {
+      setDeletedBase((p) => (p.includes(name) ? p : [...p, name]));
+    } else {
+      setExtraStudios((p) => p.filter((s) => s !== name));
+    }
+    if (idx >= 0 && activeStudio >= idx) {
+      setActiveStudio(Math.max(0, activeStudio - 1));
+    }
+    setConfirmDelete(null);
+  };
+
   return (
     <div className="p-6">
       <div
