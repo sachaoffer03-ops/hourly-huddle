@@ -1,4 +1,4 @@
-import { useRouterState } from "@tanstack/react-router";
+import { useRouterState, useNavigate } from "@tanstack/react-router";
 import { Bell, Search, Plus, Menu } from "lucide-react";
 
 const pageTitles: Record<string, string> = {
@@ -21,6 +21,8 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
   const currentPath = useRouterState({
     select: (s) => s.location.pathname,
   });
+  const navigate = useNavigate();
+  const openNewShift = () => navigate({ to: "/planning", search: { add: true } });
 
   const pageTitle = pageTitles[currentPath] || "Dashboard";
 
@@ -94,6 +96,7 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
           />
         </button>
         <button
+          onClick={openNewShift}
           className="hidden md:flex items-center gap-1.5 rounded-md px-3 transition-colors"
           style={{
             height: 32,
@@ -107,6 +110,7 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
           Nouveau shift
         </button>
         <button
+          onClick={openNewShift}
           className="flex md:hidden items-center justify-center rounded-md"
           style={{
             width: 32,
