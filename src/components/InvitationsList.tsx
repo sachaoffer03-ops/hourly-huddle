@@ -344,6 +344,7 @@ function Row({
   onCopy,
   onResend,
   onRevoke,
+  onValidate,
   onPreview,
 }: {
   inv: Invitation;
@@ -351,6 +352,7 @@ function Row({
   onCopy: () => void;
   onResend: () => void;
   onRevoke: () => void;
+  onValidate: () => void;
   onPreview: () => void;
 }) {
   const initials = `${inv.first_name[0] ?? ""}${inv.last_name[0] ?? ""}`.toUpperCase();
