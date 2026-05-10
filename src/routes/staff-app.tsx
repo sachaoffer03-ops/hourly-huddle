@@ -85,7 +85,7 @@ function AccueilTab() {
               <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{s.role} · {s.studio.replace('Skult ', '')}</div>
             </div>
             {s.active && (
-              <button className="rounded-md px-3 py-1.5 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 500, backgroundColor: "var(--foreground)", color: "#fff" }}>
+              <button onClick={() => toast.success("Pointage enregistré", { description: `${s.role} · ${s.studio}` })} className="rounded-md px-3 py-1.5 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 500, backgroundColor: "var(--foreground)", color: "#fff" }}>
                 <QrCode size={12} /> Pointer
               </button>
             )}
@@ -96,20 +96,20 @@ function AccueilTab() {
 
       {/* Quick links */}
       <div className="grid grid-cols-2 gap-3 mt-5">
-        <QuickLink icon={<CalendarCheck size={18} />} label="Mes disponibilités" sub="Juin 2026" />
-        <QuickLink icon={<GraduationCap size={18} />} label="Formation" sub="3 vidéos restantes" />
+        <QuickLink icon={<CalendarCheck size={18} />} label="Mes disponibilités" sub="Juin 2026" onClick={() => { /* tab change handled below */ window.dispatchEvent(new CustomEvent('staff-app-tab', { detail: 'dispos' })); }} />
+        <QuickLink icon={<GraduationCap size={18} />} label="Formation" sub="3 vidéos restantes" onClick={() => toast("Formation à venir", { description: "Cette section sera bientôt disponible" })} />
       </div>
     </div>
   );
 }
 
-function QuickLink({ icon, label, sub }: { icon: React.ReactNode; label: string; sub: string }) {
+function QuickLink({ icon, label, sub, onClick }: { icon: React.ReactNode; label: string; sub: string; onClick?: () => void }) {
   return (
-    <div className="rounded-xl border px-4 py-4" style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)", cursor: "pointer" }}>
+    <button onClick={onClick} className="rounded-xl border px-4 py-4 text-left" style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)", cursor: "pointer" }}>
       <div style={{ color: "var(--coral)", marginBottom: 8 }}>{icon}</div>
       <div style={{ fontSize: 13, fontWeight: 500 }}>{label}</div>
       <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{sub}</div>
-    </div>
+    </button>
   );
 }
 
