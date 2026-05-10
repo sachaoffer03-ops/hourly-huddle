@@ -50,6 +50,8 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
     { id: 1, title: "Nouvelle demande de modif", desc: "Léa souhaite échanger son shift de vendredi", to: "/demandes" as const },
   ];
 
+  const pageTitle = pageTitles[currentPath] || "Dashboard";
+
   return (
     <header
       className="flex items-center justify-between border-b px-4 md:px-6"
