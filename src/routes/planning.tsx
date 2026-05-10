@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { employees, roleColors, type Role, type Studio, type Employee } from "@/lib/mock-data";
+import { Dropdown } from "@/components/Dropdown";
 
 export const Route = createFileRoute("/planning")({
   component: PlanningPage,
