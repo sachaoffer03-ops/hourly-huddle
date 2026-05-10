@@ -202,16 +202,15 @@ function ShiftDetailModal({ shift, employee, onClose, onDelete, onUpdateSlot, on
             <Clock size={14} style={{ color: "var(--muted-foreground)" }} />
             <div className="flex-1">
               {editing ? (
-                <select
-                  value={shift.slot}
-                  onChange={(e) => onUpdateSlot(Number(e.target.value))}
-                  className="w-full rounded-md px-2 py-1.5 outline-none"
-                  style={{ fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "var(--background)" }}
-                >
-                  {timeSlotDefs.map((s, i) => (
-                    <option key={i} value={i}>{s.time}</option>
-                  ))}
-                </select>
+                <Dropdown
+                  value={timeSlotDefs[shift.slot].time}
+                  options={timeSlotDefs.map(s => s.time)}
+                  onChange={(v) => {
+                    const idx = timeSlotDefs.findIndex(s => s.time === v);
+                    if (idx >= 0) onUpdateSlot(idx);
+                  }}
+                  minWidth={180}
+                />
               ) : (
                 <>
                   <div style={{ fontSize: 13, fontWeight: 500 }}>{shift.time}</div>
