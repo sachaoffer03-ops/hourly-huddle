@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { employees, roleColors, getQuotaStatus, getInitials, type Employee, type Role } from "@/lib/mock-data";
 import { Search, X, ArrowLeft, Mail, Phone, MapPin, Star, Clock, Edit, FileText, Download, UserX } from "lucide-react";
 import { useState } from "react";
