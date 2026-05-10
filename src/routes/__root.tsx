@@ -140,6 +140,11 @@ function AppShell() {
 
   const isPublic = PUBLIC_ROUTES.some((p) => currentPath.startsWith(p));
   const isStaffApp = currentPath.startsWith("/staff-app");
+  // Allow admins to view the activation page in preview mode (?preview=...)
+  const isActivationPreview =
+    currentPath.startsWith("/activation") &&
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).has("preview");
 
   // Redirect logic
   useEffect(() => {
@@ -148,7 +153,7 @@ function AppShell() {
       navigate({ to: "/login" });
       return;
     }
-    if (session && isPublic && appRole) {
+    if (session && isPublic && appRole && !isActivationPreview) {
       navigate({ to: appRole === "employee" ? "/staff-app" : "/dashboard" });
       return;
     }
