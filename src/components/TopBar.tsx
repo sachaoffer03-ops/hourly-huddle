@@ -21,6 +21,8 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
   const currentPath = useRouterState({
     select: (s) => s.location.pathname,
   });
+  const navigate = useNavigate();
+  const openNewShift = () => navigate({ to: "/planning", search: { add: true } });
 
   const pageTitle = pageTitles[currentPath] || "Dashboard";
 
