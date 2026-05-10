@@ -378,58 +378,116 @@ function StudiosPage() {
         ))}
       </div>
 
-      {activeSubTab === 0 && (
-        <InformationsTab
-          info={infos[studio]}
-          onChange={(patch) =>
-            setInfos((p) => ({ ...p, [studio]: { ...p[studio], ...patch } }))
-          }
-          activeRoles={activeRoles[studio]}
-          onToggleRole={(role) =>
-            setActiveRoles((p) => ({
-              ...p,
-              [studio]: p[studio].includes(role)
-                ? p[studio].filter((r) => r !== role)
-                : [...p[studio], role],
-            }))
-          }
-          customRoles={customRoles[studio]}
-          onAddCustomRole={(name) =>
-            setCustomRoles((p) => ({
-              ...p,
-              [studio]: p[studio].includes(name) ? p[studio] : [...p[studio], name],
-            }))
-          }
-          onRemoveCustomRole={(name) =>
-            setCustomRoles((p) => ({
-              ...p,
-              [studio]: p[studio].filter((r) => r !== name),
-            }))
-          }
-        />
+      {studioTabs.length === 0 ? (
+        <div
+          className="rounded-xl border p-10 text-center"
+          style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
+        >
+          <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>Aucun studio</div>
+          <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
+            Crée ton premier studio avec le bouton "+ Nouveau studio".
+          </div>
+        </div>
+      ) : (
+        <>
+          {activeSubTab === 0 && (
+            <InformationsTab
+              info={infos[studio]}
+              onChange={(patch) =>
+                setInfos((p) => ({ ...p, [studio]: { ...p[studio], ...patch } }))
+              }
+              activeRoles={activeRoles[studio]}
+              onToggleRole={(role) =>
+                setActiveRoles((p) => ({
+                  ...p,
+                  [studio]: p[studio].includes(role)
+                    ? p[studio].filter((r) => r !== role)
+                    : [...p[studio], role],
+                }))
+              }
+              customRoles={customRoles[studio]}
+              onAddCustomRole={(name) =>
+                setCustomRoles((p) => ({
+                  ...p,
+                  [studio]: p[studio].includes(name) ? p[studio] : [...p[studio], name],
+                }))
+              }
+              onRemoveCustomRole={(name) =>
+                setCustomRoles((p) => ({
+                  ...p,
+                  [studio]: p[studio].filter((r) => r !== name),
+                }))
+              }
+              onRequestDelete={() => setConfirmDelete(studio)}
+            />
+          )}
+          {activeSubTab === 1 && (
+            <HorairesTab
+              studio={studio}
+              week={week[studio]}
+              setWeek={(next) => setWeek((p) => ({ ...p, [studio]: next }))}
+              activeRoles={activeRoles[studio]}
+              roleHours={roleHours[studio]}
+              setRoleHours={(role, sched) =>
+                setRoleHours((p) => ({ ...p, [studio]: { ...p[studio], [role]: sched } }))
+              }
+            />
+          )}
+          {activeSubTab === 2 && (
+            <BesoinsTab
+              studio={studio}
+              activeRoles={activeRoles[studio]}
+              shifts={needs[studio]}
+              setShifts={(next) => setNeeds((p) => ({ ...p, [studio]: next }))}
+            />
+          )}
+          {activeSubTab === 3 && <ExceptionsTab studio={studio} />}
+          {activeSubTab === 4 && <ChecklistsTab studio={studio} />}
+        </>
       )}
-      {activeSubTab === 1 && (
-        <HorairesTab
-          studio={studio}
-          week={week[studio]}
-          setWeek={(next) => setWeek((p) => ({ ...p, [studio]: next }))}
-          activeRoles={activeRoles[studio]}
-          roleHours={roleHours[studio]}
-          setRoleHours={(role, sched) =>
-            setRoleHours((p) => ({ ...p, [studio]: { ...p[studio], [role]: sched } }))
-          }
-        />
+
+      {confirmDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
+          onClick={() => setConfirmDelete(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="rounded-xl p-5 w-full max-w-sm"
+            style={{ backgroundColor: "var(--card)", border: "0.5px solid var(--border)" }}
+          >
+            <div style={{ fontSize: 15, fontWeight: 500, marginBottom: 4 }}>
+              Supprimer ce studio ?
+            </div>
+            <div style={{ fontSize: 12, color: "var(--muted-foreground)", marginBottom: 16, lineHeight: 1.5 }}>
+              <span style={{ fontWeight: 500, color: "var(--foreground)" }}>{confirmDelete}</span> sera supprimé,
+              avec ses horaires, ses besoins en staff et ses checklists. Cette action est définitive.
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="rounded-md px-3 py-1.5"
+                style={{ fontSize: 12, fontWeight: 500, border: "0.5px solid var(--border)" }}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => deleteStudio(confirmDelete)}
+                className="rounded-md px-3 py-1.5"
+                style={{
+                  fontSize: 12,
+                  fontWeight: 500,
+                  backgroundColor: "var(--danger-text)",
+                  color: "var(--card)",
+                }}
+              >
+                Supprimer définitivement
+              </button>
+            </div>
+          </div>
+        </div>
       )}
-      {activeSubTab === 2 && (
-        <BesoinsTab
-          studio={studio}
-          activeRoles={activeRoles[studio]}
-          shifts={needs[studio]}
-          setShifts={(next) => setNeeds((p) => ({ ...p, [studio]: next }))}
-        />
-      )}
-      {activeSubTab === 3 && <ExceptionsTab studio={studio} />}
-      {activeSubTab === 4 && <ChecklistsTab studio={studio} />}
     </div>
   );
 }
