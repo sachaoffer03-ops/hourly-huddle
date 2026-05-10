@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Sparkles, Check, AlertTriangle, BarChart3, Users, Clock, ArrowRight } from "lucide-react";
+import { Sparkles, Check, AlertTriangle, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/planning/generate")({
   component: GeneratePlanningPage,
