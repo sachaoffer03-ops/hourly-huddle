@@ -775,13 +775,26 @@ function PlanningPage() {
             </>
           )}
         </div>
-        <div className="flex items-center gap-4" style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
+        <div className="flex items-center gap-4 flex-wrap" style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
           {roleTotals.map(({ role, count }) => (
             <span key={role} className="flex items-center gap-1.5">
               <span className="rounded-full" style={{ width: 6, height: 6, backgroundColor: roleColors[role].dot }} />
               {count} {role}
             </span>
           ))}
+          <button
+            onClick={handlePublish}
+            disabled={published}
+            className="rounded-md px-3 py-1.5 transition-colors"
+            style={{
+              fontSize: 11, fontWeight: 500,
+              backgroundColor: published ? "var(--success-bg)" : "var(--foreground)",
+              color: published ? "var(--success-text)" : "var(--card)",
+              cursor: published ? "default" : "pointer",
+            }}
+          >
+            {published ? "✓ Publié" : "Publier la semaine"}
+          </button>
         </div>
       </div>
 
@@ -791,6 +804,9 @@ function PlanningPage() {
           shift={selectedShift}
           employee={employees.find((e) => e.id === selectedShift.employeeId)}
           onClose={() => setSelectedShift(null)}
+          onDelete={() => handleDeleteShift(selectedShift.id)}
+          onUpdateSlot={(slot) => handleUpdateSlot(selectedShift.id, slot)}
+          onConfirm={() => handleConfirmShift(selectedShift.id)}
         />
       )}
       {holeShift && (
@@ -800,6 +816,90 @@ function PlanningPage() {
           onFill={(empId) => handleFillHole(holeShift.id, empId)}
         />
       )}
+      {showAdd && (
+        <AddShiftModal
+          studio={selectedStudio}
+          onClose={() => setShowAdd(false)}
+          onAdd={handleAddShift}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Add Shift Modal ────────────────────────────────────────
+function AddShiftModal({ studio, onClose, onAdd }: { studio: Studio; onClose: () => void; onAdd: (empId: string, day: number, slot: number, role: Role) => void }) {
+  const [day, setDay] = useState(0);
+  const [slot, setSlot] = useState(0);
+  const [role, setRole] = useState<Role>("Barista");
+  const [empId, setEmpId] = useState("");
+
+  const eligible = useMemo(() => employees.filter((e) => e.roles.includes(role)), [role]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.3)" }} onClick={onClose}>
+      <div
+        className="rounded-xl w-full max-w-md mx-4 overflow-hidden"
+        style={{ backgroundColor: "var(--card)", border: "0.5px solid var(--border)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "0.5px solid var(--border)" }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 500 }}>Ajouter un shift</div>
+            <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 2 }}>{studio}</div>
+          </div>
+          <button onClick={onClose} className="rounded-md p-1" style={{ color: "var(--muted-foreground)" }}>
+            <X size={16} />
+          </button>
+        </div>
+        <div className="px-5 py-4 flex flex-col gap-3">
+          <Field label="Jour">
+            <select value={day} onChange={(e) => setDay(Number(e.target.value))} className="w-full rounded-md px-2 py-2 outline-none" style={{ fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "var(--background)" }}>
+              {dayNamesFull.slice(1).concat(dayNamesFull[0]).map((d, i) => (
+                <option key={i} value={i}>{d}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Créneau">
+            <select value={slot} onChange={(e) => setSlot(Number(e.target.value))} className="w-full rounded-md px-2 py-2 outline-none" style={{ fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "var(--background)" }}>
+              {timeSlotDefs.map((s, i) => <option key={i} value={i}>{s.time}</option>)}
+            </select>
+          </Field>
+          <Field label="Poste">
+            <select value={role} onChange={(e) => { setRole(e.target.value as Role); setEmpId(""); }} className="w-full rounded-md px-2 py-2 outline-none" style={{ fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "var(--background)" }}>
+              {roles.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </Field>
+          <Field label="Employé">
+            <select value={empId} onChange={(e) => setEmpId(e.target.value)} className="w-full rounded-md px-2 py-2 outline-none" style={{ fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "var(--background)" }}>
+              <option value="">— Sélectionner —</option>
+              {eligible.map((e) => <option key={e.id} value={e.id}>{e.firstName} {e.lastName}</option>)}
+            </select>
+          </Field>
+        </div>
+        <div className="flex gap-2 px-5 py-3" style={{ borderTop: "0.5px solid var(--border)" }}>
+          <button onClick={onClose} className="flex-1 rounded-md px-3 py-2" style={{ fontSize: 12, fontWeight: 500, border: "0.5px solid var(--border)" }}>
+            Annuler
+          </button>
+          <button
+            onClick={() => empId && onAdd(empId, day, slot, role)}
+            disabled={!empId}
+            className="flex-1 rounded-md px-3 py-2 transition-colors"
+            style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)", opacity: empId ? 1 : 0.4 }}
+          >
+            Ajouter
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div style={{ fontSize: 10, fontWeight: 500, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{label}</div>
+      {children}
     </div>
   );
 }
