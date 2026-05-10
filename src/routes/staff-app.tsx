@@ -48,6 +48,7 @@ function StaffAppPage() {
   const [studios, setStudios] = useState<Record<string, string>>({});
   const [adminId, setAdminId] = useState<string | null>(null);
   const [adminName, setAdminName] = useState<string>("Administrateur");
+  const [notifOpen, setNotifOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -73,8 +74,6 @@ function StaffAppPage() {
   }, [user]);
 
   if (!user) return <div className="p-8" style={{ fontSize: 13 }}>Chargement…</div>;
-
-  const [notifOpen, setNotifOpen] = useState(false);
 
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: "#FAF8F4", maxWidth: 430, margin: "0 auto", position: "relative" }}>
@@ -216,10 +215,10 @@ function AccueilTab({ profile, studios, userId }: { profile: ProfileRow | null; 
         </div>
         <div className="flex-1">
           <div style={{ fontSize: 13, fontWeight: 500 }}>
-            {disposValidated ? "Planning validé" : "Indique tes dispos"}
+              {disposValidated ? "Dispos envoyées" : "Indique tes dispos"}
           </div>
           <div style={{ fontSize: 11, color: "var(--muted-foreground)", textTransform: "capitalize" }}>
-            {disposValidated ? `Tes dispos pour ${nextMonthLabel} sont envoyées` : `Pour ${nextMonthLabel} — une seule fois`}
+              {disposValidated ? `En attente du planning généré par l'admin` : `Pour ${nextMonthLabel} — une seule fois`}
           </div>
         </div>
         {!disposValidated && <ChevronRight size={16} style={{ color: "var(--muted-foreground)" }} />}
