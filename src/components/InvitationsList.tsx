@@ -290,19 +290,25 @@ export function InvitationsList({ onInviteClick }: { onInviteClick: () => void }
               </tr>
             </thead>
             <tbody>
-              {filtered.map((inv) => (
-                <Row
-                  key={inv.id}
-                  inv={inv}
-                  studioName={studioName(inv.studio_id)}
-                  onCopy={() => copyLink(inv.token)}
-                  onResend={() => resendEmail(inv)}
-                  onRevoke={() => revoke(inv)}
-                  onPreview={() =>
-                    window.open(`/activation?preview=${inv.id}`, "_blank", "noopener")
-                  }
-                />
-              ))}
+              {filtered.map((inv) => {
+                const ids = (inv.studio_ids && inv.studio_ids.length > 0)
+                  ? inv.studio_ids
+                  : (inv.studio_id ? [inv.studio_id] : []);
+                const names = ids.map((id) => studioName(id)).filter(Boolean);
+                return (
+                  <Row
+                    key={inv.id}
+                    inv={inv}
+                    studioNames={names}
+                    onCopy={() => copyLink(inv.token)}
+                    onResend={() => resendEmail(inv)}
+                    onRevoke={() => revoke(inv)}
+                    onPreview={() =>
+                      window.open(`/activation?preview=${inv.id}`, "_blank", "noopener")
+                    }
+                  />
+                );
+              })}
             </tbody>
           </table>
         )}
