@@ -394,7 +394,6 @@ function PlanningTab({ studios, userId }: { studios: Record<string, string>; use
 function ProfilTab({ profile, businessRoles, studios, onNavigate }: { profile: ProfileRow | null; businessRoles: Role[]; studios: Record<string, string>; onNavigate: (t: Tab) => void }) {
   const { signOut } = useAuth();
   const [docsOpen, setDocsOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
 
   if (!profile) return <div className="px-5 pt-6" style={{ fontSize: 13 }}>Chargement…</div>;
 
@@ -488,7 +487,6 @@ function ProfilTab({ profile, businessRoles, studios, onNavigate }: { profile: P
       </button>
 
       <DocumentsSheet open={docsOpen} onClose={() => setDocsOpen(false)} />
-      <NotificationsSheet open={notifOpen} onClose={() => setNotifOpen(false)} />
     </div>
   );
 }
