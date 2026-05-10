@@ -162,11 +162,11 @@ function DashboardPage() {
   );
 }
 
-function HeroStat({ value, label }: { value: string; label: string }) {
+function HeroStat({ value, label, accent }: { value: string; label: string; accent?: boolean }) {
   return (
     <div>
-      <div style={{ fontSize: 22, fontWeight: 500, color: "#FFFFFF" }}>{value}</div>
-      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 500, color: accent ? "var(--coral)" : "var(--foreground)", letterSpacing: "-0.02em" }}>{value}</div>
+      <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 2 }}>{label}</div>
     </div>
   );
 }
