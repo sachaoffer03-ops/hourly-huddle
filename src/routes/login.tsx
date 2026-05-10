@@ -14,8 +14,10 @@ function LoginPage() {
   const { session, appRole, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<"login" | "forgot">("login");
+  const [mode, setMode] = useState<"login" | "forgot" | "signup">("login");
 
   useEffect(() => {
     if (!authLoading && session && appRole) {
