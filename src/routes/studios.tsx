@@ -171,10 +171,15 @@ function StudiosPage() {
   const [activeSubTab, setActiveSubTab] = useState(0);
 
   const [extraStudios, setExtraStudios] = useState<Studio[]>([]);
+  const [deletedBase, setDeletedBase] = useState<Studio[]>([]);
   const [showNewModal, setShowNewModal] = useState(false);
   const [newStudioName, setNewStudioName] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState<Studio | null>(null);
 
-  const studioTabs = useMemo(() => [...baseStudioTabs, ...extraStudios], [extraStudios]);
+  const studioTabs = useMemo(
+    () => [...baseStudioTabs.filter((s) => !deletedBase.includes(s)), ...extraStudios],
+    [extraStudios, deletedBase]
+  );
 
   const [infos, setInfos] = useState<Record<Studio, StudioInfo>>(initialInfos);
   const [activeRoles, setActiveRoles] = useState<Record<Studio, Role[]>>(initialActive);
