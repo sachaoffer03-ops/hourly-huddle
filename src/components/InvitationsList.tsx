@@ -73,10 +73,11 @@ export function InvitationsList({ onInviteClick }: { onInviteClick: () => void }
     // Auto-mark expired
     const now = new Date();
     const cleaned = (invs ?? []).map((i) => {
-      if (i.status === "pending" && new Date(i.expires_at) < now) {
-        return { ...i, status: "expired" as Status };
+      const inv = i as Invitation;
+      if (inv.status === "pending" && new Date(inv.expires_at) < now) {
+        return { ...inv, status: "expired" as Status };
       }
-      return i as Invitation;
+      return inv;
     });
     setInvitations(cleaned);
     setStudios(studs ?? []);
