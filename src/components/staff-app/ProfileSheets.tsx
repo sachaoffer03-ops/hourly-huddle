@@ -21,13 +21,13 @@ export function ShiftDetailSheet({ open, onClose, shift, studios, onEndShift, on
   const [handoff, setHandoff] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open || !shift) return;
+    if (!open || !shift || !shift.studio_id) return;
     (async () => {
       // Cherche un handoff laissé par le shift précédent (même studio + même poste, finissant avant ce shift)
       const { data: prevShifts } = await supabase.from("shifts")
         .select("id")
-        .eq("studio_id", shift.studio_id)
-        .eq("business_role", shift.business_role)
+        .eq("studio_id", shift.studio_id!)
+        .eq("business_role", shift.business_role as Role)
         .lte("shift_date", shift.shift_date)
         .order("shift_date", { ascending: false }).order("start_time", { ascending: false })
         .limit(5);
