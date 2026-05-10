@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Home, Calendar, CalendarCheck, User, ChevronRight, Clock, Star, GraduationCap, QrCode, ClipboardCheck } from "lucide-react";
 import { employees, roleColors, getQuotaStatus, type Role } from "@/lib/mock-data";
 
