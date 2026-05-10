@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { employees, roleColors, getQuotaStatus, getInitials, type Employee, type Role } from "@/lib/mock-data";
-import { ArrowLeft, Mail, Phone, MapPin, Star, Edit, FileText, Download, UserX, X, Check } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, Star, Edit, FileText, Download, UserX, X, Check, FileCheck2, FileX2 } from "lucide-react";
 
 type ModalParam = "roles" | "score" | "deactivate";
 
