@@ -16,6 +16,7 @@ import {
   Settings,
   X,
 } from "lucide-react";
+import logo from "@/assets/kadence-logo.png";
 
 interface NavItem {
   label: string;
