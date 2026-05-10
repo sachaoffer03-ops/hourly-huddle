@@ -187,6 +187,7 @@ function FormationPage() {
           onRemind={(name) => toast.success(`Rappel envoyé à ${name}`)}
           onRemindAll={() => { toast.success(`Rappel envoyé à ${lateCount} employés`); setShowLate(false); }}
         />
+      )}
 
       {creating && <CreatePathForm onCancel={() => setCreating(false)} onCreate={addPath} />}
 
