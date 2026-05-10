@@ -245,9 +245,12 @@ function ShiftRow({ shift }: { shift: TodayShift }) {
   );
 }
 
-function ActionRow({ title, subtitle }: { title: string; subtitle: string }) {
+function ActionRow({ title, subtitle, onClick }: { title: string; subtitle: string; onClick?: () => void }) {
   return (
     <div
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
       className="flex items-center justify-between rounded-lg px-3 py-2 transition-colors"
       style={{ cursor: "pointer", backgroundColor: "rgba(255,255,255,0.5)" }}
       onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.8)"; }}
