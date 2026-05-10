@@ -460,21 +460,6 @@ function ProfilTab({ profile, businessRoles, studios, onNavigate }: { profile: P
         <InfoRow icon={<CreditCard size={14} />} label="IBAN" value={profile.iban || "—"} last />
       </Card>
 
-      {/* Contact urgence */}
-      <SectionTitle>Contact d'urgence</SectionTitle>
-      <Card>
-        {profile.emergency_contact_name ? (
-          <>
-            <InfoRow icon={<AlertTriangle size={14} />} label="Nom" value={`${profile.emergency_contact_name}${profile.emergency_contact_relation ? ` (${profile.emergency_contact_relation})` : ""}`} />
-            <InfoRow icon={<Phone size={14} />} label="Téléphone" value={profile.emergency_contact_phone || "—"} last />
-          </>
-        ) : (
-          <div style={{ fontSize: 12, color: "var(--muted-foreground)", padding: "12px 0" }}>
-            Aucun contact d'urgence renseigné.
-          </div>
-        )}
-      </Card>
-
       {/* Liens utiles */}
       <div className="rounded-xl border overflow-hidden mt-4" style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)" }}>
         {[
