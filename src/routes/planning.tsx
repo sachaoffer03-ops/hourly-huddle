@@ -679,6 +679,34 @@ function PlanningPage() {
         </span>
       </div>
 
+      {viewMode === "jour" && (
+        <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+          {weekDays.map((d, i) => {
+            const active = dayIdxJour === i;
+            const isToday = i === todayIdx;
+            return (
+              <button
+                key={i}
+                onClick={() => setDayIdxJour(i)}
+                className="rounded-full px-3 py-1.5 transition-colors"
+                style={{
+                  fontSize: 12,
+                  fontWeight: active ? 500 : 400,
+                  border: "0.5px solid var(--border)",
+                  backgroundColor: active ? "var(--foreground)" : "transparent",
+                  color: active ? "var(--card)" : "var(--muted-foreground)",
+                }}
+              >
+                {dayNamesShort[d.getDay()]} {d.getDate()}
+                {isToday && !active && (
+                  <span className="rounded-full ml-1.5" style={{ display: "inline-block", width: 5, height: 5, backgroundColor: "var(--coral)", verticalAlign: "middle" }} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Grid */}
       <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
         {/* Day headers */}
