@@ -498,6 +498,15 @@ function PlanningPage() {
   const [published, setPublished] = useState(false);
   const search = Route.useSearch();
   const [showAdd, setShowAdd] = useState(!!search.add);
+  const [viewMode, setViewMode] = useState<ViewMode>("semaine");
+  const [dayIdxJour, setDayIdxJour] = useState<number>(() => {
+    const t = new Date();
+    const idx = weekDays.findIndex((d) => d.toDateString() === t.toDateString());
+    return idx >= 0 ? idx : 0;
+  });
+
+  const visibleDayIndices = viewMode === "jour" ? [dayIdxJour] : [0, 1, 2, 3, 4, 5, 6];
+  const gridCols = `140px repeat(${visibleDayIndices.length}, 1fr)`;
 
   const goToday = () => { setMonth(now.getMonth()); setYear(now.getFullYear()); setWeekOffset(0); };
   const goPrev = () => setWeekOffset((w) => w - 1);
