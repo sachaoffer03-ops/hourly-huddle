@@ -14,6 +14,7 @@ import {
   BarChart3,
   Building2,
   Settings,
+  Eye,
   X,
 } from "lucide-react";
 import logo from "@/assets/kadence-logo.png";
