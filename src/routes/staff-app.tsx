@@ -91,7 +91,7 @@ function StaffAppPage() {
 }
 
 /* ─── ACCUEIL ─── */
-function AccueilTab({ profile, studios, onNavigate }: { profile: ProfileRow | null; studios: Record<string, string>; onNavigate: (t: Tab) => void }) {
+function AccueilTab({ profile, studios }: { profile: ProfileRow | null; studios: Record<string, string>; onNavigate?: (t: Tab) => void }) {
   const { user } = useAuth();
   const [shifts, setShifts] = useState<ShiftRow[]>([]);
   const [weekStats, setWeekStats] = useState({ hours: 0, count: 0 });
