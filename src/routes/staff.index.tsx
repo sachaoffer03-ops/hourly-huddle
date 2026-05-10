@@ -140,7 +140,6 @@ function StaffPage() {
         </div>
       </div>
       <InviteEmployeeModal open={inviteOpen} onClose={() => setInviteOpen(false)} />
-      <CreateShiftModal open={shiftOpen} onClose={() => setShiftOpen(false)} />
 
       {/* Table */}
       <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
