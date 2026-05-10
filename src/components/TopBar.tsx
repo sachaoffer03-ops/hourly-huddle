@@ -56,6 +56,7 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
   const pageTitle = pageTitles[currentPath] || "Dashboard";
 
   return (
+    <>
     <header
       className="flex items-center justify-between border-b px-4 md:px-6"
       style={{
