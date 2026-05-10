@@ -14,16 +14,236 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      invitations: {
+        Row: {
+          accepted_at: string | null
+          app_role: Database["public"]["Enums"]["app_role"]
+          business_roles: Database["public"]["Enums"]["business_role"][]
+          contract: Database["public"]["Enums"]["contract_type"] | null
+          created_at: string
+          created_by: string | null
+          email: string
+          expires_at: string
+          first_name: string
+          hire_date: string | null
+          id: string
+          last_name: string
+          phone: string | null
+          status: Database["public"]["Enums"]["invitation_status"]
+          studio_id: string | null
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          app_role?: Database["public"]["Enums"]["app_role"]
+          business_roles?: Database["public"]["Enums"]["business_role"][]
+          contract?: Database["public"]["Enums"]["contract_type"] | null
+          created_at?: string
+          created_by?: string | null
+          email: string
+          expires_at?: string
+          first_name: string
+          hire_date?: string | null
+          id?: string
+          last_name: string
+          phone?: string | null
+          status?: Database["public"]["Enums"]["invitation_status"]
+          studio_id?: string | null
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          app_role?: Database["public"]["Enums"]["app_role"]
+          business_roles?: Database["public"]["Enums"]["business_role"][]
+          contract?: Database["public"]["Enums"]["contract_type"] | null
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          expires_at?: string
+          first_name?: string
+          hire_date?: string | null
+          id?: string
+          last_name?: string
+          phone?: string | null
+          status?: Database["public"]["Enums"]["invitation_status"]
+          studio_id?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          address: string | null
+          avatar_url: string | null
+          birth_date: string | null
+          city: string | null
+          contract: Database["public"]["Enums"]["contract_type"] | null
+          created_at: string
+          email: string
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          emergency_contact_relation: string | null
+          first_name: string
+          hire_date: string | null
+          iban: string | null
+          id: string
+          last_name: string
+          nationality: string | null
+          niss: string | null
+          phone: string | null
+          quota_max: number | null
+          quota_used: number | null
+          score: number | null
+          status: Database["public"]["Enums"]["profile_status"]
+          student_card_valid: boolean | null
+          studio_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          avatar_url?: string | null
+          birth_date?: string | null
+          city?: string | null
+          contract?: Database["public"]["Enums"]["contract_type"] | null
+          created_at?: string
+          email: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relation?: string | null
+          first_name?: string
+          hire_date?: string | null
+          iban?: string | null
+          id: string
+          last_name?: string
+          nationality?: string | null
+          niss?: string | null
+          phone?: string | null
+          quota_max?: number | null
+          quota_used?: number | null
+          score?: number | null
+          status?: Database["public"]["Enums"]["profile_status"]
+          student_card_valid?: boolean | null
+          studio_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          avatar_url?: string | null
+          birth_date?: string | null
+          city?: string | null
+          contract?: Database["public"]["Enums"]["contract_type"] | null
+          created_at?: string
+          email?: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relation?: string | null
+          first_name?: string
+          hire_date?: string | null
+          iban?: string | null
+          id?: string
+          last_name?: string
+          nationality?: string | null
+          niss?: string | null
+          phone?: string | null
+          quota_max?: number | null
+          quota_used?: number | null
+          score?: number | null
+          status?: Database["public"]["Enums"]["profile_status"]
+          student_card_valid?: boolean | null
+          studio_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studios: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      user_business_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["business_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["business_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["business_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "manager" | "employee"
+      business_role: "Barista" | "Accueil" | "Host" | "Cuisine"
+      contract_type: "Étudiant" | "Flexi" | "CDI"
+      invitation_status: "pending" | "accepted" | "expired" | "revoked"
+      profile_status: "invited" | "active" | "suspended"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +370,12 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "manager", "employee"],
+      business_role: ["Barista", "Accueil", "Host", "Cuisine"],
+      contract_type: ["Étudiant", "Flexi", "CDI"],
+      invitation_status: ["pending", "accepted", "expired", "revoked"],
+      profile_status: ["invited", "active", "suspended"],
+    },
   },
 } as const
