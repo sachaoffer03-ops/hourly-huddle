@@ -25,8 +25,8 @@ export function InviteEmployeeModal({ open, onClose, onCreated }: Props) {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [studioId, setStudioId] = useState("");
-  const [contract, setContract] = useState<typeof CONTRACTS[number]>("Étudiant");
+  const [studioIds, setStudioIds] = useState<Set<string>>(new Set());
+  const [contracts, setContracts] = useState<Set<string>>(new Set(["Étudiant"]));
   const [roles, setRoles] = useState<Set<string>>(new Set());
   const [appRole, setAppRole] = useState<"employee" | "manager">("employee");
   const [hireDate, setHireDate] = useState("");
@@ -36,7 +36,7 @@ export function InviteEmployeeModal({ open, onClose, onCreated }: Props) {
       supabase.from("studios").select("id, name").then(({ data }) => {
         if (data) {
           setStudios(data);
-          if (data.length && !studioId) setStudioId(data[0].id);
+          setStudioIds((prev) => (prev.size === 0 && data.length ? new Set([data[0].id]) : prev));
         }
       });
     }
@@ -44,23 +44,27 @@ export function InviteEmployeeModal({ open, onClose, onCreated }: Props) {
 
   const reset = () => {
     setFirstName(""); setLastName(""); setEmail(""); setPhone("");
-    setContract("Étudiant"); setRoles(new Set()); setAppRole("employee"); setHireDate("");
+    setContracts(new Set(["Étudiant"])); setRoles(new Set());
+    setStudioIds(new Set()); setAppRole("employee"); setHireDate("");
     setActivationUrl(null); setEmailSent(false); setCopied(false);
   };
 
   const handleClose = () => { reset(); onClose(); };
 
-  const toggleRole = (r: string) => {
-    setRoles((prev) => {
-      const next = new Set(prev);
-      if (next.has(r)) next.delete(r); else next.add(r);
-      return next;
-    });
+  const toggleIn = (set: Set<string>, setSet: (s: Set<string>) => void, val: string) => {
+    const next = new Set(set);
+    if (next.has(val)) next.delete(val); else next.add(val);
+    setSet(next);
   };
+  const toggleRole = (r: string) => toggleIn(roles, setRoles, r);
+  const toggleStudio = (id: string) => toggleIn(studioIds, setStudioIds, id);
+  const toggleContract = (c: string) => toggleIn(contracts, setContracts, c);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firstName || !lastName || !email) return toast.error("Prénom, nom et email requis");
+    if (studioIds.size === 0) return toast.error("Sélectionnez au moins un studio");
+    if (contracts.size === 0) return toast.error("Sélectionnez au moins un contrat");
     if (roles.size === 0) return toast.error("Sélectionnez au moins un rôle métier");
 
     setSubmitting(true);
@@ -68,8 +72,8 @@ export function InviteEmployeeModal({ open, onClose, onCreated }: Props) {
       body: {
         email, first_name: firstName, last_name: lastName,
         phone: phone || null,
-        studio_id: studioId || null,
-        contract,
+        studio_ids: Array.from(studioIds),
+        contracts: Array.from(contracts),
         business_roles: Array.from(roles),
         app_role: appRole,
         hire_date: hireDate || null,
@@ -132,20 +136,20 @@ export function InviteEmployeeModal({ open, onClose, onCreated }: Props) {
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} style={inputStyle} required /></div>
               <div><label style={labelStyle}>Téléphone</label>
                 <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputCls} style={inputStyle} /></div>
-              <div><label style={labelStyle}>Studio</label>
+              <div><label style={labelStyle}>Studios <span style={{ color: "var(--muted-foreground)", fontWeight: 400 }}>(plusieurs possibles)</span></label>
                 <div className="flex flex-wrap gap-1 mt-2">
                   {studios.map((s) => (
-                    <button key={s.id} type="button" onClick={() => setStudioId(s.id)}
-                      className="rounded-full px-2.5 py-1 transition-colors" style={chip(studioId === s.id)}>
+                    <button key={s.id} type="button" onClick={() => toggleStudio(s.id)}
+                      className="rounded-full px-2.5 py-1 transition-colors" style={chip(studioIds.has(s.id))}>
                       {s.name}
                     </button>
                   ))}
                 </div></div>
-              <div><label style={labelStyle}>Type de contrat</label>
+              <div><label style={labelStyle}>Type(s) de contrat <span style={{ color: "var(--muted-foreground)", fontWeight: 400 }}>(plusieurs possibles)</span></label>
                 <div className="flex flex-wrap gap-1 mt-2">
                   {CONTRACTS.map((c) => (
-                    <button key={c} type="button" onClick={() => setContract(c)}
-                      className="rounded-full px-2.5 py-1 transition-colors" style={chip(contract === c)}>
+                    <button key={c} type="button" onClick={() => toggleContract(c)}
+                      className="rounded-full px-2.5 py-1 transition-colors" style={chip(contracts.has(c))}>
                       {c}
                     </button>
                   ))}

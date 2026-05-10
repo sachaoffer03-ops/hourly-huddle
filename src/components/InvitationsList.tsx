@@ -24,7 +24,9 @@ interface Invitation {
   last_name: string;
   phone: string | null;
   studio_id: string | null;
+  studio_ids: string[] | null;
   contract: string | null;
+  contracts: string[] | null;
   business_roles: string[] | null;
   app_role: string;
   status: Status;
@@ -63,7 +65,7 @@ export function InvitationsList({ onInviteClick }: { onInviteClick: () => void }
       supabase
         .from("invitations")
         .select(
-          "id, email, first_name, last_name, phone, studio_id, contract, business_roles, app_role, status, token, created_at, expires_at, accepted_at",
+          "id, email, first_name, last_name, phone, studio_id, studio_ids, contract, contracts, business_roles, app_role, status, token, created_at, expires_at, accepted_at",
         )
         .order("created_at", { ascending: false }),
       supabase.from("studios").select("id, name"),
@@ -71,10 +73,11 @@ export function InvitationsList({ onInviteClick }: { onInviteClick: () => void }
     // Auto-mark expired
     const now = new Date();
     const cleaned = (invs ?? []).map((i) => {
-      if (i.status === "pending" && new Date(i.expires_at) < now) {
-        return { ...i, status: "expired" as Status };
+      const inv = i as Invitation;
+      if (inv.status === "pending" && new Date(inv.expires_at) < now) {
+        return { ...inv, status: "expired" as Status };
       }
-      return i as Invitation;
+      return inv;
     });
     setInvitations(cleaned);
     setStudios(studs ?? []);
@@ -139,8 +142,8 @@ export function InvitationsList({ onInviteClick }: { onInviteClick: () => void }
         first_name: inv.first_name,
         last_name: inv.last_name,
         phone: inv.phone,
-        studio_id: inv.studio_id,
-        contract: inv.contract,
+        studio_ids: inv.studio_ids ?? (inv.studio_id ? [inv.studio_id] : []),
+        contracts: inv.contracts ?? (inv.contract ? [inv.contract] : []),
         business_roles: inv.business_roles ?? [],
         app_role: inv.app_role,
       },
@@ -287,19 +290,25 @@ export function InvitationsList({ onInviteClick }: { onInviteClick: () => void }
               </tr>
             </thead>
             <tbody>
-              {filtered.map((inv) => (
-                <Row
-                  key={inv.id}
-                  inv={inv}
-                  studioName={studioName(inv.studio_id)}
-                  onCopy={() => copyLink(inv.token)}
-                  onResend={() => resendEmail(inv)}
-                  onRevoke={() => revoke(inv)}
-                  onPreview={() =>
-                    window.open(`/activation?preview=${inv.id}`, "_blank", "noopener")
-                  }
-                />
-              ))}
+              {filtered.map((inv) => {
+                const ids = (inv.studio_ids && inv.studio_ids.length > 0)
+                  ? inv.studio_ids
+                  : (inv.studio_id ? [inv.studio_id] : []);
+                const names = ids.map((id) => studioName(id)).filter(Boolean);
+                return (
+                  <Row
+                    key={inv.id}
+                    inv={inv}
+                    studioNames={names}
+                    onCopy={() => copyLink(inv.token)}
+                    onResend={() => resendEmail(inv)}
+                    onRevoke={() => revoke(inv)}
+                    onPreview={() =>
+                      window.open(`/activation?preview=${inv.id}`, "_blank", "noopener")
+                    }
+                  />
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -310,20 +319,23 @@ export function InvitationsList({ onInviteClick }: { onInviteClick: () => void }
 
 function Row({
   inv,
-  studioName,
+  studioNames,
   onCopy,
   onResend,
   onRevoke,
   onPreview,
 }: {
   inv: Invitation;
-  studioName: string;
+  studioNames: string[];
   onCopy: () => void;
   onResend: () => void;
   onRevoke: () => void;
   onPreview: () => void;
 }) {
   const initials = `${inv.first_name[0] ?? ""}${inv.last_name[0] ?? ""}`.toUpperCase();
+  const contractsList = (inv.contracts && inv.contracts.length > 0)
+    ? inv.contracts
+    : (inv.contract ? [inv.contract] : []);
   return (
     <tr
       className="transition-colors"
@@ -366,32 +378,44 @@ function Row({
         {inv.email}
       </td>
       <td className="px-4 py-3" style={{ fontSize: 12 }}>
-        {studioName}
+        {studioNames.length === 0 ? (
+          <span style={{ color: "var(--muted-foreground)" }}>—</span>
+        ) : (
+          <div className="flex flex-wrap gap-1">
+            {studioNames.slice(0, 2).map((n) => (
+              <span key={n} style={{ color: "var(--foreground)" }}>{n}</span>
+            )).reduce<React.ReactNode[]>((acc, el, i) => {
+              if (i > 0) acc.push(<span key={`sep-${i}`} style={{ color: "var(--muted-foreground)" }}>·</span>);
+              acc.push(el);
+              return acc;
+            }, [])}
+            {studioNames.length > 2 && (
+              <span style={{ color: "var(--muted-foreground)" }}>+{studioNames.length - 2}</span>
+            )}
+          </div>
+        )}
       </td>
       <td className="px-4 py-3">
-        {inv.contract ? (
-          <span
-            className="rounded-full px-2 py-0.5"
-            style={{
-              fontSize: 11,
-              backgroundColor:
-                inv.contract === "CDI"
-                  ? "var(--info-bg)"
-                  : inv.contract === "Flexi"
-                  ? "var(--warning-bg)"
-                  : "var(--muted)",
-              color:
-                inv.contract === "CDI"
-                  ? "var(--info-text)"
-                  : inv.contract === "Flexi"
-                  ? "var(--warning-text)"
-                  : "var(--muted-foreground)",
-            }}
-          >
-            {inv.contract}
-          </span>
-        ) : (
+        {contractsList.length === 0 ? (
           <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>—</span>
+        ) : (
+          <div className="flex flex-wrap gap-1">
+            {contractsList.map((c) => (
+              <span
+                key={c}
+                className="rounded-full px-2 py-0.5"
+                style={{
+                  fontSize: 11,
+                  backgroundColor:
+                    c === "CDI" ? "var(--info-bg)" : c === "Flexi" ? "var(--warning-bg)" : "var(--muted)",
+                  color:
+                    c === "CDI" ? "var(--info-text)" : c === "Flexi" ? "var(--warning-text)" : "var(--muted-foreground)",
+                }}
+              >
+                {c}
+              </span>
+            ))}
+          </div>
         )}
       </td>
       <td className="px-4 py-3">
