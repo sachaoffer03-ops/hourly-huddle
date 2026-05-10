@@ -67,19 +67,55 @@ const REQ_TYPES: { key: ReqType; label: string; icon: typeof Replace }[] = [
   { key: "time_change", label: "Décaler", icon: Clock },
 ];
 
+interface ShiftOption {
+  id: string; shift_date: string; start_time: string; end_time: string; business_role: string;
+}
+
+function urgencyFromDate(shiftDate: string, startTime: string): Urgency {
+  const dt = new Date(`${shiftDate}T${startTime}`).getTime();
+  const diffH = (dt - Date.now()) / (1000 * 60 * 60);
+  if (diffH < 24) return "critique";
+  if (diffH < 72) return "urgent";
+  return "normal";
+}
+
 export function RequestModificationSheet({ open, onClose, userId, shiftId }: { open: boolean; onClose: () => void; userId: string; shiftId: string | null }) {
   const [type, setType] = useState<ReqType>("swap");
   const [urgency, setUrgency] = useState<Urgency>("normal");
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [shifts, setShifts] = useState<ShiftOption[]>([]);
+  const [selectedShift, setSelectedShift] = useState<string | null>(null);
 
-  useEffect(() => { if (open) { setType("swap"); setUrgency("normal"); setReason(""); } }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    setType("swap"); setUrgency("normal"); setReason("");
+    setSelectedShift(shiftId || null);
+
+    (async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data } = await supabase.from("shifts")
+        .select("id,shift_date,start_time,end_time,business_role")
+        .eq("user_id", userId)
+        .gte("shift_date", today)
+        .order("shift_date").order("start_time").limit(20);
+      setShifts((data as ShiftOption[]) || []);
+    })();
+  }, [open, userId, shiftId]);
+
+  // Auto-update urgency selon le shift choisi
+  useEffect(() => {
+    if (!selectedShift) return;
+    const s = shifts.find(x => x.id === selectedShift);
+    if (s) setUrgency(urgencyFromDate(s.shift_date, s.start_time));
+  }, [selectedShift, shifts]);
 
   const submit = async () => {
+    if (!selectedShift) { toast.error("Sélectionne un shift"); return; }
     if (!reason.trim()) { toast.error("Indique la raison"); return; }
     setSubmitting(true);
     const { error } = await supabase.from("modification_requests").insert({
-      user_id: userId, shift_id: shiftId, type, urgency, reason: reason.trim(),
+      user_id: userId, shift_id: selectedShift, type, urgency, reason: reason.trim(),
     });
     setSubmitting(false);
     if (error) { toast.error("Erreur d'envoi"); return; }
@@ -87,8 +123,39 @@ export function RequestModificationSheet({ open, onClose, userId, shiftId }: { o
     onClose();
   };
 
+  const formatShiftLabel = (s: ShiftOption) => {
+    const date = new Date(s.shift_date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+    return `${date} · ${s.start_time.slice(0,5)}–${s.end_time.slice(0,5)} · ${s.business_role}`;
+  };
+
   return (
     <Sheet open={open} onClose={onClose} title="Demande de modification">
+      <FormField label="Quel shift ?" hint={shifts.length === 0 ? "Tu n'as aucun shift à venir." : "Choisis le shift concerné par ta demande."}>
+        {shifts.length === 0 ? (
+          <div className="rounded-md px-3 py-3" style={{ fontSize: 12, backgroundColor: "var(--muted)", color: "var(--muted-foreground)" }}>
+            Aucun shift à venir
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {shifts.map(s => {
+              const active = selectedShift === s.id;
+              return (
+                <button key={s.id} onClick={() => setSelectedShift(s.id)}
+                  className="rounded-md px-3 py-2.5 text-left transition-colors"
+                  style={{
+                    fontSize: 12, fontWeight: active ? 500 : 400,
+                    backgroundColor: active ? "var(--coral-light)" : "#fff",
+                    border: `0.5px solid ${active ? "var(--coral)" : "rgba(0,0,0,0.12)"}`,
+                    color: active ? "var(--coral-dark)" : "var(--foreground)",
+                  }}>
+                  {formatShiftLabel(s)}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </FormField>
+
       <FormField label="Type">
         <div className="grid grid-cols-3 gap-1.5">
           {REQ_TYPES.map(t => {
@@ -108,7 +175,7 @@ export function RequestModificationSheet({ open, onClose, userId, shiftId }: { o
           })}
         </div>
       </FormField>
-      <FormField label="Urgence">
+      <FormField label="Urgence" hint="Calculée automatiquement selon la date du shift, mais tu peux ajuster.">
         <div className="grid grid-cols-3 gap-1.5">
           {(["normal","urgent","critique"] as Urgency[]).map(u => {
             const labels: Record<Urgency, string> = { normal: "Normale", urgent: "Urgente", critique: "Critique" };
