@@ -177,12 +177,26 @@ function GeneratePlanningPage() {
 
       {/* CTA */}
       <div className="flex items-center justify-center gap-3">
-        <button className="rounded-md px-6 py-3 flex items-center gap-2 transition-colors" style={{ fontSize: 14, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)" }}>
-          Publier le planning <ArrowRight size={16} />
+        <button
+          onClick={handlePublish}
+          disabled={published}
+          className="rounded-md px-6 py-3 flex items-center gap-2 transition-colors"
+          style={{
+            fontSize: 14, fontWeight: 500,
+            backgroundColor: published ? "var(--success-bg)" : "var(--foreground)",
+            color: published ? "var(--success-text)" : "var(--card)",
+            cursor: published ? "default" : "pointer",
+          }}
+        >
+          {published ? <><Check size={16} /> Publié</> : <>Publier le planning <ArrowRight size={16} /></>}
         </button>
-        <button className="rounded-md px-6 py-3 flex items-center gap-2 transition-colors" style={{ fontSize: 14, fontWeight: 500, border: "0.5px solid var(--border)" }}>
+        <Link
+          to="/planning"
+          className="rounded-md px-6 py-3 flex items-center gap-2 transition-colors"
+          style={{ fontSize: 14, fontWeight: 500, border: "0.5px solid var(--border)", textDecoration: "none", color: "var(--foreground)" }}
+        >
           Voir dans le calendrier
-        </button>
+        </Link>
       </div>
     </div>
   );
