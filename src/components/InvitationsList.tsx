@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -49,6 +50,7 @@ const subTabs: { key: SubTab; label: string }[] = [
 ];
 
 export function InvitationsList({ onInviteClick }: { onInviteClick: () => void }) {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<SubTab>("all");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -293,6 +295,9 @@ export function InvitationsList({ onInviteClick }: { onInviteClick: () => void }
                   onCopy={() => copyLink(inv.token)}
                   onResend={() => resendEmail(inv)}
                   onRevoke={() => revoke(inv)}
+                  onPreview={() =>
+                    navigate({ to: "/activation", search: { token: "", preview: inv.id } })
+                  }
                 />
               ))}
             </tbody>
@@ -309,12 +314,14 @@ function Row({
   onCopy,
   onResend,
   onRevoke,
+  onPreview,
 }: {
   inv: Invitation;
   studioName: string;
   onCopy: () => void;
   onResend: () => void;
   onRevoke: () => void;
+  onPreview: () => void;
 }) {
   const initials = `${inv.first_name[0] ?? ""}${inv.last_name[0] ?? ""}`.toUpperCase();
   return (
@@ -402,10 +409,7 @@ function Row({
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-1 justify-end">
-          <IconBtn
-            label="Aperçu de l'onboarding"
-            onClick={() => window.open(`/activation?preview=${inv.id}`, "_blank")}
-          >
+          <IconBtn label="Aperçu de l'onboarding" onClick={onPreview}>
             <Eye size={13} />
           </IconBtn>
           {inv.status === "pending" && (
