@@ -20,8 +20,17 @@ const steps = [
 ];
 
 function GeneratePlanningPage() {
+  const navigate = useNavigate();
   const [state, setState] = useState<'idle' | 'generating' | 'done'>('idle');
   const [currentStep, setCurrentStep] = useState(0);
+  const [published, setPublished] = useState(false);
+
+  const handlePublish = () => {
+    setPublished(true);
+    toast.success("Planning de juin publié — 28 employés notifiés");
+    setTimeout(() => navigate({ to: "/planning" }), 800);
+  };
+
 
   const startGeneration = async () => {
     setState('generating');
