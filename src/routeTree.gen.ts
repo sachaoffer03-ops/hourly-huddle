@@ -14,9 +14,11 @@ import { Route as StudiosRouteImport } from './routes/studios'
 import { Route as StaffAppRouteImport } from './routes/staff-app'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as SignalementsRouteImport } from './routes/signalements'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReglagesRouteImport } from './routes/reglages'
 import { Route as PointageRouteImport } from './routes/pointage'
 import { Route as PlanningRouteImport } from './routes/planning'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as FormationRouteImport } from './routes/formation'
 import { Route as FeedbacksRouteImport } from './routes/feedbacks'
 import { Route as DimonaRouteImport } from './routes/dimona'
@@ -54,6 +56,11 @@ const SignalementsRoute = SignalementsRouteImport.update({
   path: '/signalements',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReglagesRoute = ReglagesRouteImport.update({
   id: '/reglages',
   path: '/reglages',
@@ -67,6 +74,11 @@ const PointageRoute = PointageRouteImport.update({
 const PlanningRoute = PlanningRouteImport.update({
   id: '/planning',
   path: '/planning',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FormationRoute = FormationRouteImport.update({
@@ -134,9 +146,11 @@ export interface FileRoutesByFullPath {
   '/dimona': typeof DimonaRoute
   '/feedbacks': typeof FeedbacksRoute
   '/formation': typeof FormationRoute
+  '/login': typeof LoginRoute
   '/planning': typeof PlanningRouteWithChildren
   '/pointage': typeof PointageRoute
   '/reglages': typeof ReglagesRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signalements': typeof SignalementsRoute
   '/staff': typeof StaffRouteWithChildren
   '/staff-app': typeof StaffAppRoute
@@ -155,9 +169,11 @@ export interface FileRoutesByTo {
   '/dimona': typeof DimonaRoute
   '/feedbacks': typeof FeedbacksRoute
   '/formation': typeof FormationRoute
+  '/login': typeof LoginRoute
   '/planning': typeof PlanningRouteWithChildren
   '/pointage': typeof PointageRoute
   '/reglages': typeof ReglagesRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signalements': typeof SignalementsRoute
   '/staff-app': typeof StaffAppRoute
   '/studios': typeof StudiosRoute
@@ -176,9 +192,11 @@ export interface FileRoutesById {
   '/dimona': typeof DimonaRoute
   '/feedbacks': typeof FeedbacksRoute
   '/formation': typeof FormationRoute
+  '/login': typeof LoginRoute
   '/planning': typeof PlanningRouteWithChildren
   '/pointage': typeof PointageRoute
   '/reglages': typeof ReglagesRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signalements': typeof SignalementsRoute
   '/staff': typeof StaffRouteWithChildren
   '/staff-app': typeof StaffAppRoute
@@ -199,9 +217,11 @@ export interface FileRouteTypes {
     | '/dimona'
     | '/feedbacks'
     | '/formation'
+    | '/login'
     | '/planning'
     | '/pointage'
     | '/reglages'
+    | '/reset-password'
     | '/signalements'
     | '/staff'
     | '/staff-app'
@@ -220,9 +240,11 @@ export interface FileRouteTypes {
     | '/dimona'
     | '/feedbacks'
     | '/formation'
+    | '/login'
     | '/planning'
     | '/pointage'
     | '/reglages'
+    | '/reset-password'
     | '/signalements'
     | '/staff-app'
     | '/studios'
@@ -240,9 +262,11 @@ export interface FileRouteTypes {
     | '/dimona'
     | '/feedbacks'
     | '/formation'
+    | '/login'
     | '/planning'
     | '/pointage'
     | '/reglages'
+    | '/reset-password'
     | '/signalements'
     | '/staff'
     | '/staff-app'
@@ -262,9 +286,11 @@ export interface RootRouteChildren {
   DimonaRoute: typeof DimonaRoute
   FeedbacksRoute: typeof FeedbacksRoute
   FormationRoute: typeof FormationRoute
+  LoginRoute: typeof LoginRoute
   PlanningRoute: typeof PlanningRouteWithChildren
   PointageRoute: typeof PointageRoute
   ReglagesRoute: typeof ReglagesRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SignalementsRoute: typeof SignalementsRoute
   StaffRoute: typeof StaffRouteWithChildren
   StaffAppRoute: typeof StaffAppRoute
@@ -309,6 +335,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignalementsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reglages': {
       id: '/reglages'
       path: '/reglages'
@@ -328,6 +361,13 @@ declare module '@tanstack/react-router' {
       path: '/planning'
       fullPath: '/planning'
       preLoaderRoute: typeof PlanningRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/formation': {
@@ -443,9 +483,11 @@ const rootRouteChildren: RootRouteChildren = {
   DimonaRoute: DimonaRoute,
   FeedbacksRoute: FeedbacksRoute,
   FormationRoute: FormationRoute,
+  LoginRoute: LoginRoute,
   PlanningRoute: PlanningRouteWithChildren,
   PointageRoute: PointageRoute,
   ReglagesRoute: ReglagesRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SignalementsRoute: SignalementsRoute,
   StaffRoute: StaffRouteWithChildren,
   StaffAppRoute: StaffAppRoute,
