@@ -498,6 +498,15 @@ function PlanningPage() {
   const [published, setPublished] = useState(false);
   const search = Route.useSearch();
   const [showAdd, setShowAdd] = useState(!!search.add);
+  const [viewMode, setViewMode] = useState<ViewMode>("semaine");
+  const [dayIdxJour, setDayIdxJour] = useState<number>(() => {
+    const t = new Date();
+    const idx = weekDays.findIndex((d) => d.toDateString() === t.toDateString());
+    return idx >= 0 ? idx : 0;
+  });
+
+  const visibleDayIndices = viewMode === "jour" ? [dayIdxJour] : [0, 1, 2, 3, 4, 5, 6];
+  const gridCols = `140px repeat(${visibleDayIndices.length}, 1fr)`;
 
   const goToday = () => { setMonth(now.getMonth()); setYear(now.getFullYear()); setWeekOffset(0); };
   const goPrev = () => setWeekOffset((w) => w - 1);
@@ -604,6 +613,29 @@ function PlanningPage() {
           })}
         </div>
 
+        {/* View mode toggle */}
+        <div className="flex rounded-full p-1" style={{ backgroundColor: "var(--muted)" }}>
+          {(["semaine", "jour"] as const).map((m) => {
+            const active = viewMode === m;
+            return (
+              <button
+                key={m}
+                onClick={() => setViewMode(m)}
+                className="rounded-full px-4 py-1.5 transition-colors"
+                style={{
+                  fontSize: 12,
+                  fontWeight: 500,
+                  backgroundColor: active ? "var(--foreground)" : "transparent",
+                  color: active ? "var(--card)" : "var(--muted-foreground)",
+                  textTransform: "capitalize",
+                }}
+              >
+                {m === "semaine" ? "Semaine" : "Jour"}
+              </button>
+            );
+          })}
+        </div>
+
         <div className="flex items-center gap-2">
           <div className="flex items-center rounded-md" style={{ border: "0.5px solid var(--border)" }}>
             <button onClick={goPrev} className="p-1.5" style={{ color: "var(--muted-foreground)" }}>
@@ -647,18 +679,50 @@ function PlanningPage() {
         </span>
       </div>
 
-      {/* Grid */}
-      <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
-        {/* Day headers */}
-        <div className="grid" style={{ gridTemplateColumns: "140px repeat(7, 1fr)", borderBottom: "0.5px solid var(--border)" }}>
-          <div className="px-4 py-3" style={{ fontSize: 11, color: "var(--muted-foreground)", fontWeight: 500 }}>Horaire</div>
+      {viewMode === "jour" && (
+        <div className="flex items-center gap-1.5 mb-3 flex-wrap">
           {weekDays.map((d, i) => {
-            const isSelected = selectedDayIdx === i;
+            const active = dayIdxJour === i;
             const isToday = i === todayIdx;
             return (
               <button
                 key={i}
-                onClick={() => setSelectedDayIdx(isSelected ? null : i)}
+                onClick={() => setDayIdxJour(i)}
+                className="rounded-full px-3 py-1.5 transition-colors"
+                style={{
+                  fontSize: 12,
+                  fontWeight: active ? 500 : 400,
+                  border: "0.5px solid var(--border)",
+                  backgroundColor: active ? "var(--foreground)" : "transparent",
+                  color: active ? "var(--card)" : "var(--muted-foreground)",
+                }}
+              >
+                {dayNamesShort[d.getDay()]} {d.getDate()}
+                {isToday && !active && (
+                  <span className="rounded-full ml-1.5" style={{ display: "inline-block", width: 5, height: 5, backgroundColor: "var(--coral)", verticalAlign: "middle" }} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Grid */}
+      <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
+        {/* Day headers */}
+        <div className="grid" style={{ gridTemplateColumns: gridCols, borderBottom: "0.5px solid var(--border)" }}>
+          <div className="px-4 py-3" style={{ fontSize: 11, color: "var(--muted-foreground)", fontWeight: 500 }}>Horaire</div>
+          {visibleDayIndices.map((i) => {
+            const d = weekDays[i];
+            const isSelected = viewMode === "jour" ? true : selectedDayIdx === i;
+            const isToday = i === todayIdx;
+            return (
+              <button
+                key={i}
+                onClick={() => {
+                  if (viewMode === "jour") return;
+                  setSelectedDayIdx(isSelected ? null : i);
+                }}
                 className="px-3 py-3 text-center transition-colors"
                 style={{
                   fontSize: 12,
@@ -666,10 +730,10 @@ function PlanningPage() {
                   borderLeft: "0.5px solid var(--border)",
                   backgroundColor: isSelected ? "var(--foreground)" : "transparent",
                   color: isSelected ? "var(--card)" : "var(--foreground)",
-                  cursor: "pointer",
+                  cursor: viewMode === "jour" ? "default" : "pointer",
                 }}
               >
-                <div style={{ fontSize: 11, fontWeight: 400, opacity: isSelected ? 0.7 : 0.6, marginBottom: 2 }}>{dayNamesShort[d.getDay()]}</div>
+                <div style={{ fontSize: 11, fontWeight: 400, opacity: isSelected ? 0.7 : 0.6, marginBottom: 2 }}>{viewMode === "jour" ? dayNamesFull[d.getDay()] : dayNamesShort[d.getDay()]}</div>
                 <div style={{ fontSize: 13 }}>
                   {d.getDate()} {monthNames[d.getMonth()].slice(0, 3).toLowerCase()}
                   {isToday && !isSelected && (
@@ -687,15 +751,15 @@ function PlanningPage() {
             <div
               key={slot.label}
               className="grid"
-              style={{ gridTemplateColumns: "140px repeat(7, 1fr)", borderBottom: "0.5px solid var(--border)", minHeight: 110 }}
+              style={{ gridTemplateColumns: gridCols, borderBottom: "0.5px solid var(--border)", minHeight: 110 }}
             >
               <div className="px-4 py-3 flex flex-col justify-center" style={{ backgroundColor: "var(--muted)" }}>
                 <div style={{ fontSize: 13, fontWeight: 500 }}>{fmtTime(slot.start)}–{fmtTime(slot.end)}</div>
                 <div style={{ fontSize: 10, color: "var(--muted-foreground)", marginTop: 2 }}>5 heures</div>
               </div>
-              {weekDays.map((_, dayIdx) => {
+              {visibleDayIndices.map((dayIdx) => {
                 const cellShifts = studioShifts.filter((s) => s.day === dayIdx && s.slot === slotIdx);
-                const isSelected = selectedDayIdx === dayIdx;
+                const isSelected = viewMode === "jour" ? true : selectedDayIdx === dayIdx;
                 return (
                   <div
                     key={dayIdx}
