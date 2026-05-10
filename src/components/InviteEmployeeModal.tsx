@@ -133,20 +133,34 @@ export function InviteEmployeeModal({ open, onClose, onCreated }: Props) {
               <div><label style={labelStyle}>Téléphone</label>
                 <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputCls} style={inputStyle} /></div>
               <div><label style={labelStyle}>Studio</label>
-                <select value={studioId} onChange={(e) => setStudioId(e.target.value)} className={inputCls} style={inputStyle}>
-                  {studios.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select></div>
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {studios.map((s) => (
+                    <button key={s.id} type="button" onClick={() => setStudioId(s.id)}
+                      className="rounded-full px-2.5 py-1 transition-colors" style={chip(studioId === s.id)}>
+                      {s.name}
+                    </button>
+                  ))}
+                </div></div>
               <div><label style={labelStyle}>Type de contrat</label>
-                <select value={contract} onChange={(e) => setContract(e.target.value as typeof CONTRACTS[number])} className={inputCls} style={inputStyle}>
-                  {CONTRACTS.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select></div>
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {CONTRACTS.map((c) => (
+                    <button key={c} type="button" onClick={() => setContract(c)}
+                      className="rounded-full px-2.5 py-1 transition-colors" style={chip(contract === c)}>
+                      {c}
+                    </button>
+                  ))}
+                </div></div>
               <div><label style={labelStyle}>Date d'embauche</label>
                 <input type="date" value={hireDate} onChange={(e) => setHireDate(e.target.value)} className={inputCls} style={inputStyle} /></div>
               <div><label style={labelStyle}>Permission</label>
-                <select value={appRole} onChange={(e) => setAppRole(e.target.value as "employee" | "manager")} className={inputCls} style={inputStyle}>
-                  <option value="employee">Employé</option>
-                  <option value="manager">Manager</option>
-                </select></div>
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {([["employee", "Employé"], ["manager", "Manager"]] as const).map(([v, l]) => (
+                    <button key={v} type="button" onClick={() => setAppRole(v)}
+                      className="rounded-full px-2.5 py-1 transition-colors" style={chip(appRole === v)}>
+                      {l}
+                    </button>
+                  ))}
+                </div></div>
             </div>
 
             <div>
