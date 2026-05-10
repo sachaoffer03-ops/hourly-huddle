@@ -37,6 +37,7 @@ function SignalementsPage() {
   const [tab, setTab] = useState<"actifs" | "resolus">("actifs");
   const [studio, setStudio] = useState<string>("Tous");
   const [cat, setCat] = useState<string>("Toutes");
+  const [dismissing, setDismissing] = useState<Record<string, "strike" | "fade">>({});
 
   useEffect(() => {
     const load = async () => {
