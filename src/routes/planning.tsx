@@ -13,6 +13,8 @@ export const Route = createFileRoute("/planning")({
   head: () => ({
     meta: [{ title: "Planning — Shyft" }],
   }),
+  validateSearch: (s: Record<string, unknown>): { add?: boolean } =>
+    s.add ? { add: true } : {},
 });
 
 const roles: Role[] = ["Barista", "Accueil", "Host", "Cuisine"];
