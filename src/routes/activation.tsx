@@ -293,6 +293,7 @@ function ActivationPage() {
               </button>
             </div>
           )}
+        </div>
       </div>
     );
   }
