@@ -4,6 +4,7 @@ import { GraduationCap, Play, ChevronDown, ChevronUp, Bell, Check, Plus, Pencil,
 import { toast } from "sonner";
 import { trainingPaths as seedPaths, roleColors, employees, type TrainingPath, type TrainingModule, type Role } from "@/lib/mock-data";
 import { supabase } from "@/integrations/supabase/client";
+import { Dropdown } from "@/components/Dropdown";
 
 type VideoItem = TrainingModule["videos"][number] & { url?: string; storagePath?: string };
 
