@@ -85,8 +85,8 @@ function SignalementsPage() {
 
       {/* Filters */}
       <div className="flex items-center gap-3 mb-4 flex-wrap" style={{ fontSize: 12 }}>
-        <Select label="Studio" value={studio} options={["Tous", "Skult Rhodes", "Skult Châtelain"]} onChange={setStudio} />
-        <Select label="Catégorie" value={cat} options={["Toutes", ...CATEGORIES]} onChange={(v) => setCat(v as typeof cat)} />
+        <Dropdown label="Studio" value={studio} options={["Tous", "Skult Rhodes", "Skult Châtelain"]} onChange={setStudio} />
+        <Dropdown label="Catégorie" value={cat} options={["Toutes", ...CATEGORIES]} onChange={(v) => setCat(v as typeof cat)} />
       </div>
 
       {/* List */}
