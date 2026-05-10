@@ -73,9 +73,7 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
             <Menu size={20} strokeWidth={1.8} style={{ color: "var(--foreground)" }} />
           </button>
         )}
-        <span className="hidden md:inline" style={{ fontSize: 13, color: "var(--muted-foreground)" }}>
-          Kadence
-        </span>
+        <img src={logo} alt="Kadence" className="hidden md:block" style={{ height: 18, width: "auto" }} />
         <span className="hidden md:inline" style={{ fontSize: 13, color: "var(--muted-foreground)" }}>/</span>
         <span style={{ fontSize: 13, fontWeight: 500, color: "var(--foreground)" }}>
           {pageTitle}
