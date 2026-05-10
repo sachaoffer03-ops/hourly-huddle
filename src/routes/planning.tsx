@@ -166,7 +166,8 @@ function StatusDot({ confirmation, pointage, delayMinutes }: { confirmation: Shi
 }
 
 // ── Shift Detail Modal ─────────────────────────────────────
-function ShiftDetailModal({ shift, employee, onClose }: { shift: PlanningShift; employee?: Employee; onClose: () => void }) {
+function ShiftDetailModal({ shift, employee, onClose, onDelete, onUpdateSlot, onConfirm }: { shift: PlanningShift; employee?: Employee; onClose: () => void; onDelete: () => void; onUpdateSlot: (slot: number) => void; onConfirm: () => void }) {
+  const [editing, setEditing] = useState(false);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.3)" }} onClick={onClose}>
       <div
@@ -198,9 +199,24 @@ function ShiftDetailModal({ shift, employee, onClose }: { shift: PlanningShift; 
           {/* Horaire */}
           <div className="flex items-center gap-3">
             <Clock size={14} style={{ color: "var(--muted-foreground)" }} />
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 500 }}>{shift.time}</div>
-              <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>5 heures</div>
+            <div className="flex-1">
+              {editing ? (
+                <select
+                  value={shift.slot}
+                  onChange={(e) => onUpdateSlot(Number(e.target.value))}
+                  className="w-full rounded-md px-2 py-1.5 outline-none"
+                  style={{ fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "var(--background)" }}
+                >
+                  {timeSlotDefs.map((s, i) => (
+                    <option key={i} value={i}>{s.time}</option>
+                  ))}
+                </select>
+              ) : (
+                <>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>{shift.time}</div>
+                  <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>5 heures</div>
+                </>
+              )}
             </div>
           </div>
 
@@ -246,6 +262,15 @@ function ShiftDetailModal({ shift, employee, onClose }: { shift: PlanningShift; 
                 <span style={{ fontSize: 11, fontWeight: 500 }}>{shift.clockIn}</span>
               </div>
             )}
+            {shift.confirmation === "en-attente" && (
+              <button
+                onClick={onConfirm}
+                className="w-full mt-1 rounded-md py-1.5 transition-colors"
+                style={{ fontSize: 11, fontWeight: 500, backgroundColor: "var(--success-bg)", color: "var(--success-text)" }}
+              >
+                Forcer la confirmation
+              </button>
+            )}
           </div>
 
           {/* Employee info */}
@@ -279,19 +304,27 @@ function ShiftDetailModal({ shift, employee, onClose }: { shift: PlanningShift; 
 
         {/* Footer */}
         <div className="flex gap-2 px-5 py-3" style={{ borderTop: "0.5px solid var(--border)" }}>
+          <button
+            onClick={onDelete}
+            className="rounded-md px-3 py-2 transition-colors flex items-center gap-1.5"
+            style={{ fontSize: 12, fontWeight: 500, border: "0.5px solid var(--border)", color: "var(--danger-text)" }}
+          >
+            <Trash2 size={13} /> Supprimer
+          </button>
           <Link
             to="/staff/$id"
             params={{ id: shift.employeeId }}
             className="flex-1 rounded-md px-3 py-2 text-center transition-colors"
             style={{ fontSize: 12, fontWeight: 500, border: "0.5px solid var(--border)", textDecoration: "none", color: "var(--foreground)" }}
           >
-            Voir le profil
+            Profil
           </Link>
           <button
+            onClick={() => setEditing((v) => !v)}
             className="flex-1 rounded-md px-3 py-2 transition-colors"
             style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)" }}
           >
-            Modifier le shift
+            {editing ? "Terminer" : "Modifier"}
           </button>
         </div>
       </div>
