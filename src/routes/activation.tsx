@@ -293,19 +293,7 @@ function ActivationPage() {
                   color: "var(--coral-text)",
                 }}
               >
-                Voir l'espace employé
-              </button>
-              <button
-                onClick={() => navigate({ to: "/staff" })}
-                className="rounded-md py-2.5 px-4 border"
-                style={{
-                  fontSize: 13,
-                  fontWeight: 500,
-                  borderColor: "var(--border)",
-                  color: "var(--foreground)",
-                }}
-              >
-                Retour à l'admin
+                Accéder à mon espace
               </button>
             </div>
           )}
