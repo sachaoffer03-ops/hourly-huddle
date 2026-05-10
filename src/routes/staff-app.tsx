@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Home, Calendar, CalendarCheck, User, ChevronRight, Clock, Star, GraduationCap, QrCode, ClipboardCheck } from "lucide-react";
-import { employees, roleColors, getQuotaStatus, type Role } from "@/lib/mock-data";
+import { Home, Calendar, CalendarCheck, User, ChevronRight, Clock, GraduationCap, QrCode, ClipboardCheck } from "lucide-react";
+import { roleColors, getQuotaStatus, type Role } from "@/lib/mock-data";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/staff-app")({
   component: StaffAppPage,
@@ -10,22 +12,51 @@ export const Route = createFileRoute("/staff-app")({
 
 type Tab = 'accueil' | 'planning' | 'dispos' | 'profil';
 
-const emp = employees[0]; // Clara Martens as the logged-in user
+interface ProfileRow {
+  first_name: string; last_name: string; email: string; contract: string | null;
+  studio_id: string | null; quota_used: number | null; quota_max: number | null;
+  score: number | null;
+}
+interface ShiftRow {
+  id: string; shift_date: string; start_time: string; end_time: string;
+  business_role: string; studio_id: string | null;
+}
+
+function fmtTime(t: string) { return t.slice(0, 5).replace(":", "h"); }
+function todayISO() { return new Date().toISOString().slice(0, 10); }
 
 function StaffAppPage() {
+  const { user } = useAuth();
   const [tab, setTab] = useState<Tab>('accueil');
+  const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [businessRoles, setBusinessRoles] = useState<Role[]>([]);
+  const [studios, setStudios] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const [{ data: p }, { data: br }, { data: st }] = await Promise.all([
+        supabase.from("profiles").select("first_name,last_name,email,contract,studio_id,quota_used,quota_max,score").eq("id", user.id).maybeSingle(),
+        supabase.from("user_business_roles").select("role").eq("user_id", user.id),
+        supabase.from("studios").select("id,name"),
+      ]);
+      if (p) setProfile(p as ProfileRow);
+      if (br) setBusinessRoles(br.map((r) => r.role as Role));
+      if (st) setStudios(Object.fromEntries(st.map((s) => [s.id, s.name])));
+    })();
+  }, [user]);
+
+  if (!user) return <div className="p-8" style={{ fontSize: 13 }}>Chargement…</div>;
 
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: "#FAF8F4", maxWidth: 430, margin: "0 auto", position: "relative" }}>
-      {/* Content */}
       <div className="flex-1 overflow-y-auto pb-20">
-        {tab === 'accueil' && <AccueilTab onNavigate={setTab} />}
-        {tab === 'planning' && <PlanningTab />}
-        {tab === 'dispos' && <DisposTab />}
-        {tab === 'profil' && <ProfilTab onNavigate={setTab} />}
+        {tab === 'accueil' && <AccueilTab profile={profile} studios={studios} onNavigate={setTab} />}
+        {tab === 'planning' && <PlanningTab studios={studios} />}
+        {tab === 'dispos' && <DisposTab userId={user.id} />}
+        {tab === 'profil' && <ProfilTab profile={profile} businessRoles={businessRoles} onNavigate={setTab} />}
       </div>
 
-      {/* Bottom tab bar */}
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 flex items-center justify-around border-t" style={{ width: "100%", maxWidth: 430, height: 64, backgroundColor: "#FFFFFF", borderColor: "rgba(0,0,0,0.08)" }}>
         {([
           { id: 'accueil' as Tab, label: 'Accueil', icon: Home },
@@ -44,48 +75,80 @@ function StaffAppPage() {
 }
 
 /* ─── ACCUEIL ─── */
-function AccueilTab({ onNavigate }: { onNavigate: (t: Tab) => void }) {
-  const shifts = [
-    { date: "Aujourd'hui", time: '07h — 12h', role: 'Barista' as Role, studio: 'Skult Rhodes', active: true },
-    { date: 'Demain', time: '10h — 15h', role: 'Barista' as Role, studio: 'Skult Rhodes', active: false },
-    { date: 'Samedi', time: '14h — 19h', role: 'Accueil' as Role, studio: 'Skult Rhodes', active: false },
-  ];
+function AccueilTab({ profile, studios, onNavigate }: { profile: ProfileRow | null; studios: Record<string, string>; onNavigate: (t: Tab) => void }) {
+  const { user } = useAuth();
+  const [shifts, setShifts] = useState<ShiftRow[]>([]);
+  const [weekStats, setWeekStats] = useState({ hours: 0, count: 0 });
+
+  useEffect(() => {
+    if (!user) return;
+    const today = todayISO();
+    const in7 = new Date(); in7.setDate(in7.getDate() + 7);
+    const weekEnd = in7.toISOString().slice(0, 10);
+    (async () => {
+      const { data: next } = await supabase.from("shifts")
+        .select("id,shift_date,start_time,end_time,business_role,studio_id")
+        .eq("user_id", user.id).gte("shift_date", today).order("shift_date").order("start_time").limit(3);
+      if (next) setShifts(next);
+
+      const { data: week } = await supabase.from("shifts")
+        .select("start_time,end_time").eq("user_id", user.id)
+        .gte("shift_date", today).lte("shift_date", weekEnd);
+      if (week) {
+        const hours = week.reduce((acc, s) => {
+          const [h1, m1] = s.start_time.split(":").map(Number);
+          const [h2, m2] = s.end_time.split(":").map(Number);
+          return acc + (h2 + m2 / 60) - (h1 + m1 / 60);
+        }, 0);
+        setWeekStats({ hours: Math.round(hours), count: week.length });
+      }
+    })();
+  }, [user]);
+
+  const firstName = profile?.first_name || "";
+  const today = todayISO();
 
   return (
     <div className="px-5 pt-6">
       <div style={{ fontSize: 13, color: "var(--muted-foreground)" }}>Bonjour,</div>
-      <div style={{ fontSize: 22, fontWeight: 500, marginBottom: 20 }}>Clara</div>
+      <div style={{ fontSize: 22, fontWeight: 500, marginBottom: 20 }}>{firstName || "—"}</div>
 
-      {/* This week hero */}
       <div className="rounded-xl p-5 mb-5" style={{ background: "linear-gradient(135deg, #1A1A1A, #2A2A28)" }}>
         <div style={{ fontSize: 11, color: "var(--coral)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Cette semaine</div>
         <div className="flex items-center gap-6">
           <div>
-            <div style={{ fontSize: 28, fontWeight: 500, color: "#fff" }}>24h</div>
+            <div style={{ fontSize: 28, fontWeight: 500, color: "#fff" }}>{weekStats.hours}h</div>
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>Heures prévues</div>
           </div>
           <div>
-            <div style={{ fontSize: 28, fontWeight: 500, color: "#fff" }}>5</div>
+            <div style={{ fontSize: 28, fontWeight: 500, color: "#fff" }}>{weekStats.count}</div>
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>Shifts</div>
           </div>
         </div>
       </div>
 
-      {/* Today's shift */}
       <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Prochain shift</div>
-      {shifts.map((s, i) => {
-        const rc = roleColors[s.role];
+      {shifts.length === 0 ? (
+        <div className="rounded-xl border px-4 py-5 text-center" style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)", fontSize: 12, color: "var(--muted-foreground)" }}>
+          Aucun shift planifié
+        </div>
+      ) : shifts.map((s) => {
+        const role = s.business_role as Role;
+        const rc = roleColors[role];
+        const active = s.shift_date === today;
+        const dateLabel = active ? "Aujourd'hui" : new Date(s.shift_date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric" });
+        const studioName = (s.studio_id && studios[s.studio_id]) || "—";
         return (
-          <div key={i} className="rounded-xl border px-4 py-3.5 flex items-center gap-3 mb-2" style={{ backgroundColor: s.active ? "var(--coral-light)" : "#fff", borderColor: s.active ? "var(--coral)" : "rgba(0,0,0,0.08)" }}>
-            <div className="rounded-lg flex items-center justify-center" style={{ width: 36, height: 36, backgroundColor: rc.bg }}>
-              <Clock size={16} style={{ color: rc.text }} />
+          <div key={s.id} className="rounded-xl border px-4 py-3.5 flex items-center gap-3 mb-2" style={{ backgroundColor: active ? "var(--coral-light)" : "#fff", borderColor: active ? "var(--coral)" : "rgba(0,0,0,0.08)" }}>
+            <div className="rounded-lg flex items-center justify-center" style={{ width: 36, height: 36, backgroundColor: rc?.bg }}>
+              <Clock size={16} style={{ color: rc?.text }} />
             </div>
             <div className="flex-1">
-              <div style={{ fontSize: 13, fontWeight: 500 }}>{s.date} · {s.time}</div>
-              <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{s.role} · {s.studio.replace('Skult ', '')}</div>
+              <div style={{ fontSize: 13, fontWeight: 500 }}>{dateLabel} · {fmtTime(s.start_time)} — {fmtTime(s.end_time)}</div>
+              <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{role} · {studioName.replace("Skult ", "")}</div>
             </div>
-            {s.active && (
-              <button onClick={() => toast.success("Pointage enregistré", { description: `${s.role} · ${s.studio}` })} className="rounded-md px-3 py-1.5 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 500, backgroundColor: "var(--foreground)", color: "#fff" }}>
+            {active && (
+              <button onClick={() => toast.success("Pointage enregistré", { description: `${role} · ${studioName}` })} className="rounded-md px-3 py-1.5 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 500, backgroundColor: "var(--foreground)", color: "#fff" }}>
                 <QrCode size={12} /> Pointer
               </button>
             )}
@@ -94,10 +157,9 @@ function AccueilTab({ onNavigate }: { onNavigate: (t: Tab) => void }) {
         );
       })}
 
-      {/* Quick links */}
       <div className="grid grid-cols-2 gap-3 mt-5">
-        <QuickLink icon={<CalendarCheck size={18} />} label="Mes disponibilités" sub="Juin 2026" onClick={() => onNavigate('dispos')} />
-        <QuickLink icon={<GraduationCap size={18} />} label="Formation" sub="3 vidéos restantes" onClick={() => toast("Formation à venir", { description: "Cette section sera bientôt disponible" })} />
+        <QuickLink icon={<CalendarCheck size={18} />} label="Mes disponibilités" sub="Configurer" onClick={() => onNavigate('dispos')} />
+        <QuickLink icon={<GraduationCap size={18} />} label="Formation" sub="Bientôt disponible" onClick={() => toast("Formation à venir")} />
       </div>
     </div>
   );
@@ -114,162 +176,237 @@ function QuickLink({ icon, label, sub, onClick }: { icon: React.ReactNode; label
 }
 
 /* ─── PLANNING ─── */
-function PlanningTab() {
-  const days = [
-    { date: 'Lundi 11 mai', shifts: [{ time: '10h — 15h', role: 'Barista' as Role, studio: 'Rhodes' }] },
-    { date: 'Mardi 12 mai', shifts: [{ time: '07h — 12h', role: 'Barista' as Role, studio: 'Rhodes' }] },
-    { date: 'Mercredi 13 mai', shifts: [] },
-    { date: 'Jeudi 14 mai', shifts: [{ time: '14h — 19h', role: 'Accueil' as Role, studio: 'Rhodes' }] },
-    { date: 'Vendredi 15 mai', shifts: [{ time: '17h — 23h', role: 'Barista' as Role, studio: 'Rhodes' }] },
-    { date: 'Samedi 16 mai', shifts: [{ time: '10h — 15h', role: 'Barista' as Role, studio: 'Rhodes' }, { time: '17h — 23h', role: 'Accueil' as Role, studio: 'Rhodes' }] },
-    { date: 'Dimanche 17 mai', shifts: [] },
-  ];
+function PlanningTab({ studios }: { studios: Record<string, string> }) {
+  const { user } = useAuth();
+  const [shifts, setShifts] = useState<ShiftRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // 14 days starting today
+  const days = useMemo(() => {
+    const arr: { iso: string; label: string }[] = [];
+    const d = new Date();
+    for (let i = 0; i < 14; i++) {
+      const di = new Date(d); di.setDate(d.getDate() + i);
+      arr.push({
+        iso: di.toISOString().slice(0, 10),
+        label: di.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }),
+      });
+    }
+    return arr;
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase.from("shifts")
+        .select("id,shift_date,start_time,end_time,business_role,studio_id")
+        .eq("user_id", user.id)
+        .gte("shift_date", days[0].iso).lte("shift_date", days[days.length - 1].iso)
+        .order("shift_date").order("start_time");
+      if (data) setShifts(data);
+      setLoading(false);
+    })();
+  }, [user]);
+
+  const monthLabel = new Date().toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
 
   return (
     <div className="px-5 pt-6">
       <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 4 }}>Mon planning</div>
-      <div style={{ fontSize: 12, color: "var(--muted-foreground)", marginBottom: 16 }}>Mai 2026</div>
+      <div style={{ fontSize: 12, color: "var(--muted-foreground)", marginBottom: 16, textTransform: "capitalize" }}>{monthLabel}</div>
 
-      <div className="flex flex-col gap-2">
-        {days.map(day => (
-          <div key={day.date}>
-            <div style={{ fontSize: 11, fontWeight: 500, color: "var(--muted-foreground)", marginBottom: 4, marginTop: 8 }}>{day.date}</div>
-            {day.shifts.length === 0 ? (
-              <div className="rounded-lg px-4 py-3" style={{ backgroundColor: "var(--muted)", fontSize: 12, color: "var(--muted-foreground)" }}>Repos</div>
-            ) : (
-              day.shifts.map((s, i) => {
-                const rc = roleColors[s.role];
-                return (
-                  <div key={i} className="rounded-xl border px-4 py-3 flex items-center gap-3 mb-1" style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)" }}>
-                    <span className="rounded-full" style={{ width: 8, height: 8, backgroundColor: rc.dot }} />
-                    <div className="flex-1">
-                      <span style={{ fontSize: 13, fontWeight: 500 }}>{s.time}</span>
-                      <span style={{ fontSize: 11, color: "var(--muted-foreground)", marginLeft: 8 }}>{s.role} · {s.studio}</span>
+      {loading ? <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Chargement…</div> : (
+        <div className="flex flex-col gap-2">
+          {days.map(day => {
+            const dayShifts = shifts.filter((s) => s.shift_date === day.iso);
+            return (
+              <div key={day.iso}>
+                <div style={{ fontSize: 11, fontWeight: 500, color: "var(--muted-foreground)", marginBottom: 4, marginTop: 8, textTransform: "capitalize" }}>{day.label}</div>
+                {dayShifts.length === 0 ? (
+                  <div className="rounded-lg px-4 py-3" style={{ backgroundColor: "var(--muted)", fontSize: 12, color: "var(--muted-foreground)" }}>Repos</div>
+                ) : dayShifts.map((s) => {
+                  const rc = roleColors[s.business_role as Role];
+                  const studioName = (s.studio_id && studios[s.studio_id]) || "";
+                  return (
+                    <div key={s.id} className="rounded-xl border px-4 py-3 flex items-center gap-3 mb-1" style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)" }}>
+                      <span className="rounded-full" style={{ width: 8, height: 8, backgroundColor: rc?.dot }} />
+                      <div className="flex-1">
+                        <span style={{ fontSize: 13, fontWeight: 500 }}>{fmtTime(s.start_time)} — {fmtTime(s.end_time)}</span>
+                        <span style={{ fontSize: 11, color: "var(--muted-foreground)", marginLeft: 8 }}>{s.business_role} · {studioName.replace("Skult ", "")}</span>
+                      </div>
+                      <ChevronRight size={14} style={{ color: "var(--muted-foreground)" }} />
                     </div>
-                    <ChevronRight size={14} style={{ color: "var(--muted-foreground)" }} />
-                  </div>
-                );
-              })
-            )}
-          </div>
-        ))}
-      </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
 /* ─── DISPOS ─── */
-function DisposTab() {
-  const [availability, setAvailability] = useState<Record<number, string[]>>({});
-  const slots = ['Matin (6h-13h)', 'Midi (11h-17h)', 'Soir (16h-23h)'];
-  const daysInMonth = 30;
-  const dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
-  const configured = Object.keys(availability).length;
+type Slot = 'matin' | 'midi' | 'soir';
 
-  const toggleSlot = (day: number, slot: string) => {
-    setAvailability(prev => {
-      const current = prev[day] || [];
-      const has = current.includes(slot);
-      return { ...prev, [day]: has ? current.filter(s => s !== slot) : [...current, slot] };
-    });
+function DisposTab({ userId }: { userId: string }) {
+  // Next month
+  const monthRef = useMemo(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1, 1);
+    return d;
+  }, []);
+  const year = monthRef.getFullYear();
+  const month = monthRef.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const monthLabel = monthRef.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+
+  const [availability, setAvailability] = useState<Record<number, Set<Slot>>>({});
+  const [loading, setLoading] = useState(true);
+
+  const dateISO = (day: number) => `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+  useEffect(() => {
+    (async () => {
+      const start = dateISO(1); const end = dateISO(daysInMonth);
+      const { data } = await supabase.from("availabilities")
+        .select("avail_date,slot").eq("user_id", userId)
+        .gte("avail_date", start).lte("avail_date", end);
+      const map: Record<number, Set<Slot>> = {};
+      data?.forEach((r) => {
+        const d = parseInt(r.avail_date.slice(8, 10), 10);
+        if (!map[d]) map[d] = new Set();
+        map[d].add(r.slot as Slot);
+      });
+      setAvailability(map);
+      setLoading(false);
+    })();
+  }, [userId]);
+
+  const toggleSlot = async (day: number, slot: Slot) => {
+    const current = availability[day] || new Set<Slot>();
+    const has = current.has(slot);
+    const next = new Set(current);
+    if (has) next.delete(slot); else next.add(slot);
+    setAvailability((p) => ({ ...p, [day]: next }));
+
+    if (has) {
+      const { error } = await supabase.from("availabilities").delete()
+        .eq("user_id", userId).eq("avail_date", dateISO(day)).eq("slot", slot);
+      if (error) toast.error("Erreur de sauvegarde");
+    } else {
+      const { error } = await supabase.from("availabilities").insert({
+        user_id: userId, avail_date: dateISO(day), slot,
+      });
+      if (error) toast.error("Erreur de sauvegarde");
+    }
   };
+
+  const configured = Object.values(availability).filter((s) => s.size > 0).length;
+  const slotsLabels: { key: Slot; short: string }[] = [
+    { key: 'matin', short: 'M' }, { key: 'midi', short: 'Mi' }, { key: 'soir', short: 'S' },
+  ];
 
   return (
     <div className="px-5 pt-6">
       <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 2 }}>Mes disponibilités</div>
-      <div style={{ fontSize: 12, color: "var(--muted-foreground)", marginBottom: 4 }}>Juin 2026</div>
+      <div style={{ fontSize: 12, color: "var(--muted-foreground)", marginBottom: 4, textTransform: "capitalize" }}>{monthLabel}</div>
 
       <div className="rounded-xl px-4 py-2.5 flex items-center justify-between mb-4" style={{ backgroundColor: configured >= 20 ? "var(--success-bg)" : "var(--warning-bg)" }}>
         <span style={{ fontSize: 12, fontWeight: 500, color: configured >= 20 ? "var(--success-text)" : "var(--warning-text)" }}>
           {configured} / {daysInMonth} jours configurés
         </span>
-        <span style={{ fontSize: 11, color: "var(--danger-text)", fontWeight: 500 }}>
-          Date limite : 25 mai
-        </span>
       </div>
 
-      <div className="flex flex-col gap-1">
-        {Array.from({ length: Math.min(14, daysInMonth) }, (_, i) => i + 1).map(day => {
-          const dayOfWeek = dayNames[(day + 0) % 7]; // simplified
-          const daySlots = availability[day] || [];
-          return (
-            <div key={day} className="rounded-lg border px-3 py-2.5 flex items-center gap-3" style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)" }}>
-              <div style={{ minWidth: 50 }}>
-                <div style={{ fontSize: 12, fontWeight: 500 }}>{dayOfWeek} {day}</div>
+      {loading ? <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Chargement…</div> : (
+        <div className="flex flex-col gap-1">
+          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
+            const dow = dayNames[new Date(year, month, day).getDay()];
+            const daySlots = availability[day] || new Set<Slot>();
+            return (
+              <div key={day} className="rounded-lg border px-3 py-2.5 flex items-center gap-3" style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)" }}>
+                <div style={{ minWidth: 50 }}>
+                  <div style={{ fontSize: 12, fontWeight: 500 }}>{dow} {day}</div>
+                </div>
+                <div className="flex items-center gap-1 flex-1">
+                  {slotsLabels.map((sl) => {
+                    const active = daySlots.has(sl.key);
+                    return (
+                      <button key={sl.key} onClick={() => toggleSlot(day, sl.key)} className="rounded-md px-2.5 py-1 transition-colors" style={{
+                        fontSize: 10, fontWeight: active ? 500 : 400,
+                        backgroundColor: active ? "var(--coral)" : "transparent",
+                        color: active ? "#fff" : "var(--muted-foreground)",
+                        border: active ? "none" : "0.5px solid var(--border)",
+                      }}>
+                        {sl.short}
+                      </button>
+                    );
+                  })}
+                </div>
+                {daySlots.size > 0 && <span style={{ fontSize: 10, color: "var(--success-text)" }}>{daySlots.size} slot{daySlots.size > 1 ? 's' : ''}</span>}
               </div>
-              <div className="flex items-center gap-1 flex-1">
-                {['M', 'Mi', 'S'].map((label, si) => {
-                  const slot = slots[si];
-                  const active = daySlots.includes(slot);
-                  return (
-                    <button key={si} onClick={() => toggleSlot(day, slot)} className="rounded-md px-2.5 py-1 transition-colors" style={{
-                      fontSize: 10, fontWeight: active ? 500 : 400,
-                      backgroundColor: active ? "var(--coral)" : "transparent",
-                      color: active ? "#fff" : "var(--muted-foreground)",
-                      border: active ? "none" : "0.5px solid var(--border)",
-                    }}>
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-              {daySlots.length > 0 && <span style={{ fontSize: 10, color: "var(--success-text)" }}>{daySlots.length} slot{daySlots.length > 1 ? 's' : ''}</span>}
-            </div>
-          );
-        })}
-      </div>
-      <div style={{ fontSize: 11, color: "var(--muted-foreground)", textAlign: "center", marginTop: 12 }}>
-        Affichage des 14 premiers jours. Scrollez pour voir la suite.
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
 /* ─── PROFIL ─── */
-function ProfilTab({ onNavigate }: { onNavigate: (t: Tab) => void }) {
-  const quotaPct = Math.round(((emp.quotaUsed || 0) / (emp.quotaMax || 1)) * 100);
-  const quotaColor = getQuotaStatus(emp.quotaUsed, emp.quotaMax);
+function ProfilTab({ profile, businessRoles, onNavigate }: { profile: ProfileRow | null; businessRoles: Role[]; onNavigate: (t: Tab) => void }) {
+  const { signOut } = useAuth();
+  if (!profile) return <div className="px-5 pt-6" style={{ fontSize: 13 }}>Chargement…</div>;
+
+  const initials = `${profile.first_name?.[0] || ""}${profile.last_name?.[0] || ""}`.toUpperCase();
+  const primaryRole = businessRoles[0];
+  const rc = primaryRole ? roleColors[primaryRole] : { bg: "var(--muted)", text: "var(--foreground)", dot: "" };
+
+  const quotaUsed = profile.quota_used; const quotaMax = profile.quota_max;
+  const quotaPct = quotaUsed !== null && quotaMax ? Math.round((quotaUsed / quotaMax) * 100) : 0;
+  const quotaColor = getQuotaStatus(quotaUsed, quotaMax);
   const barColor = quotaColor === 'danger' ? "var(--danger-text)" : quotaColor === 'warning' ? "var(--warning-text)" : "var(--success-text)";
 
   return (
     <div className="px-5 pt-6">
-      {/* Avatar & name */}
       <div className="flex items-center gap-4 mb-6">
-        <div className="rounded-full flex items-center justify-center" style={{ width: 56, height: 56, backgroundColor: roleColors[emp.roles[0]].bg, color: roleColors[emp.roles[0]].text, fontSize: 18, fontWeight: 500 }}>
-          CM
+        <div className="rounded-full flex items-center justify-center" style={{ width: 56, height: 56, backgroundColor: rc.bg, color: rc.text, fontSize: 18, fontWeight: 500 }}>
+          {initials || "—"}
         </div>
         <div>
-          <div style={{ fontSize: 18, fontWeight: 500 }}>{emp.firstName} {emp.lastName}</div>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, backgroundColor: "var(--muted)", color: "var(--muted-foreground)" }}>{emp.contract}</span>
-            {emp.roles.map(r => (
+          <div style={{ fontSize: 18, fontWeight: 500 }}>{profile.first_name} {profile.last_name}</div>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            {profile.contract && (
+              <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, backgroundColor: "var(--muted)", color: "var(--muted-foreground)" }}>{profile.contract}</span>
+            )}
+            {businessRoles.map(r => (
               <span key={r} className="rounded-full px-1.5 py-0.5" style={{ fontSize: 10, backgroundColor: roleColors[r].bg, color: roleColors[r].text }}>{r}</span>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Quota */}
-      {emp.quotaUsed !== null && (
+      {quotaUsed !== null && quotaMax !== null && (
         <div className="rounded-xl border p-4 mb-4" style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)" }}>
           <div className="flex items-center justify-between mb-2">
-            <span style={{ fontSize: 12, fontWeight: 500 }}>Contingent 650h</span>
-            <span style={{ fontSize: 12, fontWeight: 500, color: barColor }}>{emp.quotaUsed}h / {emp.quotaMax}h</span>
+            <span style={{ fontSize: 12, fontWeight: 500 }}>Contingent</span>
+            <span style={{ fontSize: 12, fontWeight: 500, color: barColor }}>{quotaUsed}h / {quotaMax}h</span>
           </div>
           <div style={{ width: "100%", height: 6, borderRadius: 3, backgroundColor: "var(--muted)" }}>
             <div style={{ width: `${quotaPct}%`, height: "100%", borderRadius: 3, backgroundColor: barColor }} />
           </div>
-          <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 4 }}>{(emp.quotaMax || 0) - (emp.quotaUsed || 0)}h restantes</div>
+          <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 4 }}>{quotaMax - quotaUsed}h restantes</div>
         </div>
       )}
 
-      {/* Stats */}
       <div className="grid grid-cols-2 gap-3 mb-5">
-        <StatCard label="Shifts ce mois" value={emp.shiftsCount.toString()} />
-        <StatCard label="Score" value={emp.score.toString()} sub="/10" />
+        <StatCard label="Email" value={profile.email} small />
+        <StatCard label="Score" value={(profile.score ?? 0).toString()} sub="/10" />
       </div>
 
-      {/* Menu */}
       <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)" }}>
         {[
           { label: 'Mes informations', icon: User, action: () => toast("Mes informations", { description: "Section bientôt disponible" }) },
@@ -285,19 +422,19 @@ function ProfilTab({ onNavigate }: { onNavigate: (t: Tab) => void }) {
         ))}
       </div>
 
-      <button onClick={() => { onNavigate('accueil'); toast.success("Déconnecté", { description: "À bientôt !" }); }} className="w-full rounded-xl border px-4 py-3 mt-4 text-center" style={{ fontSize: 13, color: "var(--danger-text)", backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)" }}>
+      <button onClick={async () => { await signOut(); onNavigate('accueil'); toast.success("Déconnecté"); }} className="w-full rounded-xl border px-4 py-3 mt-4 text-center" style={{ fontSize: 13, color: "var(--danger-text)", backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)" }}>
         Se déconnecter
       </button>
     </div>
   );
 }
 
-function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function StatCard({ label, value, sub, small }: { label: string; value: string; sub?: string; small?: boolean }) {
   return (
     <div className="rounded-xl border p-3" style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)" }}>
       <div style={{ fontSize: 10, fontWeight: 500, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>{label}</div>
       <div className="flex items-baseline gap-0.5">
-        <span style={{ fontSize: 20, fontWeight: 500 }}>{value}</span>
+        <span style={{ fontSize: small ? 12 : 20, fontWeight: 500, wordBreak: "break-all" }}>{value}</span>
         {sub && <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{sub}</span>}
       </div>
     </div>
