@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Home, Calendar, CalendarCheck, User, ChevronRight, Clock, GraduationCap, QrCode, ClipboardCheck, ArrowLeft, CheckSquare } from "lucide-react";
+import { Home, Calendar, CalendarCheck, User, ChevronRight, Clock, GraduationCap, ClipboardCheck, ArrowLeft, CheckSquare, AlertCircle, Replace, Inbox } from "lucide-react";
 import { roleColors, getQuotaStatus, type Role } from "@/lib/mock-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { EndShiftSheet } from "@/components/staff-app/EndShiftSheet";
-import type { ShiftRow as ShiftRowShared } from "@/components/staff-app/shared";
+import { SignalementSheet, RequestModificationSheet, FormationsSheet, MyRequestsSheet } from "@/components/staff-app/StaffActionsSheets";
 
 export const Route = createFileRoute("/staff-app")({
   component: StaffAppPage,
@@ -91,11 +91,15 @@ function StaffAppPage() {
 }
 
 /* ─── ACCUEIL ─── */
-function AccueilTab({ profile, studios, onNavigate }: { profile: ProfileRow | null; studios: Record<string, string>; onNavigate: (t: Tab) => void }) {
+function AccueilTab({ profile, studios }: { profile: ProfileRow | null; studios: Record<string, string>; onNavigate?: (t: Tab) => void }) {
   const { user } = useAuth();
   const [shifts, setShifts] = useState<ShiftRow[]>([]);
   const [weekStats, setWeekStats] = useState({ hours: 0, count: 0 });
   const [endShift, setEndShift] = useState<ShiftRow | null>(null);
+  const [signalOpen, setSignalOpen] = useState(false);
+  const [reqOpen, setReqOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [myReqOpen, setMyReqOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -184,10 +188,22 @@ function AccueilTab({ profile, studios, onNavigate }: { profile: ProfileRow | nu
         );
       })}
 
-      <div className="grid grid-cols-2 gap-3 mt-5">
-        <QuickLink icon={<CalendarCheck size={18} />} label="Mes disponibilités" sub="Configurer" onClick={() => onNavigate('dispos')} />
-        <QuickLink icon={<GraduationCap size={18} />} label="Formation" sub="Bientôt disponible" onClick={() => toast("Formation à venir")} />
+      <div style={{ fontSize: 13, fontWeight: 500, marginTop: 20, marginBottom: 8 }}>Actions rapides</div>
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <QuickLink icon={<AlertCircle size={18} />} label="Signaler" sub="Stock, matériel, hygiène" onClick={() => setSignalOpen(true)} />
+        <QuickLink icon={<Replace size={18} />} label="Demande" sub="Échange, annulation…" onClick={() => setReqOpen(true)} />
+        <QuickLink icon={<Inbox size={18} />} label="Mes demandes" sub="Suivi des réponses" onClick={() => setMyReqOpen(true)} />
+        <QuickLink icon={<GraduationCap size={18} />} label="Formations" sub="À voir / valider" onClick={() => setFormOpen(true)} />
       </div>
+
+      <EndShiftSheet
+        open={!!endShift} onClose={() => setEndShift(null)}
+        shift={endShift} userId={user!.id}
+      />
+      <SignalementSheet open={signalOpen} onClose={() => setSignalOpen(false)} userId={user!.id} studioId={profile?.studio_id ?? null} />
+      <RequestModificationSheet open={reqOpen} onClose={() => setReqOpen(false)} userId={user!.id} shiftId={shifts[0]?.id ?? null} />
+      <FormationsSheet open={formOpen} onClose={() => setFormOpen(false)} userId={user!.id} />
+      <MyRequestsSheet open={myReqOpen} onClose={() => setMyReqOpen(false)} userId={user!.id} />
     </div>
   );
 }
