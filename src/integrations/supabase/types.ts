@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      availabilities: {
+        Row: {
+          avail_date: string
+          created_at: string
+          id: string
+          slot: Database["public"]["Enums"]["availability_slot"]
+          user_id: string
+        }
+        Insert: {
+          avail_date: string
+          created_at?: string
+          id?: string
+          slot: Database["public"]["Enums"]["availability_slot"]
+          user_id: string
+        }
+        Update: {
+          avail_date?: string
+          created_at?: string
+          id?: string
+          slot?: Database["public"]["Enums"]["availability_slot"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           accepted_at: string | null
@@ -171,6 +195,56 @@ export type Database = {
           },
         ]
       }
+      shifts: {
+        Row: {
+          business_role: Database["public"]["Enums"]["business_role"]
+          created_at: string
+          end_time: string
+          id: string
+          notes: string | null
+          shift_date: string
+          start_time: string
+          status: Database["public"]["Enums"]["shift_status"]
+          studio_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          business_role: Database["public"]["Enums"]["business_role"]
+          created_at?: string
+          end_time: string
+          id?: string
+          notes?: string | null
+          shift_date: string
+          start_time: string
+          status?: Database["public"]["Enums"]["shift_status"]
+          studio_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          business_role?: Database["public"]["Enums"]["business_role"]
+          created_at?: string
+          end_time?: string
+          id?: string
+          notes?: string | null
+          shift_date?: string
+          start_time?: string
+          status?: Database["public"]["Enums"]["shift_status"]
+          studio_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shifts_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       studios: {
         Row: {
           created_at: string
@@ -240,10 +314,12 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "manager" | "employee"
+      availability_slot: "matin" | "midi" | "soir"
       business_role: "Barista" | "Accueil" | "Host" | "Cuisine"
       contract_type: "Étudiant" | "Flexi" | "CDI"
       invitation_status: "pending" | "accepted" | "expired" | "revoked"
       profile_status: "invited" | "active" | "suspended"
+      shift_status: "scheduled" | "completed" | "cancelled" | "open"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -372,10 +448,12 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "employee"],
+      availability_slot: ["matin", "midi", "soir"],
       business_role: ["Barista", "Accueil", "Host", "Cuisine"],
       contract_type: ["Étudiant", "Flexi", "CDI"],
       invitation_status: ["pending", "accepted", "expired", "revoked"],
       profile_status: ["invited", "active", "suspended"],
+      shift_status: ["scheduled", "completed", "cancelled", "open"],
     },
   },
 } as const
