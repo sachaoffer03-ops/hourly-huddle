@@ -343,6 +343,37 @@ function KpiCard({ label, value, sub, color }: { label: string; value: string; s
   );
 }
 
+function DocumentRow({ label, uploaded, required, fileName, date, onDownload }: { label: string; uploaded: boolean; required?: boolean; fileName?: string; date?: string; onDownload: () => void }) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg px-3 py-2.5" style={{ backgroundColor: "var(--muted)" }}>
+      <div className="flex items-center justify-center rounded-md" style={{ width: 28, height: 28, backgroundColor: "var(--card)", color: uploaded ? "var(--success-text)" : "var(--muted-foreground)" }}>
+        {uploaded ? <FileCheck2 size={14} /> : <FileX2 size={14} />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div style={{ fontSize: 12, fontWeight: 500 }}>{label}</div>
+        <div style={{ fontSize: 11, color: "var(--muted-foreground)" }} className="truncate">
+          {uploaded ? `${fileName} · ajouté le ${date}` : required ? "Document obligatoire — non fourni" : "Non fourni"}
+        </div>
+      </div>
+      {uploaded ? (
+        <button
+          onClick={onDownload}
+          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 transition-colors"
+          style={{ fontSize: 11, fontWeight: 500, border: "0.5px solid var(--border)", backgroundColor: "var(--card)" }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = "var(--background)"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = "var(--card)"; }}
+        >
+          <Download size={11} /> Télécharger
+        </button>
+      ) : (
+        <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, fontWeight: 500, backgroundColor: required ? "var(--warning-bg)" : "var(--card)", color: required ? "var(--warning-text)" : "var(--muted-foreground)" }}>
+          {required ? "Manquant" : "—"}
+        </span>
+      )}
+    </div>
+  );
+}
+
 /* ============== MODALS ============== */
 
 function ModalShell({ title, onClose, children, footer }: { title: string; onClose: () => void; children: React.ReactNode; footer?: React.ReactNode }) {
