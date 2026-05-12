@@ -8,20 +8,26 @@ import { getAppMode, getOtherSpaceUrl, setPreviewMode, type AppMode } from "@/li
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
+  validateSearch: (s: Record<string, unknown>) => ({
+    mode: s.mode === "employee" || s.mode === "app" || s.mode === "admin" ? s.mode : undefined,
+  }),
   head: () => ({ meta: [{ title: "Connexion — Kadence" }] }),
 });
 
 function LoginPage() {
+  const { mode: searchMode } = Route.useSearch();
   const navigate = useNavigate();
   const { session, appRole, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"login" | "forgot">("login");
-  const [appMode, setAppMode] = useState<AppMode>("admin");
+  const [appMode, setAppMode] = useState<AppMode>(searchMode === "employee" || searchMode === "app" ? "employee" : "admin");
+  const [showPreviewSwitch, setShowPreviewSwitch] = useState(false);
 
   useEffect(() => {
     setAppMode(getAppMode());
+    setShowPreviewSwitch(!window.location.hostname.includes("shyft.flashsite.fr"));
   }, []);
 
   useEffect(() => {
@@ -70,9 +76,6 @@ function LoginPage() {
 
   const onSubmit = mode === "login" ? handleLogin : handleForgot;
 
-  // Toggle mode (preview only) - utile pour tester les deux espaces sans sous-domaine
-  const isLovablePreview = typeof window !== "undefined" && !window.location.hostname.includes("shyft.flashsite.fr");
-
   if (appMode === "employee") {
     return (
       <EmployeeLogin
@@ -80,8 +83,6 @@ function LoginPage() {
         password={password} setPassword={setPassword}
         loading={loading} mode={mode} setMode={setMode}
         onSubmit={onSubmit}
-        isLovablePreview={isLovablePreview}
-        onSwitchPreview={() => { setPreviewMode("admin"); window.location.search = "?mode=admin"; }}
       />
     );
   }
@@ -92,7 +93,7 @@ function LoginPage() {
       password={password} setPassword={setPassword}
       loading={loading} mode={mode} setMode={setMode}
       onSubmit={onSubmit}
-      isLovablePreview={isLovablePreview}
+      isLovablePreview={showPreviewSwitch}
       onSwitchPreview={() => { setPreviewMode("employee"); window.location.search = "?mode=employee"; }}
     />
   );
@@ -105,11 +106,14 @@ interface FormProps {
   mode: "login" | "forgot";
   setMode: (m: "login" | "forgot") => void;
   onSubmit: (e: React.FormEvent) => void;
+}
+
+interface AdminFormProps extends FormProps {
   isLovablePreview: boolean;
   onSwitchPreview: () => void;
 }
 
-function AdminLogin(p: FormProps) {
+function AdminLogin(p: AdminFormProps) {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-10" style={{ backgroundColor: "var(--background)" }}>
       <div className="w-full max-w-[400px]">
@@ -150,15 +154,14 @@ function AdminLogin(p: FormProps) {
         </div>
 
         <div className="mt-6 text-center">
-          <a href={getOtherSpaceUrl("admin")} style={{ fontSize: 12, color: "var(--muted-foreground)" }} className="hover:underline">
-            Vous êtes employé ? Accéder à l'espace équipe →
-          </a>
-          {p.isLovablePreview && (
-            <div className="mt-2">
-              <button onClick={p.onSwitchPreview} style={{ fontSize: 11, color: "var(--muted-foreground)", opacity: 0.6 }} className="hover:underline">
-                [preview] basculer vers espace employé
-              </button>
-            </div>
+          {p.isLovablePreview ? (
+            <button onClick={p.onSwitchPreview} style={{ fontSize: 12, color: "var(--muted-foreground)" }} className="hover:underline">
+              Prévisualiser l'espace équipe →
+            </button>
+          ) : (
+            <a href={getOtherSpaceUrl("admin")} style={{ fontSize: 12, color: "var(--muted-foreground)" }} className="hover:underline">
+              Vous êtes employé ? Accéder à l'espace équipe →
+            </a>
           )}
         </div>
       </div>
@@ -202,18 +205,7 @@ function EmployeeLogin(p: FormProps) {
         </form>
       </div>
 
-      <div className="text-center pb-2">
-        <a href={getOtherSpaceUrl("employee")} style={{ fontSize: 12, color: "var(--muted-foreground)" }} className="hover:underline">
-          Espace administrateur →
-        </a>
-        {p.isLovablePreview && (
-          <div className="mt-2">
-            <button onClick={p.onSwitchPreview} style={{ fontSize: 11, color: "var(--muted-foreground)", opacity: 0.6 }} className="hover:underline">
-              [preview] basculer vers espace admin
-            </button>
-          </div>
-        )}
-      </div>
+      <div className="pb-2" />
     </div>
   );
 }
