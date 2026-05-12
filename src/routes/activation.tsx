@@ -36,6 +36,7 @@ interface Invitation {
   studio_ids?: string[] | null;
   contract: string | null;
   contracts?: string[] | null;
+  app_role?: string | null;
   status: string;
   expires_at: string;
 }
