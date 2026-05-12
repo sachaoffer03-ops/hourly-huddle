@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Dropdown } from "@/components/Dropdown";
 
 interface Studio { id: string; name: string }
 interface Employee { id: string; first_name: string; last_name: string; studio_id: string | null }
