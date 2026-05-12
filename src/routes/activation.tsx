@@ -169,6 +169,12 @@ function ActivationPage() {
     if (!accept) return toast.error("Vous devez accepter les conditions");
 
     setSubmitting(true);
+    const isAdmin = invitation.app_role === "admin" || invitation.app_role === "manager";
+    const targetPath = isAdmin ? "/" : "/staff-app";
+    // En prod, force le bon sous-domaine; en preview, reste sur l'origine actuelle.
+    const host = window.location.hostname.toLowerCase();
+    const isProd = host.endsWith("shyft.flashsite.fr");
+    const redirectBase = isProd ? getSpaceUrl(isAdmin ? "admin" : "employee") : window.location.origin;
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email: invitation.email,
       password,
@@ -178,7 +184,7 @@ function ActivationPage() {
           first_name: invitation.first_name,
           last_name: invitation.last_name,
         },
-        emailRedirectTo: `${window.location.origin}/staff-app`,
+        emailRedirectTo: `${redirectBase}${targetPath}`,
       },
     });
 
