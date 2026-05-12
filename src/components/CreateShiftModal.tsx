@@ -28,6 +28,8 @@ export function CreateShiftModal({ open, onClose, defaultUserId, onCreated }: Pr
   const [startTime, setStartTime] = useState("10:00");
   const [endTime, setEndTime] = useState("15:00");
   const [notes, setNotes] = useState("");
+  const [recurrence, setRecurrence] = useState<"none" | "weekly" | "biweekly" | "monthly">("none");
+  const [until, setUntil] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -47,32 +49,55 @@ export function CreateShiftModal({ open, onClose, defaultUserId, onCreated }: Pr
   const reset = () => {
     setNotes("");
     setStartTime("10:00"); setEndTime("15:00");
+    setRecurrence("none"); setUntil("");
   };
 
   const handleClose = () => { reset(); onClose(); };
+
+  const buildDates = (): string[] => {
+    const start = new Date(date + "T00:00:00");
+    if (recurrence === "none" || !until) return [date];
+    const end = new Date(until + "T00:00:00");
+    if (end < start) return [date];
+    const out: string[] = [];
+    const cur = new Date(start);
+    let safety = 0;
+    while (cur <= end && safety++ < 200) {
+      out.push(cur.toISOString().slice(0, 10));
+      if (recurrence === "weekly") cur.setDate(cur.getDate() + 7);
+      else if (recurrence === "biweekly") cur.setDate(cur.getDate() + 14);
+      else if (recurrence === "monthly") cur.setMonth(cur.getMonth() + 1);
+    }
+    return out;
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) return toast.error("Sélectionnez un employé");
     if (endTime <= startTime) return toast.error("L'heure de fin doit être après le début");
+    if (recurrence !== "none" && !until) return toast.error("Indiquez une date de fin de répétition");
 
+    const dates = buildDates();
     setSubmitting(true);
-    const { error } = await supabase.from("shifts").insert({
-      user_id: userId,
-      studio_id: studioId || null,
-      business_role: role,
-      shift_date: date,
-      start_time: startTime,
-      end_time: endTime,
-      notes: notes || null,
-    });
+    const { error } = await supabase.from("shifts").insert(
+      dates.map((d) => ({
+        user_id: userId,
+        studio_id: studioId || null,
+        business_role: role,
+        shift_date: d,
+        start_time: startTime,
+        end_time: endTime,
+        notes: notes || null,
+      }))
+    );
     setSubmitting(false);
 
     if (error) return toast.error(error.message);
-    toast.success("Shift créé");
+    toast.success(dates.length > 1 ? `${dates.length} shifts créés` : "Shift créé");
     onCreated?.();
     handleClose();
   };
+
 
   if (!open) return null;
 
@@ -160,9 +185,37 @@ export function CreateShiftModal({ open, onClose, defaultUserId, onCreated }: Pr
           </div>
 
           <div>
+            <label style={labelStyle}>Répétition</label>
+            <div className="flex flex-wrap gap-1 mt-2">
+              {([
+                { v: "none", label: "Jamais" },
+                { v: "weekly", label: "Chaque semaine" },
+                { v: "biweekly", label: "Toutes les 2 semaines" },
+                { v: "monthly", label: "Chaque mois" },
+              ] as const).map((opt) => (
+                <button key={opt.v} type="button" onClick={() => setRecurrence(opt.v)}
+                  className="rounded-full px-2.5 py-1 transition-colors" style={chip(recurrence === opt.v)}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            {recurrence !== "none" && (
+              <div className="mt-3">
+                <label style={labelStyle}>Jusqu'au *</label>
+                <input type="date" value={until} min={date} onChange={(e) => setUntil(e.target.value)}
+                  className={inputCls} style={inputStyle} required />
+                <p style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 4 }}>
+                  Le shift sera dupliqué automatiquement jusqu'à cette date.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div>
             <label style={labelStyle}>Note (optionnel)</label>
             <input value={notes} onChange={(e) => setNotes(e.target.value)} className={inputCls} style={inputStyle} placeholder="Briefing, info particulière..." />
           </div>
+
 
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={handleClose} className="rounded-md border px-4 py-2"
