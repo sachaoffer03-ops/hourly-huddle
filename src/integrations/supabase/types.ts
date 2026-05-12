@@ -244,7 +244,11 @@ export type Database = {
       }
       messages: {
         Row: {
-          content: string
+          attachment_name: string | null
+          attachment_size: number | null
+          attachment_type: string | null
+          attachment_url: string | null
+          content: string | null
           created_at: string
           id: string
           read_at: string | null
@@ -252,7 +256,11 @@ export type Database = {
           sender_id: string
         }
         Insert: {
-          content: string
+          attachment_name?: string | null
+          attachment_size?: number | null
+          attachment_type?: string | null
+          attachment_url?: string | null
+          content?: string | null
           created_at?: string
           id?: string
           read_at?: string | null
@@ -260,7 +268,11 @@ export type Database = {
           sender_id: string
         }
         Update: {
-          content?: string
+          attachment_name?: string | null
+          attachment_size?: number | null
+          attachment_type?: string | null
+          attachment_url?: string | null
+          content?: string | null
           created_at?: string
           id?: string
           read_at?: string | null
