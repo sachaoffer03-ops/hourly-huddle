@@ -117,7 +117,7 @@ function StaffAppPage() {
 }
 
 /* ─── ACCUEIL ─── */
-function AccueilTab({ profile, studios, userId }: { profile: ProfileRow | null; studios: Record<string, string>; userId: string }) {
+function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: ProfileRow | null; studios: Record<string, string>; userId: string; onOpenNotifs: () => void }) {
   const [shifts, setShifts] = useState<ShiftRow[]>([]);
   const [weekStats, setWeekStats] = useState({ hours: 0, count: 0 });
   const [endShift, setEndShift] = useState<ShiftRow | null>(null);
