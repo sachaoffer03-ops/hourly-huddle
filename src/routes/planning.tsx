@@ -741,8 +741,15 @@ function PlanningPage() {
                       backgroundColor: isSelected ? "rgba(15,15,15,0.03)" : "transparent",
                     }}
                   >
-                    {cellShifts.map((shift) => {
+                    {[...cellShifts].sort((a, b) => a.startHour.localeCompare(b.startHour)).map((shift) => {
                       const rc = roleColors[shift.role];
+                      const startH = parseInt(shift.startHour, 10) + parseInt(shift.startHour.slice(3, 5), 10) / 60;
+                      const endH = parseInt(shift.endHour, 10) + parseInt(shift.endHour.slice(3, 5), 10) / 60;
+                      const DAY_START = 7, DAY_END = 23, DAY_RANGE = DAY_END - DAY_START;
+                      const leftPct = Math.max(0, ((startH - DAY_START) / DAY_RANGE) * 100);
+                      const widthPct = Math.max(4, ((endH - startH) / DAY_RANGE) * 100);
+                      const startLabel = shift.startHour.replace("h00", "h").replace("h", "h");
+                      const endLabel = shift.endHour.replace("h00", "h");
                       return shift.hole ? (
                         <button
                           key={shift.id}
@@ -756,10 +763,14 @@ function PlanningPage() {
                             cursor: "pointer",
                           }}
                         >
-                          <div className="flex items-center gap-1" style={{ fontWeight: 500 }}>
-                            <span className="rounded-full" style={{ width: 6, height: 6, backgroundColor: rc.dot }} />
-                            + Libre · {shift.role}
+                          <div className="flex items-center justify-between gap-1" style={{ fontWeight: 500 }}>
+                            <span className="flex items-center gap-1">
+                              <span className="rounded-full" style={{ width: 6, height: 6, backgroundColor: rc.dot }} />
+                              + Libre · {shift.role}
+                            </span>
+                            <span style={{ fontSize: 10, fontWeight: 500 }}>{startLabel}–{endLabel}</span>
                           </div>
+                          <TimeBar leftPct={leftPct} widthPct={widthPct} color="var(--coral)" />
                         </button>
                       ) : (
                         <button
@@ -781,13 +792,18 @@ function PlanningPage() {
                             </span>
                             <StatusDot confirmation={shift.confirmation} pointage={shift.pointage} delayMinutes={shift.delayMinutes} />
                           </div>
-                          <div className="flex items-center gap-1" style={{ fontSize: 10, opacity: 0.85, marginTop: 1 }}>
-                            <span className="rounded-full" style={{ width: 5, height: 5, backgroundColor: rc.dot }} />
-                            {shift.role}
+                          <div className="flex items-center justify-between gap-1" style={{ fontSize: 10, opacity: 0.85, marginTop: 1 }}>
+                            <span className="flex items-center gap-1">
+                              <span className="rounded-full" style={{ width: 5, height: 5, backgroundColor: rc.dot }} />
+                              {shift.role}
+                            </span>
+                            <span style={{ fontWeight: 500 }}>{startLabel}–{endLabel}</span>
                           </div>
+                          <TimeBar leftPct={leftPct} widthPct={widthPct} color={rc.dot} />
                         </button>
                       );
                     })}
+
                   </div>
                 );
               })}
