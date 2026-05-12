@@ -41,8 +41,7 @@ function fmtTime(t: string) { return t.slice(0, 5).replace(":", "h"); }
 function todayISO() { return new Date().toISOString().slice(0, 10); }
 
 function StaffAppPage() {
-  const { user, appRole } = useAuth();
-  const isAdminPreviewing = appRole === "admin" || appRole === "manager";
+  const { user } = useAuth();
   const [tab, setTab] = useState<Tab>("accueil");
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [businessRoles, setBusinessRoles] = useState<Role[]>([]);
