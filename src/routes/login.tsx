@@ -23,9 +23,11 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"login" | "forgot">("login");
   const [appMode, setAppMode] = useState<AppMode>(searchMode === "employee" || searchMode === "app" ? "employee" : "admin");
+  const [showPreviewSwitch, setShowPreviewSwitch] = useState(false);
 
   useEffect(() => {
     setAppMode(getAppMode());
+    setShowPreviewSwitch(!window.location.hostname.includes("shyft.flashsite.fr"));
   }, []);
 
   useEffect(() => {
@@ -74,9 +76,6 @@ function LoginPage() {
 
   const onSubmit = mode === "login" ? handleLogin : handleForgot;
 
-  // Toggle mode (preview only) - utile pour tester les deux espaces sans sous-domaine
-  const isLovablePreview = typeof window !== "undefined" && !window.location.hostname.includes("shyft.flashsite.fr");
-
   if (appMode === "employee") {
     return (
       <EmployeeLogin
@@ -94,7 +93,7 @@ function LoginPage() {
       password={password} setPassword={setPassword}
       loading={loading} mode={mode} setMode={setMode}
       onSubmit={onSubmit}
-      isLovablePreview={isLovablePreview}
+      isLovablePreview={showPreviewSwitch}
       onSwitchPreview={() => { setPreviewMode("employee"); window.location.search = "?mode=employee"; }}
     />
   );
