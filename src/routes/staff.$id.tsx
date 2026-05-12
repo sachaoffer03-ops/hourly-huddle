@@ -32,6 +32,8 @@ function EmployeeDetailPage() {
   const [emp, setEmp] = useState<Profile | null>(null);
   const [businessRoles, setBusinessRoles] = useState<Role[]>([]);
   const [studios, setStudios] = useState<Record<string, string>>({});
+  const [userStudioIds, setUserStudioIds] = useState<string[]>([]);
+  const [userContracts, setUserContracts] = useState<string[]>([]);
   const [shifts, setShifts] = useState<ShiftRow[]>([]);
   const [fbs, setFbs] = useState<FB[]>([]);
   const [sigs, setSigs] = useState<Sig[]>([]);
@@ -39,10 +41,12 @@ function EmployeeDetailPage() {
 
   useEffect(() => {
     const load = async () => {
-      const [{ data: p }, { data: br }, { data: sts }, { data: sh }, { data: fb }, { data: sg }] = await Promise.all([
+      const [{ data: p }, { data: br }, { data: sts }, { data: us }, { data: uc }, { data: sh }, { data: fb }, { data: sg }] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", id).maybeSingle(),
         supabase.from("user_business_roles").select("role").eq("user_id", id),
         supabase.from("studios").select("id,name"),
+        supabase.from("user_studios").select("studio_id").eq("user_id", id),
+        supabase.from("user_contracts").select("contract").eq("user_id", id),
         supabase.from("shifts").select("id,shift_date,start_time,end_time,business_role,studio_id,status").eq("user_id", id).order("shift_date", { ascending: false }).limit(20),
         supabase.from("feedbacks").select("id,rating,message,created_at").eq("author_id", id).order("created_at", { ascending: false }).limit(10),
         supabase.from("signalements").select("id,category,message,created_at,resolved").eq("author_id", id).order("created_at", { ascending: false }).limit(10),
@@ -50,6 +54,8 @@ function EmployeeDetailPage() {
       setEmp(p as Profile | null);
       setBusinessRoles((br || []).map(r => r.role as Role));
       setStudios(Object.fromEntries((sts || []).map(s => [s.id, s.name])));
+      setUserStudioIds((us || []).map(r => r.studio_id as string));
+      setUserContracts((uc || []).map(r => r.contract as string));
       setShifts(sh || []);
       setFbs(fb || []);
       setSigs(sg || []);
@@ -119,7 +125,9 @@ function EmployeeDetailPage() {
               <div>
                 <div style={{ fontSize: 18, fontWeight: 500 }}>{emp.first_name} {emp.last_name}</div>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  {emp.contract && <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, backgroundColor: "var(--muted)", color: "var(--muted-foreground)" }}>{emp.contract}</span>}
+                  {(userContracts.length > 0 ? userContracts : emp.contract ? [emp.contract] : []).map(c => (
+                    <span key={c} className="rounded-full px-2 py-0.5" style={{ fontSize: 10, backgroundColor: "var(--muted)", color: "var(--muted-foreground)" }}>{c}</span>
+                  ))}
                   {businessRoles.map(r => (
                     <span key={r} className="rounded-full px-1.5 py-0.5" style={{ fontSize: 10, backgroundColor: roleColors[r].bg, color: roleColors[r].text }}>{r}</span>
                   ))}
@@ -130,9 +138,30 @@ function EmployeeDetailPage() {
             <div className="flex flex-col gap-2" style={{ fontSize: 12 }}>
               <Info icon={Mail} value={emp.email} />
               <Info icon={Phone} value={emp.phone || "—"} />
-              <Info icon={MapPin} value={`${emp.city || "—"}${emp.studio_id && studios[emp.studio_id] ? ` · ${studios[emp.studio_id]}` : ""}`} />
+              <Info icon={MapPin} value={emp.city || "—"} />
             </div>
+
+            {(() => {
+              const ids = userStudioIds.length > 0 ? userStudioIds : (emp.studio_id ? [emp.studio_id] : []);
+              if (ids.length === 0) return null;
+              return (
+                <div className="mt-4 pt-4" style={{ borderTop: "0.5px solid var(--border)" }}>
+                  <div style={{ fontSize: 11, fontWeight: 500, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+                    Studios rattachés
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    {ids.map(sid => (
+                      <div key={sid} className="flex items-center gap-2 rounded-md px-2 py-1.5" style={{ backgroundColor: "var(--background)", fontSize: 12 }}>
+                        <MapPin size={12} style={{ color: "var(--coral)" }} />
+                        <span style={{ fontWeight: 500 }}>{studios[sid] || "Studio inconnu"}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
+
 
           <div className="rounded-xl border p-5" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
             <div style={{ fontSize: 12, fontWeight: 500, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>Performance</div>
