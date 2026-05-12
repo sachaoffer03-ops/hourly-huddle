@@ -84,11 +84,11 @@ function StaffAppPage() {
           <ArrowLeft size={12} /> Retour admin
         </Link>
       )}
-      {/* Cloche notifications globale */}
-      <BellButton userId={user.id} onOpen={() => setNotifOpen(true)} />
+      {/* Cloche notifications globale — l'onglet Accueil a sa propre cloche inline */}
+      {tab !== "accueil" && <BellButton userId={user.id} onOpen={() => setNotifOpen(true)} />}
 
       <div className="flex-1 overflow-y-auto pb-20">
-        {tab === "accueil" && <AccueilTab profile={profile} studios={studios} userId={user.id} />}
+        {tab === "accueil" && <AccueilTab profile={profile} studios={studios} userId={user.id} onOpenNotifs={() => setNotifOpen(true)} />}
         {tab === "planning" && <PlanningTab studios={studios} userId={user.id} />}
         {tab === "formation" && <FormationPanel userId={user.id} />}
         {tab === "chat" && <ChatPanel meId={user.id} peerId={adminId} peerName={adminName} />}
@@ -117,7 +117,7 @@ function StaffAppPage() {
 }
 
 /* ─── ACCUEIL ─── */
-function AccueilTab({ profile, studios, userId }: { profile: ProfileRow | null; studios: Record<string, string>; userId: string }) {
+function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: ProfileRow | null; studios: Record<string, string>; userId: string; onOpenNotifs: () => void }) {
   const [shifts, setShifts] = useState<ShiftRow[]>([]);
   const [weekStats, setWeekStats] = useState({ hours: 0, count: 0 });
   const [endShift, setEndShift] = useState<ShiftRow | null>(null);
@@ -176,23 +176,128 @@ function AccueilTab({ profile, studios, userId }: { profile: ProfileRow | null; 
   }, [userId]);
 
   const firstName = profile?.first_name || "";
+  const initial = (firstName.charAt(0) || "?").toUpperCase();
   const today = todayISO();
+  const { unread } = useStaffNotifications(userId);
+
+  // Jours de la semaine (7 prochains jours) — marque ceux où l'employé a un shift
+  const weekDays = useMemo(() => {
+    const labels = ["L", "M", "M", "J", "V", "S", "D"]; // lundi=0
+    const today0 = new Date(); today0.setHours(0, 0, 0, 0);
+    const monday = new Date(today0);
+    const dow = (today0.getDay() + 6) % 7; // 0 = lundi
+    monday.setDate(today0.getDate() - dow);
+    const shiftDates = new Set(shifts.map(s => s.shift_date));
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday); d.setDate(monday.getDate() + i);
+      const iso = d.toISOString().slice(0, 10);
+      return { label: labels[i], iso, hasShift: shiftDates.has(iso), isToday: iso === today, isPast: d < today0 };
+    });
+  }, [shifts, today]);
 
   return (
-    <div className="px-5 pt-6">
-      <div style={{ fontSize: 13, color: "var(--muted-foreground)" }}>Bonjour,</div>
-      <div style={{ fontSize: 22, fontWeight: 500, marginBottom: 20 }}>{firstName || "—"}</div>
-
-      <div className="rounded-xl p-5 mb-5" style={{ background: "linear-gradient(135deg, #1A1A1A, #2A2A28)" }}>
-        <div style={{ fontSize: 11, color: "var(--coral)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Cette semaine</div>
-        <div className="flex items-center gap-6">
-          <div>
-            <div style={{ fontSize: 28, fontWeight: 500, color: "#fff" }}>{weekStats.hours}h</div>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>Heures prévues</div>
+    <div className="px-5 pt-5">
+      {/* Header inline : avatar initiale + bonjour + cloche */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div
+            className="rounded-full flex items-center justify-center"
+            style={{
+              width: 40, height: 40,
+              backgroundColor: "var(--coral-light)",
+              border: "0.5px solid var(--coral)",
+              color: "var(--coral-dark)",
+              fontSize: 14, fontWeight: 500,
+            }}
+          >
+            {initial}
           </div>
           <div>
-            <div style={{ fontSize: 28, fontWeight: 500, color: "#fff" }}>{weekStats.count}</div>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>Shifts</div>
+            <div style={{ fontSize: 11, color: "var(--muted-foreground)", lineHeight: 1.2 }}>Bonjour</div>
+            <div style={{ fontSize: 17, fontWeight: 500, lineHeight: 1.2 }}>{firstName || "—"}</div>
+          </div>
+        </div>
+        <button
+          onClick={onOpenNotifs}
+          aria-label="Notifications"
+          className="relative rounded-full flex items-center justify-center transition-colors hover:bg-black/5"
+          style={{ width: 40, height: 40 }}
+        >
+          <Bell size={20} strokeWidth={1.6} style={{ color: "var(--foreground)" }} />
+          {unread > 0 && (
+            <span
+              style={{
+                position: "absolute", top: 8, right: 8,
+                width: 8, height: 8, borderRadius: 4,
+                backgroundColor: "var(--coral)",
+                border: "1.5px solid #FAF8F4",
+              }}
+            />
+          )}
+        </button>
+      </div>
+
+      {/* Carte sombre — résumé semaine */}
+      <div
+        className="relative overflow-hidden rounded-3xl p-6 mb-5"
+        style={{ background: "linear-gradient(135deg, #1A1614, #2A2624)" }}
+      >
+        {/* Halo coral subtil en haut à droite */}
+        <div
+          style={{
+            position: "absolute", top: -64, right: -64,
+            width: 180, height: 180, borderRadius: "50%",
+            backgroundColor: "rgba(240,153,123,0.12)", filter: "blur(40px)",
+            pointerEvents: "none",
+          }}
+        />
+        <div style={{ position: "relative" }}>
+          <div
+            style={{
+              fontSize: 10, color: "rgba(250,248,244,0.55)",
+              fontWeight: 500, letterSpacing: "0.18em",
+              textTransform: "uppercase", marginBottom: 18,
+            }}
+          >
+            Cette semaine
+          </div>
+
+          <div className="flex items-baseline gap-2" style={{ marginBottom: 4 }}>
+            <span style={{ fontSize: 44, fontWeight: 500, color: "#FAF8F4", lineHeight: 1 }}>{weekStats.hours}h</span>
+            <span style={{ fontSize: 15, color: "var(--coral)", fontWeight: 500 }}>prévues</span>
+          </div>
+          <div style={{ fontSize: 11, color: "rgba(250,248,244,0.5)" }}>
+            sur les 7 prochains jours
+          </div>
+
+          <div
+            className="flex items-center justify-between mt-6 pt-5"
+            style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}
+          >
+            <div className="flex items-center gap-2">
+              <div style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "var(--coral)" }} />
+              <span style={{ fontSize: 14, color: "#FAF8F4", fontWeight: 500 }}>
+                {weekStats.count} {weekStats.count > 1 ? "shifts" : "shift"}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              {weekDays.map((d, i) => (
+                <div
+                  key={i}
+                  className="rounded-full flex items-center justify-center"
+                  style={{
+                    width: 26, height: 26,
+                    fontSize: 10, fontWeight: 500,
+                    backgroundColor: d.hasShift ? "var(--coral)" : "transparent",
+                    color: d.hasShift ? "#1A1614" : d.isPast ? "rgba(250,248,244,0.25)" : "rgba(250,248,244,0.55)",
+                    border: d.hasShift ? "none" : d.isToday ? "1px solid rgba(240,153,123,0.6)" : "1px solid rgba(255,255,255,0.1)",
+                  }}
+                >
+                  {d.label}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
