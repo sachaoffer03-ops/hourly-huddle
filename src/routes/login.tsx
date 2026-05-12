@@ -160,140 +160,124 @@ function AdminLogin(p: AdminFormProps) {
 
 function EmployeeLogin(p: FormProps) {
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: "var(--background)" }}>
-      {/* Hero sombre */}
+    <div
+      className="min-h-screen flex flex-col relative overflow-hidden"
+      style={{ backgroundColor: "var(--background)" }}
+    >
+      {/* halo coral décoratif en haut */}
       <div
-        className="relative px-6 pt-14 pb-24"
+        aria-hidden
+        className="absolute pointer-events-none"
         style={{
+          top: -160,
+          right: -120,
+          width: 360,
+          height: 360,
+          borderRadius: "50%",
           background:
-            "linear-gradient(160deg, #2A201C 0%, #3A2A24 55%, #5C3A2E 100%)",
-          color: "#FAFAF8",
+            "radial-gradient(circle, rgba(240,153,123,0.28) 0%, rgba(240,153,123,0) 70%)",
+          filter: "blur(10px)",
         }}
-      >
-        {/* halo coral subtil */}
-        <div
-          aria-hidden
-          className="absolute pointer-events-none"
-          style={{
-            top: -80,
-            right: -60,
-            width: 260,
-            height: 260,
-            borderRadius: "50%",
-            background:
-              "radial-gradient(circle, rgba(240,153,123,0.35) 0%, rgba(240,153,123,0) 70%)",
-            filter: "blur(8px)",
-          }}
-        />
-        <div className="relative max-w-[440px] w-full mx-auto">
-          <img
-            src={logo}
-            alt="Kadence"
-            style={{ height: 64, width: "auto", objectFit: "contain", filter: "brightness(0) invert(1)" }}
-          />
-          <div className="mt-10">
-            <p
-              style={{
-                fontSize: 12,
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "rgba(250,250,248,0.55)",
-                fontWeight: 500,
-              }}
-            >
-              Espace équipe
-            </p>
+      />
+      <div
+        aria-hidden
+        className="absolute pointer-events-none"
+        style={{
+          bottom: -180,
+          left: -140,
+          width: 380,
+          height: 380,
+          borderRadius: "50%",
+          background:
+            "radial-gradient(circle, rgba(240,153,123,0.18) 0%, rgba(240,153,123,0) 70%)",
+          filter: "blur(10px)",
+        }}
+      />
+
+      <div className="relative flex-1 flex flex-col justify-center px-6">
+        <div className="max-w-[400px] w-full mx-auto">
+          <div className="flex flex-col items-center text-center mb-10">
+            <img
+              src={logo}
+              alt="Kadence"
+              style={{ height: 88, width: "auto", objectFit: "contain" }}
+            />
             <h1
               style={{
-                fontSize: 34,
+                fontSize: 26,
                 fontWeight: 500,
-                letterSpacing: "-0.025em",
-                marginTop: 10,
-                lineHeight: 1.1,
+                letterSpacing: "-0.02em",
+                marginTop: 28,
+                lineHeight: 1.2,
               }}
             >
-              Bonjour,
-              <br />
-              <span style={{ color: "#F0997B" }}>ravi de vous revoir.</span>
+              Bonjour
             </h1>
             <p
               style={{
                 fontSize: 14,
-                color: "rgba(250,250,248,0.65)",
-                marginTop: 12,
-                maxWidth: 320,
-                lineHeight: 1.5,
+                color: "var(--muted-foreground)",
+                marginTop: 6,
               }}
             >
               {p.mode === "login"
-                ? "Connectez-vous pour accéder à votre planning, vos shifts et l'équipe."
-                : "Indiquez votre email, on vous envoie un lien pour réinitialiser votre mot de passe."}
+                ? "Connectez-vous à votre espace"
+                : "Réinitialisez votre mot de passe"}
             </p>
           </div>
-        </div>
-      </div>
 
-      {/* Carte formulaire qui chevauche le hero */}
-      <div className="flex-1 px-5" style={{ marginTop: -56 }}>
-        <div className="max-w-[440px] w-full mx-auto">
-          <div
-            className="rounded-3xl border p-6"
-            style={{
-              backgroundColor: "var(--card)",
-              borderColor: "var(--border)",
-              boxShadow: "0 20px 50px -30px rgba(42, 32, 28, 0.35)",
-            }}
-          >
-            <form onSubmit={p.onSubmit} className="space-y-4">
-              <Field label="Email" type="email" value={p.email} onChange={p.setEmail} large />
-              {p.mode === "login" && (
-                <Field label="Mot de passe" type="password" value={p.password} onChange={p.setPassword} large />
-              )}
+          <form onSubmit={p.onSubmit} className="space-y-3.5">
+            <Field label="Email" type="email" value={p.email} onChange={p.setEmail} large />
+            {p.mode === "login" && (
+              <Field
+                label="Mot de passe"
+                type="password"
+                value={p.password}
+                onChange={p.setPassword}
+                large
+              />
+            )}
 
+            <button
+              type="submit"
+              disabled={p.loading}
+              className="w-full rounded-2xl mt-2 disabled:opacity-50 transition-all active:scale-[0.98]"
+              style={{
+                fontSize: 15,
+                fontWeight: 500,
+                padding: "16px 0",
+                backgroundColor: "#F0997B",
+                color: "#fff",
+                boxShadow: "0 12px 28px -14px rgba(240, 153, 123, 0.7)",
+              }}
+            >
+              {p.loading ? "..." : p.mode === "login" ? "Se connecter" : "Envoyer le lien"}
+            </button>
+
+            <div className="flex justify-center pt-2">
               <button
-                type="submit"
-                disabled={p.loading}
-                className="w-full rounded-2xl mt-2 disabled:opacity-50 transition-all active:scale-[0.98]"
-                style={{
-                  fontSize: 16,
-                  fontWeight: 500,
-                  padding: "16px 0",
-                  backgroundColor: "#F0997B",
-                  color: "#fff",
-                  boxShadow: "0 10px 24px -12px rgba(240, 153, 123, 0.7)",
-                }}
+                type="button"
+                onClick={() => p.setMode(p.mode === "login" ? "forgot" : "login")}
+                style={{ fontSize: 13, color: "var(--muted-foreground)" }}
+                className="hover:underline"
               >
-                {p.loading ? "..." : p.mode === "login" ? "Se connecter" : "Envoyer le lien"}
+                {p.mode === "login" ? "Mot de passe oublié ?" : "Retour à la connexion"}
               </button>
-
-              <div className="flex justify-center pt-1">
-                <button
-                  type="button"
-                  onClick={() => p.setMode(p.mode === "login" ? "forgot" : "login")}
-                  style={{ fontSize: 13, color: "var(--muted-foreground)" }}
-                  className="hover:underline"
-                >
-                  {p.mode === "login" ? "Mot de passe oublié ?" : "Retour à la connexion"}
-                </button>
-              </div>
-            </form>
-          </div>
-
-          <p
-            className="text-center"
-            style={{
-              fontSize: 12,
-              color: "var(--muted-foreground)",
-              marginTop: 24,
-              letterSpacing: "0.02em",
-            }}
-          >
-            Skult Studios · Brussels
-          </p>
+            </div>
+          </form>
         </div>
       </div>
 
-      <div className="pb-8" />
+      <p
+        className="relative text-center pb-6"
+        style={{
+          fontSize: 11,
+          color: "var(--muted-foreground)",
+          letterSpacing: "0.08em",
+        }}
+      >
+        Skult Studios · Brussels
+      </p>
     </div>
   );
 }
