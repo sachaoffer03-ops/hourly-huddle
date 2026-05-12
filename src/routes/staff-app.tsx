@@ -237,70 +237,114 @@ function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: Profi
         </button>
       </div>
 
-      {/* Carte sombre — résumé semaine */}
-      <div
-        className="relative overflow-hidden rounded-3xl p-6 mb-5"
-        style={{ background: "linear-gradient(135deg, #1A1614, #2A2624)" }}
-      >
-        {/* Halo coral subtil en haut à droite */}
-        <div
-          style={{
-            position: "absolute", top: -64, right: -64,
-            width: 180, height: 180, borderRadius: "50%",
-            backgroundColor: "rgba(240,153,123,0.12)", filter: "blur(40px)",
-            pointerEvents: "none",
-          }}
-        />
-        <div style={{ position: "relative" }}>
+      {/* Carte sombre — prochain shift en vedette */}
+      {(() => {
+        const next = shifts[0];
+        let kicker = "Prochain shift";
+        let bigLine = "Aucun shift planifié";
+        let subLine: string | null = null;
+        let isToday = false;
+        if (next) {
+          const role = next.business_role as Role;
+          const studioName = (next.studio_id && studios[next.studio_id]) || "—";
+          const d = new Date(next.shift_date);
+          const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+          const diffDays = Math.round((d.getTime() - t0.getTime()) / 86400000);
+          isToday = diffDays === 0;
+          const when = diffDays === 0 ? "Aujourd'hui" : diffDays === 1 ? "Demain" : d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+          kicker = isToday ? "Shift en cours" : "Prochain shift";
+          bigLine = `${when} · ${fmtTime(next.start_time)}`;
+          subLine = `${fmtTime(next.start_time)} — ${fmtTime(next.end_time)} · ${role} · ${studioName.replace("Skult ", "")}`;
+        }
+        return (
           <div
-            style={{
-              fontSize: 10, color: "rgba(250,248,244,0.55)",
-              fontWeight: 500, letterSpacing: "0.18em",
-              textTransform: "uppercase", marginBottom: 18,
-            }}
+            className="relative overflow-hidden rounded-3xl p-6 mb-5"
+            style={{ background: "linear-gradient(135deg, #1A1614, #2A2624)" }}
           >
-            Cette semaine
-          </div>
+            <div
+              style={{
+                position: "absolute", top: -64, right: -64,
+                width: 180, height: 180, borderRadius: "50%",
+                backgroundColor: "rgba(240,153,123,0.12)", filter: "blur(40px)",
+                pointerEvents: "none",
+              }}
+            />
+            <div style={{ position: "relative" }}>
+              <div
+                style={{
+                  fontSize: 10, color: "rgba(250,248,244,0.55)",
+                  fontWeight: 500, letterSpacing: "0.18em",
+                  textTransform: "uppercase", marginBottom: 14,
+                }}
+              >
+                {kicker}
+              </div>
 
-          <div className="flex items-baseline gap-2" style={{ marginBottom: 4 }}>
-            <span style={{ fontSize: 44, fontWeight: 500, color: "#FAF8F4", lineHeight: 1 }}>{weekStats.hours}h</span>
-            <span style={{ fontSize: 15, color: "var(--coral)", fontWeight: 500 }}>prévues</span>
-          </div>
-          <div style={{ fontSize: 11, color: "rgba(250,248,244,0.5)" }}>
-            sur les 7 prochains jours
-          </div>
-
-          <div
-            className="flex items-center justify-between mt-6 pt-5"
-            style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}
-          >
-            <div className="flex items-center gap-2">
-              <div style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "var(--coral)" }} />
-              <span style={{ fontSize: 14, color: "#FAF8F4", fontWeight: 500 }}>
-                {weekStats.count} {weekStats.count > 1 ? "shifts" : "shift"}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              {weekDays.map((d, i) => (
-                <div
-                  key={i}
-                  className="rounded-full flex items-center justify-center"
-                  style={{
-                    width: 26, height: 26,
-                    fontSize: 10, fontWeight: 500,
-                    backgroundColor: d.hasShift ? "var(--coral)" : "transparent",
-                    color: d.hasShift ? "#1A1614" : d.isPast ? "rgba(250,248,244,0.25)" : "rgba(250,248,244,0.55)",
-                    border: d.hasShift ? "none" : d.isToday ? "1px solid rgba(240,153,123,0.6)" : "1px solid rgba(255,255,255,0.1)",
-                  }}
-                >
-                  {d.label}
+              <div
+                style={{
+                  fontSize: 28, fontWeight: 500, color: "#FAF8F4",
+                  lineHeight: 1.15, textTransform: "capitalize",
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                {bigLine}
+              </div>
+              {subLine && (
+                <div style={{ fontSize: 12, color: "rgba(250,248,244,0.55)", marginTop: 6 }}>
+                  {subLine}
                 </div>
-              ))}
+              )}
+
+              {next && isToday && (
+                <button
+                  onClick={() => setEndShift(next)}
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-md px-3 py-2"
+                  style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--coral)", color: "#1A1614" }}
+                >
+                  <CheckSquare size={13} /> Terminer le shift
+                </button>
+              )}
+              {next && !isToday && (
+                <button
+                  onClick={() => setShiftDetail(next)}
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-md px-3 py-2"
+                  style={{ fontSize: 12, fontWeight: 500, backgroundColor: "rgba(255,255,255,0.08)", color: "#FAF8F4", border: "1px solid rgba(255,255,255,0.1)" }}
+                >
+                  Voir le détail <ChevronRight size={13} />
+                </button>
+              )}
+
+              <div
+                className="flex items-center justify-between mt-5 pt-4"
+                style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}
+              >
+                <div style={{ fontSize: 11, color: "rgba(250,248,244,0.55)" }}>
+                  <span style={{ color: "#FAF8F4", fontWeight: 500 }}>{weekStats.hours}h</span>
+                  <span style={{ margin: "0 6px" }}>·</span>
+                  {weekStats.count} {weekStats.count > 1 ? "shifts" : "shift"} cette semaine
+                </div>
+                <div className="flex items-center gap-1">
+                  {weekDays.map((d, i) => (
+                    <div
+                      key={i}
+                      className="rounded-full flex items-center justify-center"
+                      style={{
+                        width: 22, height: 22,
+                        fontSize: 9, fontWeight: 500,
+                        backgroundColor: d.hasShift ? "var(--coral)" : "transparent",
+                        color: d.hasShift ? "#1A1614" : d.isPast ? "rgba(250,248,244,0.22)" : "rgba(250,248,244,0.55)",
+                        border: d.hasShift ? "none" : d.isToday ? "1px solid rgba(240,153,123,0.6)" : "1px solid rgba(255,255,255,0.1)",
+                      }}
+                    >
+                      {d.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* Bandeau dispos */}
       <button
@@ -326,12 +370,10 @@ function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: Profi
         {!disposValidated && <ChevronRight size={16} style={{ color: "var(--muted-foreground)" }} />}
       </button>
 
-      <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Prochain shift</div>
-      {shifts.length === 0 ? (
-        <div className="rounded-xl border px-4 py-5 text-center" style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)", fontSize: 12, color: "var(--muted-foreground)" }}>
-          Aucun shift planifié
-        </div>
-      ) : shifts.map((s) => {
+      {shifts.length > 1 && (
+        <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Shifts suivants</div>
+      )}
+      {shifts.slice(1).map((s) => {
         const role = s.business_role as Role;
         const rc = roleColors[role];
         const active = s.shift_date === today;
