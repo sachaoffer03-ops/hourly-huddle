@@ -18,8 +18,14 @@ export function getAppMode(): AppMode {
   try {
     const params = new URLSearchParams(window.location.search);
     const m = params.get("mode");
-    if (m === "employee" || m === "app") return "employee";
-    if (m === "admin") return "admin";
+    if (m === "employee" || m === "app") {
+      window.localStorage.setItem("kadence_preview_mode", "employee");
+      return "employee";
+    }
+    if (m === "admin") {
+      window.localStorage.setItem("kadence_preview_mode", "admin");
+      return "admin";
+    }
     // Persist le choix entre navigations preview
     const stored = window.localStorage.getItem("kadence_preview_mode");
     if (stored === "employee" || stored === "admin") return stored;
