@@ -96,7 +96,7 @@ function ActivationPage() {
       const query = supabase
         .from("invitations")
         .select(
-          "id, email, first_name, last_name, phone, studio_id, contract, status, expires_at",
+          "id, email, first_name, last_name, phone, studio_id, contract, app_role, status, expires_at",
         );
       const { data, error } = await (isPreview
         ? query.eq("id", preview).maybeSingle()
