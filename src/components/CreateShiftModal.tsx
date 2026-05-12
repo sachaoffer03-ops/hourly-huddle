@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Dropdown } from "@/components/Dropdown";
 
 interface Studio { id: string; name: string }
 interface Employee { id: string; first_name: string; last_name: string; studio_id: string | null }
@@ -101,17 +102,29 @@ export function CreateShiftModal({ open, onClose, defaultUserId, onCreated }: Pr
         </div>
 
         <form onSubmit={submit} className="p-5 space-y-4">
-          {!defaultUserId && (
-            <div>
-              <label style={labelStyle}>Employé *</label>
-              <select value={userId} onChange={(e) => setUserId(e.target.value)} className={inputCls} style={inputStyle} required>
-                <option value="">Sélectionner...</option>
-                {employees.map((e) => (
-                  <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>
-                ))}
-              </select>
-            </div>
-          )}
+          {!defaultUserId && (() => {
+            const empLabel = (e: Employee) => `${e.first_name} ${e.last_name}`;
+            const labels = employees.map(empLabel);
+            const selected = employees.find(e => e.id === userId);
+            return (
+              <div>
+                <label style={labelStyle}>Employé *</label>
+                <div className="mt-1">
+                  <Dropdown
+                    fullWidth
+                    placeholder="Sélectionner un employé..."
+                    value={selected ? empLabel(selected) : ""}
+                    options={labels}
+                    onChange={(label) => {
+                      const emp = employees.find(e => empLabel(e) === label);
+                      if (emp) setUserId(emp.id);
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })()}
+
 
           <div>
             <label style={labelStyle}>Studio</label>
