@@ -876,6 +876,14 @@ function PlanningPage() {
                   <div
                     key={dayIdx}
                     className="p-1.5 flex flex-col gap-1.5"
+                    onDragOver={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement).style.outline = "2px dashed var(--coral)"; (e.currentTarget as HTMLElement).style.outlineOffset = "-2px"; }}
+                    onDragLeave={(e) => { (e.currentTarget as HTMLElement).style.outline = "none"; }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      (e.currentTarget as HTMLElement).style.outline = "none";
+                      const sid = e.dataTransfer.getData("text/shift-id");
+                      if (sid) handleMoveShift(sid, dayIdx, slotIdx);
+                    }}
                     style={{
                       borderLeft: "0.5px solid var(--border)",
                       backgroundColor: isSelected ? "rgba(15,15,15,0.03)" : "transparent",
