@@ -434,12 +434,7 @@ function StudiosPage() {
             />
           )}
           {activeSubTab === 2 && (
-            <BesoinsTab
-              studio={studio}
-              activeRoles={activeRoles[studio]}
-              shifts={needs[studio]}
-              setShifts={(next) => setNeeds((p) => ({ ...p, [studio]: next }))}
-            />
+            <StaffingTemplatesEditor lockedStudioName={studio} />
           )}
           {activeSubTab === 3 && <ExceptionsTab studio={studio} />}
           {activeSubTab === 4 && <ChecklistsTab studio={studio} />}
