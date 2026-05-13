@@ -192,12 +192,19 @@ function StaffPage() {
           </div>
 
 
-          <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
+          <div className="rounded-xl border overflow-x-auto" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
             <table className="w-full" style={{ fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: "0.5px solid var(--border)" }}>
-                  {["Nom", "Contrat", "Postes", "Score", "Contingent", "Shifts 30j"].map(h => (
-                    <th key={h} className="text-left px-4 py-2.5" style={{ fontSize: 11, fontWeight: 500, color: "var(--muted-foreground)" }}>{h}</th>
+                  {[
+                    { h: "Nom", cls: "" },
+                    { h: "Contrat", cls: "hidden sm:table-cell" },
+                    { h: "Postes", cls: "" },
+                    { h: "Score", cls: "hidden md:table-cell" },
+                    { h: "Contingent", cls: "hidden md:table-cell" },
+                    { h: "Shifts 30j", cls: "hidden md:table-cell" },
+                  ].map(({ h, cls }) => (
+                    <th key={h} className={`text-left px-4 py-2.5 ${cls}`} style={{ fontSize: 11, fontWeight: 500, color: "var(--muted-foreground)" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
