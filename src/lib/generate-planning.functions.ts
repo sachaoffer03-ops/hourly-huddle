@@ -282,9 +282,28 @@ export const generatePlanning = createServerFn({ method: "POST" })
               if (conflict) return false;
             }
             // Dispos : si mode strict, on exige une dispo positive sur le slot.
-            // Sinon, on laisse passer mais le score "pref" pénalisera.
             if (s.strict_preferences && hasAnyAvailForUser(c.id) && !isAvailable(c.id, dateStr, tSlot)) {
               return false;
+            }
+            const shiftDur = durationHours(t.start_time, t.end_time);
+            // Plafond hebdo CDI (38h)
+            if (s.enforce_max_weekly_cdi && c.contract === "CDI") {
+              const wkStart = isoWeekStart(dateStr);
+              const wkEndDate = new Date(`${wkStart}T00:00:00`);
+              wkEndDate.setDate(wkEndDate.getDate() + 6);
+              const wkEnd = wkEndDate.toISOString().slice(0, 10);
+              const weekHours = [...existing, ...toInsert]
+                .filter((sh) => sh.user_id === c.id && sh.shift_date >= wkStart && sh.shift_date <= wkEnd)
+                .reduce((acc, sh) => acc + durationHours(String(sh.start_time), String(sh.end_time)), 0);
+              if (weekHours + shiftDur > MAX_WEEKLY_CDI_HOURS) return false;
+            }
+            // Quota étudiant (heures restantes sur la période, basé sur quota_max - quota_used)
+            if (s.enforce_student_quota && c.contract === "Étudiant" && c.quota_max != null) {
+              const used = c.quota_used ?? 0;
+              const periodHours = [...toInsert]
+                .filter((sh) => sh.user_id === c.id)
+                .reduce((acc, sh) => acc + durationHours(String(sh.start_time), String(sh.end_time)), 0);
+              if (used + periodHours + shiftDur > Number(c.quota_max)) return false;
             }
             return true;
           });
