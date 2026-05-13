@@ -677,11 +677,35 @@ function PlanningPage() {
     const def = timeSlotDefs[newSlot];
     const date = weekDays[newDay];
     const shiftDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    const startTime = `${def.start.replace("h", ":")}:00`;
-    const endTime = `${def.end.replace("h", ":")}:00`;
+    // Préserve la durée originale du shift, on aligne juste le début sur le nouveau slot.
+    const original = studioShifts.find((s) => s.id === shiftId);
+    const slotStart = `${def.start.replace("h", ":")}:00`;
+    let startTime = slotStart;
+    let endTime = `${def.end.replace("h", ":")}:00`;
+    if (original) {
+      const toMin = (t: string) => {
+        const [h, m] = t.split(":").map(Number); return h * 60 + m;
+      };
+      const dur = toMin(original.endTime) - toMin(original.startTime);
+      const startMin = toMin(slotStart);
+      const endMin = Math.min(startMin + dur, 23 * 60 + 59);
+      const fmt = (mn: number) => `${String(Math.floor(mn / 60)).padStart(2, "0")}:${String(mn % 60).padStart(2, "0")}:00`;
+      startTime = fmt(startMin);
+      endTime = fmt(endMin);
+    }
     try {
       await updateShiftFn({ data: { shiftId, shiftDate, startTime, endTime } });
       toast.success("Shift déplacé");
+      refresh();
+    } catch (e: any) {
+      toast.error(e.message ?? "Erreur");
+    }
+  };
+
+  const handleUnlockShift = async (id: string) => {
+    try {
+      await updateShiftFn({ data: { shiftId: id, unlock: true, markManual: false } });
+      toast.success("Shift déverrouillé — l'IA pourra le réassigner");
       refresh();
     } catch (e: any) {
       toast.error(e.message ?? "Erreur");
