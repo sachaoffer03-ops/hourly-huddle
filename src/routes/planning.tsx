@@ -1185,7 +1185,7 @@ function AddShiftModal({ studio, onClose, onAdd }: { studio: Studio; onClose: ()
           <Field label="Poste">
             <Dropdown
               value={role}
-              options={roles as readonly string[] as string[]}
+              options={roles}
               onChange={(v) => { setRole(v as Role); setEmpId(""); }}
               minWidth={220}
             />
