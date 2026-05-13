@@ -108,7 +108,9 @@ export const generatePlanning = createServerFn({ method: "POST" })
       };
     }
 
-    // 3. Employés + rôles + studios
+    // 3. Employés + rôles + studios + dispos
+    // On charge les dispos uniquement sur la période (perf + pertinence)
+    // Note: on a besoin de la période donc on calcule firstDay/lastDay AVANT (déplacé ci-dessous)
     const [{ data: profiles }, { data: ubr }, { data: us }] = await Promise.all([
       supabase.from("profiles").select("id, first_name, last_name, score, contract").eq("status", "active"),
       supabase.from("user_business_roles").select("user_id, role"),
