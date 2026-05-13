@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Dropdown } from "@/components/Dropdown";
+import { StaffingTemplatesEditor } from "@/components/StaffingTemplatesEditor";
 import {
   Minus,
   Plus,
