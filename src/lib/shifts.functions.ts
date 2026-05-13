@@ -4,7 +4,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const TIME = /^\d{2}:\d{2}(:\d{2})?$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
-const ROLES = ["Barista", "Accueil", "Host", "Cuisine"] as const;
+// Rôles métier : valeur libre (la table business_roles est la source de vérité, validée côté UI).
+const businessRoleSchema = z.string().min(1).max(64);
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
@@ -50,7 +51,7 @@ export const updateShift = createServerFn({ method: "POST" })
         shiftId: z.string().uuid(),
         userId: z.string().uuid().nullable().optional(),
         studioId: z.string().uuid().optional(),
-        businessRole: z.enum(ROLES).optional(),
+        businessRole: businessRoleSchema.optional(),
         shiftDate: z.string().regex(DATE).optional(),
         startTime: z.string().regex(TIME).optional(),
         endTime: z.string().regex(TIME).optional(),
@@ -107,7 +108,7 @@ export const createShift = createServerFn({ method: "POST" })
       .object({
         userId: z.string().uuid().nullable(),
         studioId: z.string().uuid(),
-        businessRole: z.enum(ROLES),
+        businessRole: businessRoleSchema,
         shiftDate: z.string().regex(DATE),
         startTime: z.string().regex(TIME),
         endTime: z.string().regex(TIME),

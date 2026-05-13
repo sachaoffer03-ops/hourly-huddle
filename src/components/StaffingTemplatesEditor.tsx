@@ -3,9 +3,9 @@ import { Plus, Trash2, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Dropdown } from "@/components/Dropdown";
+import { useBusinessRoles } from "@/hooks/use-business-roles";
 
 const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
-const ROLES = ["Barista", "Accueil", "Host", "Cuisine"] as const;
 
 interface Studio { id: string; name: string }
 interface Template {
@@ -14,7 +14,7 @@ interface Template {
   day_of_week: number;
   start_time: string;
   end_time: string;
-  business_role: typeof ROLES[number];
+  business_role: string;
   required_count: number;
 }
 
@@ -26,6 +26,7 @@ interface Props {
 }
 
 export function StaffingTemplatesEditor({ lockedStudioName, hideHint }: Props) {
+  const { names: ROLES } = useBusinessRoles({ onlyActive: true });
   const [studios, setStudios] = useState<Studio[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,7 +62,7 @@ export function StaffingTemplatesEditor({ lockedStudioName, hideHint }: Props) {
       day_of_week: 0,
       start_time: "10:00",
       end_time: "15:00",
-      business_role: "Barista",
+      business_role: ROLES[0] ?? "Barista",
       required_count: 1,
     });
     if (error) return toast.error(error.message);

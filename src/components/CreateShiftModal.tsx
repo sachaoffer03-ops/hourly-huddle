@@ -3,11 +3,10 @@ import { X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Dropdown } from "@/components/Dropdown";
+import { useBusinessRoles } from "@/hooks/use-business-roles";
 
 interface Studio { id: string; name: string }
 interface Employee { id: string; first_name: string; last_name: string; studio_id: string | null }
-
-const BUSINESS_ROLES = ["Barista", "Accueil", "Host", "Cuisine"] as const;
 
 interface Props {
   open: boolean;
@@ -17,13 +16,14 @@ interface Props {
 }
 
 export function CreateShiftModal({ open, onClose, defaultUserId, onCreated }: Props) {
+  const { names: BUSINESS_ROLES } = useBusinessRoles({ onlyActive: true });
   const [studios, setStudios] = useState<Studio[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const [userId, setUserId] = useState(defaultUserId || "");
   const [studioId, setStudioId] = useState("");
-  const [role, setRole] = useState<typeof BUSINESS_ROLES[number]>("Barista");
+  const [role, setRole] = useState<string>("Barista");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [startTime, setStartTime] = useState("10:00");
   const [endTime, setEndTime] = useState("15:00");

@@ -80,9 +80,39 @@ export type Database = {
         }
         Relationships: []
       }
+      business_roles: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          position?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       checklist_templates: {
         Row: {
-          business_role: Database["public"]["Enums"]["business_role"]
+          business_role: string
           created_at: string
           id: string
           items: Json
@@ -90,7 +120,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          business_role: Database["public"]["Enums"]["business_role"]
+          business_role: string
           created_at?: string
           id?: string
           items?: Json
@@ -98,7 +128,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          business_role?: Database["public"]["Enums"]["business_role"]
+          business_role?: string
           created_at?: string
           id?: string
           items?: Json
@@ -185,7 +215,7 @@ export type Database = {
           id: string
           path_id: string | null
           position: number
-          required_role: Database["public"]["Enums"]["business_role"] | null
+          required_role: string | null
           title: string
           video_url: string | null
         }
@@ -196,7 +226,7 @@ export type Database = {
           id?: string
           path_id?: string | null
           position?: number
-          required_role?: Database["public"]["Enums"]["business_role"] | null
+          required_role?: string | null
           title: string
           video_url?: string | null
         }
@@ -207,7 +237,7 @@ export type Database = {
           id?: string
           path_id?: string | null
           position?: number
-          required_role?: Database["public"]["Enums"]["business_role"] | null
+          required_role?: string | null
           title?: string
           video_url?: string | null
         }
@@ -217,7 +247,7 @@ export type Database = {
         Row: {
           accepted_at: string | null
           app_role: Database["public"]["Enums"]["app_role"]
-          business_roles: Database["public"]["Enums"]["business_role"][]
+          business_roles: string[]
           contract: Database["public"]["Enums"]["contract_type"] | null
           contracts: Database["public"]["Enums"]["contract_type"][]
           created_at: string
@@ -237,7 +267,7 @@ export type Database = {
         Insert: {
           accepted_at?: string | null
           app_role?: Database["public"]["Enums"]["app_role"]
-          business_roles?: Database["public"]["Enums"]["business_role"][]
+          business_roles?: string[]
           contract?: Database["public"]["Enums"]["contract_type"] | null
           contracts?: Database["public"]["Enums"]["contract_type"][]
           created_at?: string
@@ -257,7 +287,7 @@ export type Database = {
         Update: {
           accepted_at?: string | null
           app_role?: Database["public"]["Enums"]["app_role"]
-          business_roles?: Database["public"]["Enums"]["business_role"][]
+          business_roles?: string[]
           contract?: Database["public"]["Enums"]["contract_type"] | null
           contracts?: Database["public"]["Enums"]["contract_type"][]
           created_at?: string
@@ -629,7 +659,7 @@ export type Database = {
       }
       shifts: {
         Row: {
-          business_role: Database["public"]["Enums"]["business_role"]
+          business_role: string
           clocked_in_at: string | null
           clocked_out_at: string | null
           created_at: string
@@ -647,7 +677,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          business_role: Database["public"]["Enums"]["business_role"]
+          business_role: string
           clocked_in_at?: string | null
           clocked_out_at?: string | null
           created_at?: string
@@ -665,7 +695,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
-          business_role?: Database["public"]["Enums"]["business_role"]
+          business_role?: string
           clocked_in_at?: string | null
           clocked_out_at?: string | null
           created_at?: string
@@ -738,7 +768,7 @@ export type Database = {
       }
       staffing_templates: {
         Row: {
-          business_role: Database["public"]["Enums"]["business_role"]
+          business_role: string
           created_at: string
           day_of_week: number
           end_time: string
@@ -749,7 +779,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          business_role: Database["public"]["Enums"]["business_role"]
+          business_role: string
           created_at?: string
           day_of_week: number
           end_time: string
@@ -760,7 +790,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          business_role?: Database["public"]["Enums"]["business_role"]
+          business_role?: string
           created_at?: string
           day_of_week?: number
           end_time?: string
@@ -820,7 +850,7 @@ export type Database = {
           description: string | null
           id: string
           position: number
-          required_role: Database["public"]["Enums"]["business_role"] | null
+          required_role: string | null
           title: string
           type: string
           updated_at: string
@@ -830,7 +860,7 @@ export type Database = {
           description?: string | null
           id?: string
           position?: number
-          required_role?: Database["public"]["Enums"]["business_role"] | null
+          required_role?: string | null
           title: string
           type?: string
           updated_at?: string
@@ -840,7 +870,7 @@ export type Database = {
           description?: string | null
           id?: string
           position?: number
-          required_role?: Database["public"]["Enums"]["business_role"] | null
+          required_role?: string | null
           title?: string
           type?: string
           updated_at?: string
@@ -850,17 +880,17 @@ export type Database = {
       user_business_roles: {
         Row: {
           id: string
-          role: Database["public"]["Enums"]["business_role"]
+          role: string
           user_id: string
         }
         Insert: {
           id?: string
-          role: Database["public"]["Enums"]["business_role"]
+          role: string
           user_id: string
         }
         Update: {
           id?: string
-          role?: Database["public"]["Enums"]["business_role"]
+          role?: string
           user_id?: string
         }
         Relationships: []
@@ -947,7 +977,6 @@ export type Database = {
     Enums: {
       app_role: "admin" | "manager" | "employee"
       availability_slot: "matin" | "midi" | "soir"
-      business_role: "Barista" | "Accueil" | "Host" | "Cuisine"
       contract_type: "Étudiant" | "Flexi" | "CDI"
       invitation_status: "pending" | "accepted" | "expired" | "revoked"
       modification_status: "pending" | "accepted" | "refused"
@@ -1085,7 +1114,6 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "manager", "employee"],
       availability_slot: ["matin", "midi", "soir"],
-      business_role: ["Barista", "Accueil", "Host", "Cuisine"],
       contract_type: ["Étudiant", "Flexi", "CDI"],
       invitation_status: ["pending", "accepted", "expired", "revoked"],
       modification_status: ["pending", "accepted", "refused"],

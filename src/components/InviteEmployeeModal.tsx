@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { X, Copy, Check, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useBusinessRoles } from "@/hooks/use-business-roles";
 
 interface Studio { id: string; name: string }
-const BUSINESS_ROLES = ["Barista", "Accueil", "Host", "Cuisine"] as const;
 const CONTRACTS = ["Étudiant", "Flexi", "CDI"] as const;
 
 interface Props {
@@ -14,6 +14,7 @@ interface Props {
 }
 
 export function InviteEmployeeModal({ open, onClose, onCreated }: Props) {
+  const { names: BUSINESS_ROLES } = useBusinessRoles({ onlyActive: true });
   const [studios, setStudios] = useState<Studio[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [activationUrl, setActivationUrl] = useState<string | null>(null);
