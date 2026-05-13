@@ -58,7 +58,7 @@ function TrousPage() {
     else { toast.success(`${name} assigné${name.endsWith("e") ? "e" : ""} au shift`); setActions((s) => ({ ...s, [`${shiftId}-${userId}`]: "Assigné" })); }
   };
 
-  const allRoles = ["Barista", "Accueil", "Host", "Cuisine"];
+  const { names: allRoles } = useBusinessRoles({ onlyActive: true });
 
   return (
     <div className="p-4 md:p-6">
