@@ -266,7 +266,7 @@ function ShiftDetailModal({ shift, employee, onClose, onDelete, onUpdateSlot, on
         </div>
 
         {/* Footer */}
-        <div className="flex gap-2 px-5 py-3" style={{ borderTop: "0.5px solid var(--border)" }}>
+        <div className="flex flex-wrap gap-2 px-5 py-3" style={{ borderTop: "0.5px solid var(--border)" }}>
           <button
             onClick={onDelete}
             className="rounded-md px-3 py-2 transition-colors flex items-center gap-1.5"
@@ -274,6 +274,16 @@ function ShiftDetailModal({ shift, employee, onClose, onDelete, onUpdateSlot, on
           >
             <Trash2 size={13} /> Supprimer
           </button>
+          {shift.isLocked && onUnlock && (
+            <button
+              onClick={onUnlock}
+              title="Permet à l'IA de réassigner ce shift à la prochaine génération"
+              className="rounded-md px-3 py-2 transition-colors flex items-center gap-1.5"
+              style={{ fontSize: 12, fontWeight: 500, border: "0.5px solid var(--border)" }}
+            >
+              <Lock size={13} /> Déverrouiller
+            </button>
+          )}
           <Link
             to="/staff/$id"
             params={{ id: shift.employeeId }}
