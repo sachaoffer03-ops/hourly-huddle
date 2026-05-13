@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Sparkles, Puzzle, CreditCard, ScrollText, AlertTriangle, Lock, Plus, Trash2, Save, Info } from "lucide-react";
+import { Sparkles, Puzzle, CreditCard, ScrollText, AlertTriangle, Lock, Save, Tag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Dropdown } from "@/components/Dropdown";
 import { StaffingTemplatesEditor } from "@/components/StaffingTemplatesEditor";
+import { BusinessRolesEditor } from "@/components/BusinessRolesEditor";
 
 export const Route = createFileRoute("/reglages")({
   component: ReglagesPage,
