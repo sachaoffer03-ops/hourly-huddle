@@ -924,12 +924,14 @@ function PlanningPage() {
                         <button
                           key={shift.id}
                           onClick={() => setSelectedShift(shift)}
+                          draggable
+                          onDragStart={(e) => { e.dataTransfer.setData("text/shift-id", shift.id); e.dataTransfer.effectAllowed = "move"; }}
                           className="rounded-md px-2 py-1.5 text-left transition-all"
                           style={{
                             fontSize: 11,
                             backgroundColor: rc.bg,
                             color: rc.text,
-                            cursor: "pointer",
+                            cursor: "grab",
                             opacity: shift.isDraft ? 0.75 : 1,
                             border: shift.conflict ? "1px solid var(--danger-text)" : shift.isDraft ? "1px dashed var(--muted-foreground)" : "none",
                           }}
