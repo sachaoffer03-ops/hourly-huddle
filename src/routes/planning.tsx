@@ -1132,10 +1132,12 @@ function PlanningPage() {
 
 // ── Add Shift Modal ────────────────────────────────────────
 function AddShiftModal({ studio, onClose, onAdd }: { studio: Studio; onClose: () => void; onAdd: (empId: string, day: number, slot: number, role: Role) => void }) {
+  const { names: roles } = useBusinessRoles({ onlyActive: true });
   const [day, setDay] = useState(0);
   const [slot, setSlot] = useState(0);
-  const [role, setRole] = useState<Role>("Barista");
+  const [role, setRole] = useState<Role>(roles[0] ?? "");
   const [empId, setEmpId] = useState("");
+  useEffect(() => { if (!role && roles.length) setRole(roles[0]); }, [roles.join(",")]);
 
   const eligible = useMemo(() => employees.filter((e) => e.roles.includes(role)), [role]);
 
