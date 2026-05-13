@@ -14,6 +14,7 @@ interface Props {
 }
 
 export function InviteEmployeeModal({ open, onClose, onCreated }: Props) {
+  const { names: BUSINESS_ROLES } = useBusinessRoles({ onlyActive: true });
   const [studios, setStudios] = useState<Studio[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [activationUrl, setActivationUrl] = useState<string | null>(null);
