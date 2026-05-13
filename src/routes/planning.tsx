@@ -515,7 +515,7 @@ function PlanningPage() {
   });
 
   const visibleDayIndices = viewMode === "jour" ? [dayIdxJour] : [0, 1, 2, 3, 4, 5, 6];
-  const gridCols = `140px repeat(${visibleDayIndices.length}, 1fr)`;
+  const gridCols = `90px repeat(${visibleDayIndices.length}, minmax(90px, 1fr))`;
 
   const goToday = () => { setMonth(now.getMonth()); setYear(now.getFullYear()); setWeekOffset(0); };
   const goPrev = () => setWeekOffset((w) => w - 1);
