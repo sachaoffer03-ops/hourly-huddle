@@ -4,6 +4,7 @@ import { Sparkles, Puzzle, CreditCard, ScrollText, AlertTriangle, Lock, Plus, Tr
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Dropdown } from "@/components/Dropdown";
+import { StaffingTemplatesEditor } from "@/components/StaffingTemplatesEditor";
 
 export const Route = createFileRoute("/reglages")({
   component: ReglagesPage,
@@ -51,7 +52,7 @@ function ReglagesPage() {
 
         <div className="flex-1 min-w-0">
           {activeTab === "ai" && <AISettings />}
-          {activeTab === "templates" && <StaffingTemplates />}
+          {activeTab === "templates" && <StaffingTemplatesEditor />}
           {!["ai", "templates"].includes(activeTab) && (
             <div className="rounded-xl border p-8 text-center" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
               <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>
