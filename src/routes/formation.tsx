@@ -4,6 +4,7 @@ import { GraduationCap, Play, Plus, Pencil, Trash2, X, Check } from "lucide-reac
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getRoleStyle, type BusinessRole } from "@/lib/staff-helpers";
+import { useBusinessRoles } from "@/hooks/use-business-roles";
 
 export const Route = createFileRoute("/formation")({
   component: FormationPage,
@@ -16,16 +17,16 @@ interface Formation {
   video_url: string | null; duration_min: number | null; required_role: BusinessRole | null; position: number;
 }
 
-const allRoles: BusinessRole[] = ["Barista", "Accueil", "Host", "Cuisine"];
-
 function FormationPage() {
+  const { names: allRoles } = useBusinessRoles({ onlyActive: true });
   const [paths, setPaths] = useState<Path[]>([]);
   const [formations, setFormations] = useState<Formation[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [newPath, setNewPath] = useState({ title: "", type: "role" as "commun" | "role", role: "Barista" as BusinessRole });
+  const [newPath, setNewPath] = useState({ title: "", type: "role" as "commun" | "role", role: "" as BusinessRole });
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [newFormation, setNewFormation] = useState({ title: "", description: "" });
+  useEffect(() => { if (!newPath.role && allRoles.length) setNewPath((p) => ({ ...p, role: allRoles[0] })); }, [allRoles.join(",")]);
 
   const load = async () => {
     const [{ data: p }, { data: f }] = await Promise.all([
