@@ -1035,6 +1035,33 @@ function PlanningPage() {
           onAdd={handleAddShift}
         />
       )}
+      {publishOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.3)" }} onClick={() => setPublishOpen(false)}>
+          <div className="rounded-xl w-full max-w-md mx-4 overflow-hidden" style={{ backgroundColor: "var(--card)", border: "0.5px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4" style={{ borderBottom: "0.5px solid var(--border)" }}>
+              <div style={{ fontSize: 14, fontWeight: 500 }}>Publier la semaine</div>
+              <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 2 }}>{weekRangeLabel}</div>
+            </div>
+            <div className="px-5 py-4" style={{ fontSize: 13, color: "var(--foreground)" }}>
+              Tu vas publier <strong>{draftCount} shift{draftCount > 1 ? "s" : ""} en brouillon</strong>. Les employés concernés recevront une notification dans l'app.
+              {conflictCount > 0 && (
+                <div className="mt-3 rounded-md px-3 py-2 flex items-center gap-2" style={{ backgroundColor: "var(--danger-bg)", color: "var(--danger-text)", fontSize: 11 }}>
+                  <AlertTriangle size={12} /> {conflictCount} conflit{conflictCount > 1 ? "s" : ""} non résolu{conflictCount > 1 ? "s" : ""} — vérifie avant de publier.
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2 px-5 py-3" style={{ borderTop: "0.5px solid var(--border)" }}>
+              <button onClick={() => setPublishOpen(false)} className="flex-1 rounded-md px-3 py-2" style={{ fontSize: 12, fontWeight: 500, border: "0.5px solid var(--border)" }}>
+                Annuler
+              </button>
+              <button onClick={handlePublishConfirm} className="flex-1 rounded-md px-3 py-2"
+                style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--coral)", color: "#fff" }}>
+                Publier & notifier
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
