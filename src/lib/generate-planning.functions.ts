@@ -20,6 +20,17 @@ interface Settings {
   weight_preference: number;
   weight_random: number;
   enforce_rest_11h: boolean;
+  strict_preferences: boolean;
+}
+
+type Slot = "matin" | "midi" | "soir";
+
+// Mapping créneau template -> slot dispo employé selon l'heure de début
+function slotForStart(startTime: string): Slot {
+  const h = parseInt(startTime.slice(0, 2), 10);
+  if (h < 11) return "matin";
+  if (h < 16) return "midi";
+  return "soir";
 }
 
 interface Candidate {
