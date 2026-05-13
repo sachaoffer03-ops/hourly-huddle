@@ -779,6 +779,30 @@ function PlanningPage() {
         </span>
       </div>
 
+      {/* Banners */}
+      {(draftCount > 0 || conflictCount > 0) && (
+        <div className="rounded-xl border mb-3 px-4 py-3 flex items-center justify-between gap-3 flex-wrap"
+          style={{ borderColor: "var(--coral)", backgroundColor: "var(--coral-light)" }}>
+          <div className="flex items-center gap-2" style={{ fontSize: 12 }}>
+            <FileEdit size={14} style={{ color: "var(--coral-dark)" }} />
+            <span style={{ fontWeight: 500, color: "var(--coral-dark)" }}>
+              {draftCount > 0 && `${draftCount} shift${draftCount > 1 ? "s" : ""} en brouillon`}
+              {draftCount > 0 && conflictCount > 0 && " · "}
+              {conflictCount > 0 && `${conflictCount} conflit${conflictCount > 1 ? "s" : ""} détecté${conflictCount > 1 ? "s" : ""}`}
+            </span>
+            {draftCount > 0 && (
+              <span style={{ fontSize: 11, color: "var(--coral-dark)", opacity: 0.8 }}>· non visibles par les employés</span>
+            )}
+          </div>
+          {draftCount > 0 && (
+            <button onClick={handlePublish} className="rounded-md px-3 py-1.5 transition-colors"
+              style={{ fontSize: 11, fontWeight: 500, backgroundColor: "var(--coral)", color: "#fff" }}>
+              Publier la semaine
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Grid */}
       <div className="rounded-xl border overflow-x-auto" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
         <div style={{ minWidth: viewMode === "jour" ? "auto" : 760 }}>
