@@ -16,13 +16,14 @@ interface Props {
 }
 
 export function CreateShiftModal({ open, onClose, defaultUserId, onCreated }: Props) {
+  const { names: BUSINESS_ROLES } = useBusinessRoles({ onlyActive: true });
   const [studios, setStudios] = useState<Studio[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const [userId, setUserId] = useState(defaultUserId || "");
   const [studioId, setStudioId] = useState("");
-  const [role, setRole] = useState<typeof BUSINESS_ROLES[number]>("Barista");
+  const [role, setRole] = useState<string>("Barista");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [startTime, setStartTime] = useState("10:00");
   const [endTime, setEndTime] = useState("15:00");
