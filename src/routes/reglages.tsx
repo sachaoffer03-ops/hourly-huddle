@@ -14,6 +14,7 @@ export const Route = createFileRoute("/reglages")({
 const tabs = [
   { id: "ai", label: "Algorithme IA", icon: Sparkles },
   { id: "templates", label: "Besoins par studio", icon: Puzzle },
+  { id: "roles", label: "Rôles métier", icon: Tag },
   { id: "billing", label: "Facturation", icon: CreditCard },
   { id: "logs", label: "Logs", icon: ScrollText },
   { id: "danger", label: "Zone dangereuse", icon: AlertTriangle },
