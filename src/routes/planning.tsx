@@ -74,66 +74,7 @@ function getWeekDays(year: number, month: number, weekOffset: number): Date[] {
   return days;
 }
 
-function generateShifts(weekDays: Date[]): PlanningShift[] {
-  const shifts: PlanningShift[] = [];
-  let id = 0;
-  const names = employees.slice(0, 16);
-  const confirmations: ShiftConfirmation[] = ["confirmé", "confirmé", "confirmé", "en-attente", "confirmé"];
-  const pointages: ShiftPointage[] = ["à-temps", "à-temps", "retard", "non-pointé", "en-cours", "à-temps"];
-
-  const now = new Date();
-
-  for (let day = 0; day < 7; day++) {
-    const shiftDate = weekDays[day];
-    const isPast = shiftDate < new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const isToday = shiftDate.toDateString() === now.toDateString();
-
-    for (let slot = 0; slot < 4; slot++) {
-      // Both studios run in parallel — generate shifts for each
-      for (const studio of studios) {
-        const count = slot === 0 || slot === 3 ? 1 : 2;
-        for (let i = 0; i < count; i++) {
-        const emp = names[(id + day * 3 + slot + (studio === "Skult Châtelain" ? 7 : 0)) % names.length];
-        const role = emp.roles[0];
-        const conf = isPast ? "confirmé" as const : confirmations[id % confirmations.length];
-        const delay = (id % 7 === 3) ? 8 + (id % 12) : undefined;
-        let ptg: ShiftPointage;
-        if (isPast) {
-          ptg = delay ? "retard" : "à-temps";
-        } else if (isToday) {
-          ptg = slot < 2 ? (delay ? "retard" : "à-temps") : "non-pointé";
-        } else {
-          ptg = "non-pointé";
-        }
-
-        shifts.push({
-          id: String(id++),
-          day, slot,
-          employeeId: emp.id,
-          name: `${emp.firstName} ${emp.lastName.charAt(0)}.`,
-          role, studio,
-          time: timeSlotDefs[slot].time,
-          startHour: timeSlotDefs[slot].start,
-          endHour: timeSlotDefs[slot].end,
-          confirmation: conf,
-          pointage: ptg,
-          delayMinutes: delay,
-          clockIn: ptg === "retard" ? `${timeSlotDefs[slot].start.replace("h00", `h${String(delay || 0).padStart(2, "0")}`)}` : (ptg === "à-temps" ? timeSlotDefs[slot].start : undefined),
-          phone: emp.phone,
-        });
-        }
-      }
-    }
-  }
-
-  // Add holes
-  shifts.push({ id: "hole1", day: 2, slot: 1, employeeId: "", name: "", role: "Barista", studio: "Skult Rhodes", time: "10h — 15h", startHour: "10h00", endHour: "15h00", hole: true, confirmation: "en-attente", pointage: "non-pointé" });
-  shifts.push({ id: "hole2", day: 5, slot: 2, employeeId: "", name: "", role: "Host", studio: "Skult Châtelain", time: "14h — 19h", startHour: "14h00", endHour: "19h00", hole: true, confirmation: "en-attente", pointage: "non-pointé" });
-  shifts.push({ id: "hole3", day: 1, slot: 3, employeeId: "", name: "", role: "Accueil", studio: "Skult Rhodes", time: "17h — 23h", startHour: "17h00", endHour: "23h00", hole: true, confirmation: "en-attente", pointage: "non-pointé" });
-  shifts.push({ id: "hole4", day: 6, slot: 0, employeeId: "", name: "", role: "Cuisine", studio: "Skult Châtelain", time: "07h — 12h", startHour: "07h00", endHour: "12h00", hole: true, confirmation: "en-attente", pointage: "non-pointé" });
-
-  return shifts;
-}
+// (Mock generateShifts removed — shifts are now loaded from Supabase.)
 
 // ── Confirmation/Pointage badge ────────────────────────────
 function StatusDot({ confirmation, pointage, delayMinutes }: { confirmation: ShiftConfirmation; pointage: ShiftPointage; delayMinutes?: number }) {
