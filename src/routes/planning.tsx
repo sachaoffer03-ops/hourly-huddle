@@ -20,8 +20,9 @@ export const Route = createFileRoute("/planning")({
     s.add ? { add: true } : {},
 });
 
-const roles: Role[] = ["Barista", "Accueil", "Host", "Cuisine"];
-const studios: Studio[] = ["Skult Rhodes", "Skult Châtelain"];
+// Listes éditables : chargées dynamiquement (rôles via business_roles, studios via table studios).
+const roles: Role[] = []; // legacy placeholder, voir useBusinessRoles dans le composant
+const studios: Studio[] = []; // legacy placeholder, voir loadStudios
 
 type ViewMode = "semaine" | "jour";
 type ShiftConfirmation = "confirmé" | "en-attente" | "refusé";
