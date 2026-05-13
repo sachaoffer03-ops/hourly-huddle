@@ -136,7 +136,7 @@ export const generatePlanning = createServerFn({ method: "POST" })
     // On charge les dispos uniquement sur la période (perf + pertinence)
     // Note: on a besoin de la période donc on calcule firstDay/lastDay AVANT (déplacé ci-dessous)
     const [{ data: profiles }, { data: ubr }, { data: us }] = await Promise.all([
-      supabase.from("profiles").select("id, first_name, last_name, score, contract").eq("status", "active"),
+      supabase.from("profiles").select("id, first_name, last_name, score, contract, quota_max, quota_used").eq("status", "active"),
       supabase.from("user_business_roles").select("user_id, role"),
       supabase.from("user_studios").select("user_id, studio_id"),
     ]);
@@ -149,6 +149,8 @@ export const generatePlanning = createServerFn({ method: "POST" })
         last_name: p.last_name ?? "",
         score: p.score ?? null,
         contract: p.contract ?? null,
+        quota_max: (p as any).quota_max ?? null,
+        quota_used: (p as any).quota_used ?? null,
         studio_ids: new Set(),
         roles: new Set(),
         assigned_count: 0,
