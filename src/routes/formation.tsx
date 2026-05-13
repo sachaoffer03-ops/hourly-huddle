@@ -56,7 +56,7 @@ function FormationPage() {
       position: paths.length,
     });
     if (error) toast.error(error.message);
-    else { toast.success("Parcours créé"); setNewPath({ title: "", type: "role", role: "Barista" }); setCreating(false); }
+    else { toast.success("Parcours créé"); setNewPath({ title: "", type: "role", role: allRoles[0] || "" }); setCreating(false); }
   };
 
   const deletePath = async (id: string) => {
@@ -131,7 +131,7 @@ function FormationPage() {
               })}
             </div>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => { setCreating(false); setNewPath({ title: "", type: "role", role: "Barista" }); }}
+              <button onClick={() => { setCreating(false); setNewPath({ title: "", type: "role", role: allRoles[0] || "" }); }}
                 className="rounded-md px-3 py-2" style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Annuler</button>
               <button onClick={createPath} className="rounded-md px-3 py-2"
                 style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)" }}>Créer</button>
