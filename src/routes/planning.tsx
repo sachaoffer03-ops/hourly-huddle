@@ -20,9 +20,8 @@ export const Route = createFileRoute("/planning")({
     s.add ? { add: true } : {},
 });
 
-// Listes par défaut (UI filtres). Les vraies données viennent de la DB.
-// TODO: remplacer par useBusinessRoles() + supabase.from("studios") dans le composant.
-const roles: Role[] = ["Barista", "Accueil", "Host", "Cuisine"];
+// Studios par défaut (UI filtres). Les vraies données viennent de la DB.
+// Les rôles métier sont chargés dynamiquement via useBusinessRoles().
 const studios: Studio[] = ["Skult Rhodes", "Skult Châtelain"];
 
 type ViewMode = "semaine" | "jour";
