@@ -51,7 +51,7 @@ export const updateShift = createServerFn({ method: "POST" })
         shiftId: z.string().uuid(),
         userId: z.string().uuid().nullable().optional(),
         studioId: z.string().uuid().optional(),
-        businessRole: z.enum(ROLES).optional(),
+        businessRole: businessRoleSchema.optional(),
         shiftDate: z.string().regex(DATE).optional(),
         startTime: z.string().regex(TIME).optional(),
         endTime: z.string().regex(TIME).optional(),
@@ -108,7 +108,7 @@ export const createShift = createServerFn({ method: "POST" })
       .object({
         userId: z.string().uuid().nullable(),
         studioId: z.string().uuid(),
-        businessRole: z.enum(ROLES),
+        businessRole: businessRoleSchema,
         shiftDate: z.string().regex(DATE),
         startTime: z.string().regex(TIME),
         endTime: z.string().regex(TIME),
