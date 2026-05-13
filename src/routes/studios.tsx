@@ -1516,6 +1516,8 @@ function ExceptionForm({
   title: string;
   embedded?: boolean;
 }) {
+  const { names: dbRoles } = useBusinessRoles({ onlyActive: true });
+  const allRoles = dbRoles as Role[];
   const setImpact = (role: Role, delta: number) => {
     const others = draft.impact.filter((i) => i.role !== role);
     setDraft({
