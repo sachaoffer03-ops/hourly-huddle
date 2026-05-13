@@ -1,18 +1,24 @@
-// Helpers partagés pour les pages connectées à Supabase
-import type { Database } from "@/integrations/supabase/types";
+// Helpers partagés pour les pages connectées à Supabase.
+// Les rôles métier sont éditables côté admin (table business_roles).
+// On dérive le style à partir de la couleur stockée en DB via le cache du hook.
+import { getRoleColor } from "@/hooks/use-business-roles";
 
-export type BusinessRole = Database["public"]["Enums"]["business_role"];
+export type BusinessRole = string;
 
-export const roleStyle: Record<string, { bg: string; text: string; dot: string }> = {
-  Barista: { bg: "var(--coral-light)", text: "var(--coral-text)", dot: "var(--coral)" },
-  Accueil: { bg: "#DDF2EF", text: "#0F4F47", dot: "#2BA89A" },
-  Host: { bg: "#EDE7F6", text: "#3D2B79", dot: "#7E57C2" },
-  Cuisine: { bg: "#FCE4EC", text: "#7A1F44", dot: "#E91E63" },
-  manager: { bg: "var(--muted)", text: "var(--foreground)", dot: "var(--foreground)" },
-};
+// Mélange une couleur hex avec du blanc pour produire un fond clair.
+function tint(hex: string, alpha = 0.18): string {
+  return `color-mix(in oklab, ${hex} ${Math.round(alpha * 100)}%, white)`;
+}
+function darken(hex: string, ratio = 0.55): string {
+  return `color-mix(in oklab, ${hex} ${Math.round(ratio * 100)}%, black)`;
+}
 
 export function getRoleStyle(role: string | null | undefined) {
-  return roleStyle[role || ""] || roleStyle.Barista;
+  if (role === "manager") {
+    return { bg: "var(--muted)", text: "var(--foreground)", dot: "var(--foreground)" };
+  }
+  const c = getRoleColor(role, "#888");
+  return { bg: tint(c, 0.18), text: darken(c, 0.55), dot: c };
 }
 
 export const initials = (first?: string | null, last?: string | null) =>
