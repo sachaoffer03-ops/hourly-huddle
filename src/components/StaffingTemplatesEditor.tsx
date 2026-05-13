@@ -14,7 +14,7 @@ interface Template {
   day_of_week: number;
   start_time: string;
   end_time: string;
-  business_role: typeof ROLES[number];
+  business_role: string;
   required_count: number;
 }
 
