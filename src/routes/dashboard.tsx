@@ -88,7 +88,7 @@ function DashboardPage() {
     return () => { supabase.removeChannel(ch); };
   }, []);
 
-  if (!data) return <div className="p-6" style={{ fontSize: 13, color: "var(--muted-foreground)" }}>Chargement…</div>;
+  if (!data) return <div className="p-4 md:p-6" style={{ fontSize: 13, color: "var(--muted-foreground)" }}>Chargement…</div>;
 
   const inProgress = data.todayShifts.filter((s) => s.clocked_in_at && !s.clocked_out_at).length;
   const done = data.todayShifts.filter((s) => s.clocked_out_at).length;
@@ -113,7 +113,7 @@ function DashboardPage() {
               {data.studios.size} studio{data.studios.size > 1 ? "s" : ""} · {new Set(data.todayShifts.map((s) => s.user_id).filter(Boolean)).size} employé{data.todayShifts.length > 1 ? "s" : ""}
             </p>
           </div>
-          <div className="flex items-center gap-8">
+          <div className="flex flex-wrap items-center gap-5 md:gap-8">
             <HeroStat value={inProgress.toString()} label="En cours" accent />
             <HeroStat value={done.toString()} label="Terminés" />
             <HeroStat value={upcoming.toString()} label="À venir" />

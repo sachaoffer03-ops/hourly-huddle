@@ -94,7 +94,7 @@ function StaffPage() {
 
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <div className="flex items-center gap-1 mb-5 border-b" style={{ borderColor: "var(--border)" }}>
         {[
           { key: "employees" as const, label: "Employés", Icon: Users },
@@ -119,12 +119,12 @@ function StaffPage() {
       ) : (
         <>
           <div className="flex items-center gap-3 mb-4 flex-wrap">
-            <div className="flex items-center gap-2 rounded-md border px-3" style={{ height: 32, borderColor: "var(--border)", backgroundColor: "var(--card)", width: 240 }}>
+            <div className="flex items-center gap-2 rounded-md border px-3 w-full md:w-auto" style={{ height: 32, borderColor: "var(--border)", backgroundColor: "var(--card)", maxWidth: 240 }}>
               <Search size={14} style={{ color: "var(--muted-foreground)" }} />
               <input type="text" placeholder="Rechercher…" value={search} onChange={e => setSearch(e.target.value)}
                 className="border-0 bg-transparent outline-none flex-1" style={{ fontSize: 12 }} />
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-wrap">
               {contracts.map(c => {
                 const a = contractFilters.has(c);
                 const count = profiles.filter(p => p.contract === c).length;
@@ -192,12 +192,19 @@ function StaffPage() {
           </div>
 
 
-          <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
+          <div className="rounded-xl border overflow-x-auto" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
             <table className="w-full" style={{ fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: "0.5px solid var(--border)" }}>
-                  {["Nom", "Contrat", "Postes", "Score", "Contingent", "Shifts 30j"].map(h => (
-                    <th key={h} className="text-left px-4 py-2.5" style={{ fontSize: 11, fontWeight: 500, color: "var(--muted-foreground)" }}>{h}</th>
+                  {[
+                    { h: "Nom", cls: "" },
+                    { h: "Contrat", cls: "hidden sm:table-cell" },
+                    { h: "Postes", cls: "" },
+                    { h: "Score", cls: "hidden md:table-cell" },
+                    { h: "Contingent", cls: "hidden md:table-cell" },
+                    { h: "Shifts 30j", cls: "hidden md:table-cell" },
+                  ].map(({ h, cls }) => (
+                    <th key={h} className={`text-left px-4 py-2.5 ${cls}`} style={{ fontSize: 11, fontWeight: 500, color: "var(--muted-foreground)" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -224,7 +231,7 @@ function StaffPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 hidden sm:table-cell">
                         {p.contract ? (
                           <span className="rounded-full px-2 py-0.5" style={{
                             fontSize: 11,
@@ -243,13 +250,13 @@ function StaffPage() {
                           {userRoles.length === 0 && <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>—</span>}
                         </div>
                       </td>
-                      <td className="px-4 py-3" style={{ fontWeight: 500, color: scoreColor }}>{score || "—"}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 hidden md:table-cell" style={{ fontWeight: 500, color: scoreColor }}>{score || "—"}</td>
+                      <td className="px-4 py-3 hidden md:table-cell">
                         {used !== null && max !== null && max > 0 ? (
                           <span style={{ fontSize: 12, fontWeight: 500 }}>{used}/{max}h</span>
                         ) : <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>—</span>}
                       </td>
-                      <td className="px-4 py-3" style={{ fontWeight: 500 }}>{shiftCountByUser[p.id] || 0}</td>
+                      <td className="px-4 py-3 hidden md:table-cell" style={{ fontWeight: 500 }}>{shiftCountByUser[p.id] || 0}</td>
                     </tr>
                   );
                 })}
