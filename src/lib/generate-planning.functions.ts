@@ -1,8 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { fetchAll } from "@/lib/supabase-paginate";
 
-type BusinessRole = "Barista" | "Accueil" | "Host" | "Cuisine";
+// Rôle métier : libre (table business_roles éditable par l'admin)
+type BusinessRole = string;
 
 interface TemplateRow {
   id: string;
