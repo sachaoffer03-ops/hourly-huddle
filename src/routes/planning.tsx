@@ -486,13 +486,73 @@ function PlanningPage() {
   const [holeShift, setHoleShift] = useState<PlanningShift | null>(null);
 
   const weekDays = useMemo(() => getWeekDays(year, month, weekOffset), [year, month, weekOffset]);
-  const [shifts, setShifts] = useState<PlanningShift[]>(() => generateShifts(weekDays));
+  const [shifts, setShifts] = useState<PlanningShift[]>([]);
+  const [studioMap, setStudioMap] = useState<Map<string, string>>(new Map());
 
+  // Load studios once for id ↔ name mapping
+  useEffect(() => {
+    supabase.from("studios").select("id, name").then(({ data }) => {
+      if (data) setStudioMap(new Map(data.map((s: any) => [s.id, s.name])));
+    });
+  }, []);
+
+  // Fetch real shifts from DB whenever the visible week changes
+  useEffect(() => {
+    const first = weekDays[0];
+    const last = weekDays[6];
+    const toISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const startISO = toISO(first);
+    const endISO = toISO(last);
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("shifts")
+        .select("id, user_id, studio_id, business_role, shift_date, start_time, end_time, status, clocked_in_at, profiles:user_id(first_name, last_name, phone)")
+        .gte("shift_date", startISO)
+        .lte("shift_date", endISO)
+        .order("shift_date")
+        .order("start_time")
+        .limit(1000);
+      if (cancelled) return;
+      if (error) { console.error(error); return; }
+      const mapped: PlanningShift[] = (data ?? []).map((row: any) => {
+        const date = new Date(`${row.shift_date}T00:00:00`);
+        const dayIdx = weekDays.findIndex((d) => d.toDateString() === date.toDateString());
+        const startH = parseInt(String(row.start_time).slice(0, 2), 10);
+        const slot = startH < 9 ? 0 : startH < 13 ? 1 : startH < 16 ? 2 : 3;
+        const fmt = (t: string) => `${t.slice(0, 2)}h${t.slice(3, 5)}`;
+        const studioName = (studioMap.get(row.studio_id) as Studio) ?? "Skult Rhodes";
+        const fn = row.profiles?.first_name ?? "";
+        const ln = row.profiles?.last_name ?? "";
+        const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
+        const ptg: ShiftPointage = row.clocked_in_at ? "à-temps" : isPast ? "absent" : "non-pointé";
+        return {
+          id: row.id,
+          day: dayIdx >= 0 ? dayIdx : 0,
+          slot,
+          employeeId: row.user_id ?? "",
+          name: row.user_id ? `${fn} ${ln.charAt(0)}.` : "",
+          role: row.business_role as Role,
+          studio: studioName as Studio,
+          time: `${fmt(row.start_time)} — ${fmt(row.end_time)}`,
+          startHour: fmt(row.start_time),
+          endHour: fmt(row.end_time),
+          hole: !row.user_id,
+          confirmation: row.status === "scheduled" ? "confirmé" : "en-attente",
+          pointage: ptg,
+          phone: row.profiles?.phone ?? undefined,
+        };
+      });
+      setShifts(mapped);
+    })();
+    return () => { cancelled = true; };
+  }, [weekDays, studioMap]);
+
+  // weekKey ref kept for compatibility but no longer regenerates mock
   const lastWeekKey = useRef(`${year}-${month}-${weekOffset}`);
   const weekKey = `${year}-${month}-${weekOffset}`;
   if (weekKey !== lastWeekKey.current) {
     lastWeekKey.current = weekKey;
-    setShifts(generateShifts(getWeekDays(year, month, weekOffset)));
   }
 
   const todayIdx = useMemo(() => {
