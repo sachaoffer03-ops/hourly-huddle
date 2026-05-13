@@ -1057,6 +1057,7 @@ function PlanningPage() {
           onDelete={() => handleDeleteShift(selectedShift.id)}
           onUpdateSlot={(slot) => handleUpdateSlot(selectedShift.id, slot)}
           onConfirm={() => handleConfirmShift(selectedShift.id)}
+          onUnlock={() => { handleUnlockShift(selectedShift.id); setSelectedShift(null); }}
         />
       )}
       {holeShift && (
