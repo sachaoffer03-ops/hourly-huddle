@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { roleColors, type Role } from "@/lib/mock-data";
 import { InviteEmployeeModal } from "@/components/InviteEmployeeModal";
 import { InvitationsList } from "@/components/InvitationsList";
+import { useBusinessRoles } from "@/hooks/use-business-roles";
 
 export const Route = createFileRoute("/staff/")({
   component: StaffPage,
