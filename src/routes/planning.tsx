@@ -35,9 +35,13 @@ interface PlanningShift {
   name: string;
   role: Role;
   studio: Studio;
+  studioId: string;
+  shiftDate: string;
   time: string;
   startHour: string;
   endHour: string;
+  startTime: string; // HH:MM:SS DB format
+  endTime: string;
   hole?: boolean;
   confirmation: ShiftConfirmation;
   pointage: ShiftPointage;
@@ -46,6 +50,10 @@ interface PlanningShift {
   clockOut?: string;
   phone?: string;
   note?: string;
+  isDraft?: boolean;
+  isLocked?: boolean;
+  isManual?: boolean;
+  conflict?: boolean; // overlap with another shift of same employee
 }
 
 const monthNames = [
