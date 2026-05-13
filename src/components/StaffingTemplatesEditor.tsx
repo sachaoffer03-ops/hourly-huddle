@@ -3,9 +3,9 @@ import { Plus, Trash2, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Dropdown } from "@/components/Dropdown";
+import { useBusinessRoles } from "@/hooks/use-business-roles";
 
 const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
-const ROLES = ["Barista", "Accueil", "Host", "Cuisine"] as const;
 
 interface Studio { id: string; name: string }
 interface Template {
