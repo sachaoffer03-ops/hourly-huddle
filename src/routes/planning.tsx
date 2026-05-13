@@ -665,6 +665,21 @@ function PlanningPage() {
   };
   const handlePublish = () => setPublishOpen(true);
 
+  const handleMoveShift = async (shiftId: string, newDay: number, newSlot: number) => {
+    const def = timeSlotDefs[newSlot];
+    const date = weekDays[newDay];
+    const shiftDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    const startTime = `${def.start.replace("h", ":")}:00`;
+    const endTime = `${def.end.replace("h", ":")}:00`;
+    try {
+      await updateShiftFn({ data: { shiftId, shiftDate, startTime, endTime } });
+      toast.success("Shift déplacé");
+      refresh();
+    } catch (e: any) {
+      toast.error(e.message ?? "Erreur");
+    }
+  };
+
 
   // Compute ISO-ish week number
   const weekNumber = useMemo(() => {
