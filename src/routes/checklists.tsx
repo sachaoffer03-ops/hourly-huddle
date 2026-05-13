@@ -4,13 +4,12 @@ import { GripVertical, Plus, Trash2, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { roleColors, type Role } from "@/lib/mock-data";
+import { useBusinessRoles } from "@/hooks/use-business-roles";
 
 export const Route = createFileRoute("/checklists")({
   component: ChecklistsPage,
   head: () => ({ meta: [{ title: "Checklists — Kadence" }] }),
 });
-
-const allRoles: Role[] = ["Barista", "Accueil", "Host", "Cuisine"];
 
 interface Item { id: string; label: string; photoRequired?: boolean; }
 interface Template {
