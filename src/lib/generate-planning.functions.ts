@@ -143,17 +143,21 @@ export const generatePlanning = createServerFn({ method: "POST" })
     }
 
     if (replaceExisting) {
+      // On ne supprime QUE les shifts non verrouillés et non manuels
       await supabase
         .from("shifts")
         .delete()
         .gte("shift_date", firstDay)
-        .lte("shift_date", lastDay);
+        .lte("shift_date", lastDay)
+        .eq("is_locked", false)
+        .eq("is_manual", false);
     }
 
-    // 5. Charger shifts existants (pour repos 11h et déjà-occupé)
+    // 5. Charger shifts existants restants (verrouillés/manuels conservés)
+    // Servent à : (a) éviter de doubler une attribution, (b) repos 11h, (c) compter "déjà couverts"
     const { data: existingShifts } = await supabase
       .from("shifts")
-      .select("user_id, shift_date, start_time, end_time")
+      .select("user_id, shift_date, start_time, end_time, studio_id, business_role")
       .gte("shift_date", firstDay)
       .lte("shift_date", lastDay);
     const existing = (existingShifts ?? []) as any[];
