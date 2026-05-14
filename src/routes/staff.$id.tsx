@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Mail, Phone, MapPin, Star, Download, UserX, MessageSquare, AlertCircle, Clock } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, Star, Download, UserX, MessageSquare, AlertCircle, Clock, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { roleColors, type Role } from "@/lib/mock-data";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/staff/$id")({
   component: EmployeeDetailPage,
@@ -21,8 +22,9 @@ interface Profile {
   student_card_valid: boolean | null;
 }
 interface ShiftRow { id: string; shift_date: string; start_time: string; end_time: string; business_role: string; studio_id: string | null; status: string; }
-interface FB { id: string; rating: number; message: string | null; created_at: string; }
+interface FB { id: string; rating: number; message: string | null; created_at: string; shift_id: string | null; author_id: string; }
 interface Sig { id: string; category: string; message: string; created_at: string; resolved: boolean; }
+interface AuthorMini { id: string; first_name: string; last_name: string; }
 
 const fmtTime = (t: string) => t.slice(0, 5).replace(":", "h");
 const initials = (f: string, l: string) => `${(f?.[0] || "").toUpperCase()}${(l?.[0] || "").toUpperCase()}`;
