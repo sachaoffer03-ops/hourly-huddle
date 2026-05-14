@@ -34,12 +34,16 @@ export function useProposals(userId: string) {
   const load = async () => {
     const { data } = await supabase
       .from("shift_proposals")
-      .select("id,status,sent_at,shift:shifts!inner(id,shift_date,start_time,end_time,business_role,studio_id,user_id)")
+      .select("id,status,sent_at,replacement_request_id,shift:shifts!inner(id,shift_date,start_time,end_time,business_role,studio_id,user_id)")
       .eq("user_id", userId)
       .eq("status", "pending")
       .order("sent_at", { ascending: false });
-    // Filtrer celles dont le shift est déjà attribué (sécurité affichage)
-    const list = (data || []).filter((p: any) => p.shift && !p.shift.user_id) as ProposalView[];
+    // On accepte : (a) trous classiques (shift libre) ; (b) remplacements (shift encore assigné à l'employé d'origine)
+    const list = (data || []).filter((p: any) => {
+      if (!p.shift) return false;
+      if (p.replacement_request_id) return p.shift.user_id !== userId; // pas à soi-même
+      return !p.shift.user_id;
+    }) as ProposalView[];
     setProposals(list);
   };
 
