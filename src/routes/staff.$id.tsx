@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Mail, Phone, MapPin, Star, Download, UserX, MessageSquare, AlertCircle, Clock } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, Star, Download, UserX, MessageSquare, AlertCircle, Clock, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { roleColors, type Role } from "@/lib/mock-data";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/staff/$id")({
   component: EmployeeDetailPage,
@@ -21,14 +22,17 @@ interface Profile {
   student_card_valid: boolean | null;
 }
 interface ShiftRow { id: string; shift_date: string; start_time: string; end_time: string; business_role: string; studio_id: string | null; status: string; }
-interface FB { id: string; rating: number; message: string | null; created_at: string; }
+interface FB { id: string; rating: number; message: string | null; created_at: string; shift_id: string | null; author_id: string; }
 interface Sig { id: string; category: string; message: string; created_at: string; resolved: boolean; }
+interface AuthorMini { id: string; first_name: string; last_name: string; }
 
 const fmtTime = (t: string) => t.slice(0, 5).replace(":", "h");
 const initials = (f: string, l: string) => `${(f?.[0] || "").toUpperCase()}${(l?.[0] || "").toUpperCase()}`;
 
 function EmployeeDetailPage() {
   const { id } = Route.useParams();
+  const { user, appRole } = useAuth();
+  const canRate = appRole === "admin" || appRole === "manager";
   const [emp, setEmp] = useState<Profile | null>(null);
   const [businessRoles, setBusinessRoles] = useState<Role[]>([]);
   const [studios, setStudios] = useState<Record<string, string>>({});
@@ -36,33 +40,77 @@ function EmployeeDetailPage() {
   const [userContracts, setUserContracts] = useState<string[]>([]);
   const [shifts, setShifts] = useState<ShiftRow[]>([]);
   const [fbs, setFbs] = useState<FB[]>([]);
+  const [authors, setAuthors] = useState<Record<string, AuthorMini>>({});
   const [sigs, setSigs] = useState<Sig[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rateShiftId, setRateShiftId] = useState<string | null>(null);
+  const [rateValue, setRateValue] = useState(5);
+  const [rateMsg, setRateMsg] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      const [{ data: p }, { data: br }, { data: sts }, { data: us }, { data: uc }, { data: sh }, { data: fb }, { data: sg }] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", id).maybeSingle(),
-        supabase.from("user_business_roles").select("role").eq("user_id", id),
-        supabase.from("studios").select("id,name"),
-        supabase.from("user_studios").select("studio_id").eq("user_id", id),
-        supabase.from("user_contracts").select("contract").eq("user_id", id),
-        supabase.from("shifts").select("id,shift_date,start_time,end_time,business_role,studio_id,status").eq("user_id", id).order("shift_date", { ascending: false }).limit(20),
-        supabase.from("feedbacks").select("id,rating,message,created_at").eq("author_id", id).order("created_at", { ascending: false }).limit(10),
-        supabase.from("signalements").select("id,category,message,created_at,resolved").eq("author_id", id).order("created_at", { ascending: false }).limit(10),
-      ]);
-      setEmp(p as Profile | null);
-      setBusinessRoles((br || []).map(r => r.role as Role));
-      setStudios(Object.fromEntries((sts || []).map(s => [s.id, s.name])));
-      setUserStudioIds((us || []).map(r => r.studio_id as string));
-      setUserContracts((uc || []).map(r => r.contract as string));
-      setShifts(sh || []);
-      setFbs(fb || []);
-      setSigs(sg || []);
-      setLoading(false);
-    };
+  const load = async () => {
+    const [{ data: p }, { data: br }, { data: sts }, { data: us }, { data: uc }, { data: sh }, { data: sg }] = await Promise.all([
+      supabase.from("profiles").select("*").eq("id", id).maybeSingle(),
+      supabase.from("user_business_roles").select("role").eq("user_id", id),
+      supabase.from("studios").select("id,name"),
+      supabase.from("user_studios").select("studio_id").eq("user_id", id),
+      supabase.from("user_contracts").select("contract").eq("user_id", id),
+      supabase.from("shifts").select("id,shift_date,start_time,end_time,business_role,studio_id,status").eq("user_id", id).order("shift_date", { ascending: false }).limit(20),
+      supabase.from("signalements").select("id,category,message,created_at,resolved").eq("author_id", id).order("created_at", { ascending: false }).limit(10),
+    ]);
+    setEmp(p as Profile | null);
+    setBusinessRoles((br || []).map(r => r.role as Role));
+    setStudios(Object.fromEntries((sts || []).map(s => [s.id, s.name])));
+    setUserStudioIds((us || []).map(r => r.studio_id as string));
+    setUserContracts((uc || []).map(r => r.contract as string));
+    setShifts(sh || []);
+    setSigs(sg || []);
+
+    // Feedbacks SUR ses shifts (notes admin/manager)
+    const shiftIds = (sh || []).map(s => s.id);
+    if (shiftIds.length > 0) {
+      const { data: fb } = await supabase
+        .from("feedbacks")
+        .select("id,rating,message,created_at,shift_id,author_id")
+        .in("shift_id", shiftIds)
+        .order("created_at", { ascending: false });
+      const list = (fb || []).filter(f => f.author_id !== id) as FB[];
+      setFbs(list);
+      const authorIds = Array.from(new Set(list.map(f => f.author_id)));
+      if (authorIds.length > 0) {
+        const { data: ap } = await supabase.from("profiles").select("id,first_name,last_name").in("id", authorIds);
+        setAuthors(Object.fromEntries((ap || []).map(a => [a.id, a as AuthorMini])));
+      }
+    } else {
+      setFbs([]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, [id]);
+
+  const submitRating = async (shiftId: string) => {
+    if (!user) return;
+    setSaving(true);
+    const { error } = await supabase.from("feedbacks").insert({
+      author_id: user.id,
+      shift_id: shiftId,
+      rating: rateValue,
+      message: rateMsg.trim() || null,
+    });
+    setSaving(false);
+    if (error) { toast.error("Erreur lors de l'enregistrement"); return; }
+    toast.success("Note enregistrée");
+    setRateShiftId(null); setRateMsg(""); setRateValue(5);
     load();
-  }, [id]);
+  };
+
+  const fbsByShift = useMemo(() => {
+    const m: Record<string, FB[]> = {};
+    fbs.forEach(f => { if (f.shift_id) (m[f.shift_id] ||= []).push(f); });
+    return m;
+  }, [fbs]);
+
 
   const handleExport = () => {
     if (!emp) return;
@@ -214,18 +262,56 @@ function EmployeeDetailPage() {
               <div className="flex flex-col gap-1.5">
                 {shifts.slice(0, 8).map(s => {
                   const sname = s.studio_id ? studios[s.studio_id] : "—";
+                  const shiftFbs = fbsByShift[s.id] || [];
+                  const isRating = rateShiftId === s.id;
                   return (
-                    <div key={s.id} className="rounded-lg flex items-center gap-3 px-3 py-2" style={{ backgroundColor: "var(--background)" }}>
-                      <Clock size={13} style={{ color: "var(--muted-foreground)" }} />
-                      <div className="flex-1">
-                        <div style={{ fontSize: 12, fontWeight: 500 }}>{new Date(s.shift_date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</div>
-                        <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{fmtTime(s.start_time)} — {fmtTime(s.end_time)} · {s.business_role} · {sname?.replace?.("Skult ", "")}</div>
+                    <div key={s.id} className="rounded-lg px-3 py-2" style={{ backgroundColor: "var(--background)" }}>
+                      <div className="flex items-center gap-3">
+                        <Clock size={13} style={{ color: "var(--muted-foreground)" }} />
+                        <div className="flex-1">
+                          <div style={{ fontSize: 12, fontWeight: 500 }}>{new Date(s.shift_date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</div>
+                          <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{fmtTime(s.start_time)} — {fmtTime(s.end_time)} · {s.business_role} · {sname?.replace?.("Skult ", "")}</div>
+                        </div>
+                        {shiftFbs.length > 0 && (
+                          <span className="flex items-center gap-0.5">
+                            {[1,2,3,4,5].map(n => (
+                              <Star key={n} size={10} fill={n <= shiftFbs[0].rating ? "var(--coral)" : "transparent"} color={n <= shiftFbs[0].rating ? "var(--coral)" : "rgba(0,0,0,0.2)"} strokeWidth={1.4} />
+                            ))}
+                          </span>
+                        )}
+                        <span className="rounded-full px-2 py-0.5" style={{
+                          fontSize: 10, fontWeight: 500,
+                          backgroundColor: s.status === "completed" ? "var(--success-bg)" : s.status === "cancelled" ? "var(--danger-bg)" : "var(--muted)",
+                          color: s.status === "completed" ? "var(--success-text)" : s.status === "cancelled" ? "var(--danger-text)" : "var(--muted-foreground)",
+                        }}>{s.status}</span>
+                        {canRate && !isRating && (
+                          <button onClick={() => { setRateShiftId(s.id); setRateValue(5); setRateMsg(""); }}
+                            className="rounded-md px-2 py-1 inline-flex items-center gap-1"
+                            style={{ fontSize: 11, fontWeight: 500, border: "0.5px solid var(--border)" }}>
+                            <Plus size={11} /> Noter
+                          </button>
+                        )}
                       </div>
-                      <span className="rounded-full px-2 py-0.5" style={{
-                        fontSize: 10, fontWeight: 500,
-                        backgroundColor: s.status === "completed" ? "var(--success-bg)" : s.status === "cancelled" ? "var(--danger-bg)" : "var(--muted)",
-                        color: s.status === "completed" ? "var(--success-text)" : s.status === "cancelled" ? "var(--danger-text)" : "var(--muted-foreground)",
-                      }}>{s.status}</span>
+                      {isRating && (
+                        <div className="mt-2 pt-2 flex flex-col gap-2" style={{ borderTop: "0.5px solid var(--border)" }}>
+                          <div className="flex items-center gap-1">
+                            {[1,2,3,4,5].map(n => (
+                              <button key={n} onClick={() => setRateValue(n)}>
+                                <Star size={16} fill={n <= rateValue ? "var(--coral)" : "transparent"} color={n <= rateValue ? "var(--coral)" : "rgba(0,0,0,0.3)"} strokeWidth={1.4} />
+                              </button>
+                            ))}
+                          </div>
+                          <textarea value={rateMsg} onChange={e => setRateMsg(e.target.value)} placeholder="Commentaire (optionnel)" rows={2}
+                            className="rounded-md border px-2 py-1.5 outline-none"
+                            style={{ fontSize: 12, borderColor: "var(--border)", backgroundColor: "var(--card)" }} />
+                          <div className="flex gap-2 justify-end">
+                            <button onClick={() => setRateShiftId(null)} className="rounded-md px-2.5 py-1" style={{ fontSize: 11, border: "0.5px solid var(--border)" }}>Annuler</button>
+                            <button onClick={() => submitRating(s.id)} disabled={saving} className="rounded-md px-2.5 py-1" style={{ fontSize: 11, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)" }}>
+                              {saving ? "..." : "Enregistrer"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -235,21 +321,29 @@ function EmployeeDetailPage() {
 
           <div className="rounded-xl border p-5" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
             <div style={{ fontSize: 12, fontWeight: 500, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>
-              <MessageSquare size={11} className="inline mr-1.5" /> Feedbacks récents ({fbs.length})
+              <MessageSquare size={11} className="inline mr-1.5" /> Évaluations admin/manager ({fbs.length})
             </div>
-            {fbs.length === 0 ? <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Aucun feedback</div> : (
+            {fbs.length === 0 ? <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Aucune évaluation pour le moment</div> : (
               <div className="flex flex-col gap-2">
-                {fbs.map(f => (
-                  <div key={f.id} className="rounded-lg px-3 py-2" style={{ backgroundColor: "var(--background)" }}>
-                    <div className="flex items-center gap-2 mb-1">
-                      {[1,2,3,4,5].map(n => (
-                        <Star key={n} size={11} fill={n <= f.rating ? "var(--coral)" : "transparent"} color={n <= f.rating ? "var(--coral)" : "rgba(0,0,0,0.2)"} strokeWidth={1.4} />
-                      ))}
-                      <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{new Date(f.created_at).toLocaleDateString("fr-FR")}</span>
+                {fbs.map(f => {
+                  const a = authors[f.author_id];
+                  const sh = f.shift_id ? shifts.find(x => x.id === f.shift_id) : null;
+                  return (
+                    <div key={f.id} className="rounded-lg px-3 py-2" style={{ backgroundColor: "var(--background)" }}>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        {[1,2,3,4,5].map(n => (
+                          <Star key={n} size={11} fill={n <= f.rating ? "var(--coral)" : "transparent"} color={n <= f.rating ? "var(--coral)" : "rgba(0,0,0,0.2)"} strokeWidth={1.4} />
+                        ))}
+                        <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
+                          {a ? `par ${a.first_name} ${a.last_name}` : "—"}
+                          {sh && ` · shift du ${new Date(sh.shift_date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`}
+                          {" · "}{new Date(f.created_at).toLocaleDateString("fr-FR")}
+                        </span>
+                      </div>
+                      {f.message && <div style={{ fontSize: 12 }}>{f.message}</div>}
                     </div>
-                    {f.message && <div style={{ fontSize: 12 }}>{f.message}</div>}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
