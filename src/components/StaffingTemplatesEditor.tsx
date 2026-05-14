@@ -79,7 +79,7 @@ export function StaffingTemplatesEditor({ lockedStudioName, hideHint }: Props) {
 
   const updateRow = async (id: string, patch: Partial<Template>) => {
     setTemplates((p) => p.map((t) => (t.id === id ? { ...t, ...patch } : t)));
-    const { error } = await supabase.from("staffing_templates").update(patch).eq("id", id);
+    const { error } = await supabase.from("staffing_templates").update(patch as any).eq("id", id);
     if (error) toast.error(error.message);
   };
 
