@@ -122,6 +122,8 @@ function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: Profi
   const [shiftDetail, setShiftDetail] = useState<ShiftRow | null>(null);
   const [disposOpen, setDisposOpen] = useState(false);
   const [disposValidated, setDisposValidated] = useState(false);
+  const [proposalsOpen, setProposalsOpen] = useState(false);
+  const { proposals } = useProposals(userId);
 
   // Mois suivant
   const nextMonth = useMemo(() => {
