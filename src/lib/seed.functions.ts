@@ -415,10 +415,12 @@ function generateAvailabilities(employees: Array<{ id: string; spec: EmployeeSpe
       const dow = (date.getDay() + 6) % 7; // 0=lundi
       const isWeekend = dow >= 5;
 
-      // Jours de dispo selon contrat
+      // Jours de dispo selon contrat (cuisine non-CDI = focus week-end)
       let dispoChance = 0;
       if (isCDI && isCuisine) dispoChance = 0.85;
       else if (isCDI) dispoChance = 0.75;
+      else if (isStudent && isCuisine) dispoChance = isWeekend ? 0.95 : 0.20;
+      else if (isFlexi && isCuisine) dispoChance = isWeekend ? 0.95 : 0.40;
       else if (isStudent) dispoChance = isWeekend ? 0.65 : 0.45;
       else if (isFlexi) dispoChance = 0.65;
 
@@ -428,11 +430,18 @@ function generateAvailabilities(employees: Array<{ id: string; spec: EmployeeSpe
       let startH: number, endH: number;
       if (isCDI && isCuisine) {
         startH = 6.5; endH = 17;
+      } else if (isCuisine && isStudent) {
+        // étudiante cuisine : week-end 8h-16h ; semaine après-midi 14h-19h
+        if (isWeekend) { startH = 8; endH = 16; }
+        else { startH = 14; endH = 19; }
+      } else if (isCuisine && isFlexi) {
+        // flexi cuisine : week-end 8h-17h ; semaine variable
+        if (isWeekend) { startH = 8; endH = 17; }
+        else { startH = 9 + Math.random() * 2; endH = 17 + Math.random() * 2; }
       } else if (isCDI) {
         startH = 7 + (Math.random() < 0.3 ? 0 : Math.random() * 2);
         endH = 21;
       } else if (isStudent) {
-        // matin OU soir OU journée
         const slot = Math.random();
         if (slot < 0.35) { startH = 7; endH = 14; }
         else if (slot < 0.7) { startH = 15; endH = 22; }
