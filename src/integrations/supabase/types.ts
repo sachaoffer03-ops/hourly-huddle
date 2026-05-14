@@ -583,6 +583,7 @@ export type Database = {
           hire_date: string | null
           iban: string | null
           id: string
+          is_test: boolean
           last_name: string
           nationality: string | null
           niss: string | null
@@ -610,6 +611,7 @@ export type Database = {
           hire_date?: string | null
           iban?: string | null
           id: string
+          is_test?: boolean
           last_name?: string
           nationality?: string | null
           niss?: string | null
@@ -637,6 +639,7 @@ export type Database = {
           hire_date?: string | null
           iban?: string | null
           id?: string
+          is_test?: boolean
           last_name?: string
           nationality?: string | null
           niss?: string | null
