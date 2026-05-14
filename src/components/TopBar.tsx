@@ -192,6 +192,17 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
             </button>
           </>
         )}
+        <button
+          onClick={async () => {
+            await supabase.auth.signOut();
+            navigate({ to: "/login" });
+          }}
+          title="Déconnexion"
+          className="flex items-center justify-center rounded-md transition-colors"
+          style={{ width: 32, height: 32 }}
+        >
+          <LogOut size={16} strokeWidth={1.8} style={{ color: "var(--foreground)" }} />
+        </button>
       </div>
     </header>
     <CreateShiftModal open={shiftOpen} onClose={() => setShiftOpen(false)} />
