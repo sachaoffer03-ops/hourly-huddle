@@ -1069,12 +1069,6 @@ function PlanningCalendarPage() {
                       const widthPct = 100 / lanes;
                       const leftStyle = `calc(${lane * widthPct}% + ${gap}px)`;
                       const widthStyle = `calc(${widthPct}% - ${gap * 2}px)`;
-                      const eStr = String(shift.endTime).slice(0, 5);
-                      const top = topPx(sStr);
-                      const h = heightPx(sStr, eStr);
-                      const startLabel = shift.startHour.replace("h00", "h");
-                      const endLabel = shift.endHour.replace("h00", "h");
-                      const compact = h < 56;
                       return shift.hole ? (
                         <button
                           key={shift.id}
