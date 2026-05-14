@@ -138,6 +138,8 @@ export function StaffingTemplatesEditor({ lockedStudioName, hideHint }: Props) {
                   <th className="text-left px-2 py-1" style={{ fontSize: 10 }}>Début</th>
                   <th className="text-left px-2 py-1" style={{ fontSize: 10 }}>Fin</th>
                   <th className="text-left px-2 py-1" style={{ fontSize: 10 }}>Rôle</th>
+                  <th className="text-left px-2 py-1" style={{ fontSize: 10 }}>Contrat</th>
+                  <th className="text-left px-2 py-1" style={{ fontSize: 10 }}>Type</th>
                   <th className="text-left px-2 py-1" style={{ fontSize: 10 }}>Nombre</th>
                   <th></th>
                 </tr>
