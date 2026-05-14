@@ -127,6 +127,21 @@ function StaffPage() {
                 className="border-0 bg-transparent outline-none flex-1" style={{ fontSize: 12 }} />
             </div>
             <div className="flex items-center gap-1 flex-wrap">
+              {(() => {
+                const noFilter = contractFilters.size === 0 && studioFilters.size === 0 && roleFilters.size === 0;
+                return (
+                  <button
+                    onClick={() => { setContractFilters(new Set()); setStudioFilters(new Set()); setRoleFilters(new Set()); }}
+                    className="rounded-full px-2.5 py-1"
+                    style={{ fontSize: 12, fontWeight: noFilter ? 500 : 400,
+                      backgroundColor: noFilter ? "var(--foreground)" : "transparent",
+                      color: noFilter ? "var(--card)" : "var(--muted-foreground)",
+                      border: noFilter ? "none" : "0.5px solid var(--border)" }}>
+                    Tous · {profiles.length}
+                  </button>
+                );
+              })()}
+              <span className="mx-2" style={{ width: 1, height: 16, backgroundColor: "var(--border)", display: "inline-block" }} />
               {contracts.map(c => {
                 const a = contractFilters.has(c);
                 const count = profiles.filter(p => p.contract === c).length;
