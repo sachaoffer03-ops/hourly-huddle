@@ -31,6 +31,8 @@ const initials = (f: string, l: string) => `${(f?.[0] || "").toUpperCase()}${(l?
 
 function EmployeeDetailPage() {
   const { id } = Route.useParams();
+  const { user, appRole } = useAuth();
+  const canRate = appRole === "admin" || appRole === "manager";
   const [emp, setEmp] = useState<Profile | null>(null);
   const [businessRoles, setBusinessRoles] = useState<Role[]>([]);
   const [studios, setStudios] = useState<Record<string, string>>({});
@@ -38,33 +40,77 @@ function EmployeeDetailPage() {
   const [userContracts, setUserContracts] = useState<string[]>([]);
   const [shifts, setShifts] = useState<ShiftRow[]>([]);
   const [fbs, setFbs] = useState<FB[]>([]);
+  const [authors, setAuthors] = useState<Record<string, AuthorMini>>({});
   const [sigs, setSigs] = useState<Sig[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rateShiftId, setRateShiftId] = useState<string | null>(null);
+  const [rateValue, setRateValue] = useState(5);
+  const [rateMsg, setRateMsg] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      const [{ data: p }, { data: br }, { data: sts }, { data: us }, { data: uc }, { data: sh }, { data: fb }, { data: sg }] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", id).maybeSingle(),
-        supabase.from("user_business_roles").select("role").eq("user_id", id),
-        supabase.from("studios").select("id,name"),
-        supabase.from("user_studios").select("studio_id").eq("user_id", id),
-        supabase.from("user_contracts").select("contract").eq("user_id", id),
-        supabase.from("shifts").select("id,shift_date,start_time,end_time,business_role,studio_id,status").eq("user_id", id).order("shift_date", { ascending: false }).limit(20),
-        supabase.from("feedbacks").select("id,rating,message,created_at").eq("author_id", id).order("created_at", { ascending: false }).limit(10),
-        supabase.from("signalements").select("id,category,message,created_at,resolved").eq("author_id", id).order("created_at", { ascending: false }).limit(10),
-      ]);
-      setEmp(p as Profile | null);
-      setBusinessRoles((br || []).map(r => r.role as Role));
-      setStudios(Object.fromEntries((sts || []).map(s => [s.id, s.name])));
-      setUserStudioIds((us || []).map(r => r.studio_id as string));
-      setUserContracts((uc || []).map(r => r.contract as string));
-      setShifts(sh || []);
-      setFbs(fb || []);
-      setSigs(sg || []);
-      setLoading(false);
-    };
+  const load = async () => {
+    const [{ data: p }, { data: br }, { data: sts }, { data: us }, { data: uc }, { data: sh }, { data: sg }] = await Promise.all([
+      supabase.from("profiles").select("*").eq("id", id).maybeSingle(),
+      supabase.from("user_business_roles").select("role").eq("user_id", id),
+      supabase.from("studios").select("id,name"),
+      supabase.from("user_studios").select("studio_id").eq("user_id", id),
+      supabase.from("user_contracts").select("contract").eq("user_id", id),
+      supabase.from("shifts").select("id,shift_date,start_time,end_time,business_role,studio_id,status").eq("user_id", id).order("shift_date", { ascending: false }).limit(20),
+      supabase.from("signalements").select("id,category,message,created_at,resolved").eq("author_id", id).order("created_at", { ascending: false }).limit(10),
+    ]);
+    setEmp(p as Profile | null);
+    setBusinessRoles((br || []).map(r => r.role as Role));
+    setStudios(Object.fromEntries((sts || []).map(s => [s.id, s.name])));
+    setUserStudioIds((us || []).map(r => r.studio_id as string));
+    setUserContracts((uc || []).map(r => r.contract as string));
+    setShifts(sh || []);
+    setSigs(sg || []);
+
+    // Feedbacks SUR ses shifts (notes admin/manager)
+    const shiftIds = (sh || []).map(s => s.id);
+    if (shiftIds.length > 0) {
+      const { data: fb } = await supabase
+        .from("feedbacks")
+        .select("id,rating,message,created_at,shift_id,author_id")
+        .in("shift_id", shiftIds)
+        .order("created_at", { ascending: false });
+      const list = (fb || []).filter(f => f.author_id !== id) as FB[];
+      setFbs(list);
+      const authorIds = Array.from(new Set(list.map(f => f.author_id)));
+      if (authorIds.length > 0) {
+        const { data: ap } = await supabase.from("profiles").select("id,first_name,last_name").in("id", authorIds);
+        setAuthors(Object.fromEntries((ap || []).map(a => [a.id, a as AuthorMini])));
+      }
+    } else {
+      setFbs([]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, [id]);
+
+  const submitRating = async (shiftId: string) => {
+    if (!user) return;
+    setSaving(true);
+    const { error } = await supabase.from("feedbacks").insert({
+      author_id: user.id,
+      shift_id: shiftId,
+      rating: rateValue,
+      message: rateMsg.trim() || null,
+    });
+    setSaving(false);
+    if (error) { toast.error("Erreur lors de l'enregistrement"); return; }
+    toast.success("Note enregistrée");
+    setRateShiftId(null); setRateMsg(""); setRateValue(5);
     load();
-  }, [id]);
+  };
+
+  const fbsByShift = useMemo(() => {
+    const m: Record<string, FB[]> = {};
+    fbs.forEach(f => { if (f.shift_id) (m[f.shift_id] ||= []).push(f); });
+    return m;
+  }, [fbs]);
+
 
   const handleExport = () => {
     if (!emp) return;
