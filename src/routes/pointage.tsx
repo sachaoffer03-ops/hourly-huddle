@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Clock, Check, Calendar, Search, X, LogIn, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { getRoleStyle, hhmm, fullName } from "@/lib/staff-helpers";
+import { getRoleStyle, hhmm, fullName, computePunctuality, computePartialPunctuality, punctualityColor } from "@/lib/staff-helpers";
 
 export const Route = createFileRoute("/pointage")({
   component: PointagePage,
