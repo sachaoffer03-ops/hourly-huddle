@@ -25,13 +25,22 @@ interface Proposal {
 
 function elapsed(sentAt: string): string {
   const ms = Date.now() - new Date(sentAt).getTime();
-  const m = Math.floor(ms / 60000);
-  if (m < 1) return "à l'instant";
-  if (m < 60) return `${m} min`;
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ${s % 60}s`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h${m % 60 ? ` ${m % 60}m` : ""}`;
+  if (h < 24) return `${h}h ${m % 60}m`;
   const d = Math.floor(h / 24);
   return `${d}j ${h % 24}h`;
+}
+
+// Couleur du chronomètre selon urgence
+function elapsedTone(sentAt: string): { bg: string; text: string } {
+  const h = (Date.now() - new Date(sentAt).getTime()) / 3600000;
+  if (h < 2) return { bg: "var(--success-bg)", text: "var(--success-text)" };
+  if (h < 12) return { bg: "var(--warning-bg)", text: "var(--warning-text)" };
+  return { bg: "var(--danger-bg)", text: "var(--danger-text)" };
 }
 
 function TrousPage() {
@@ -48,9 +57,9 @@ function TrousPage() {
   const [filterRole, setFilterRole] = useState<string>("tous");
   const [tick, setTick] = useState(0);
 
-  // Tick toutes les 30s pour rafraîchir le chronomètre
+  // Tick chaque seconde pour le chronomètre live
   useEffect(() => {
-    const i = setInterval(() => setTick((t) => t + 1), 30000);
+    const i = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(i);
   }, []);
 
@@ -191,13 +200,27 @@ function TrousPage() {
                       <span style={{ fontSize: 13, color: "var(--muted-foreground)" }}>·</span>
                       <span style={{ fontSize: 13, color: "var(--muted-foreground)" }}>{studioName}</span>
                     </div>
-                    {pendingProps.length > 0 && (
-                      <div className="flex items-center gap-1.5 mt-1.5" style={{ fontSize: 11, color: "var(--coral-dark)" }}>
-                        <Send size={11} />
-                        {pendingProps.length} proposition{pendingProps.length > 1 ? "s" : ""} en attente
-                        <span style={{ color: "var(--muted-foreground)" }}>· la plus ancienne {elapsed(pendingProps[pendingProps.length - 1].sent_at)}</span>
-                      </div>
-                    )}
+                    {pendingProps.length > 0 && (() => {
+                      const oldest = pendingProps[pendingProps.length - 1];
+                      const tone = elapsedTone(oldest.sent_at);
+                      return (
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                          <span style={{ fontSize: 11, color: "var(--coral-dark)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            <Send size={11} />
+                            {pendingProps.length} en attente
+                          </span>
+                          <span
+                            key={tick}
+                            className="rounded-full inline-flex items-center gap-1 px-2 py-0.5 tabular-nums"
+                            style={{ fontSize: 10, fontWeight: 500, backgroundColor: tone.bg, color: tone.text }}
+                            title={`Envoyée le ${new Date(oldest.sent_at).toLocaleString("fr-FR")}`}
+                          >
+                            <Clock size={10} />
+                            {elapsed(oldest.sent_at)}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
                   {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </button>
@@ -221,17 +244,25 @@ function TrousPage() {
                               cancelled: { bg: "var(--muted)", text: "var(--muted-foreground)", label: "annulé" },
                             };
                             const ss = statusStyle[prop.status] || statusStyle.pending;
+                            const isPending = prop.status === "pending";
+                            const tone = isPending ? elapsedTone(prop.sent_at) : { bg: "var(--muted)", text: "var(--muted-foreground)" };
                             return (
                               <div key={prop.id} className="flex items-center gap-3 px-4 py-2.5" style={{ borderBottom: i === allProps.length - 1 ? "none" : "0.5px solid var(--border)" }}>
                                 <div className="flex-1 min-w-0">
                                   <div style={{ fontSize: 12, fontWeight: 500 }}>{p ? fullName(p) : "—"}</div>
-                                  <div className="flex items-center gap-1.5 mt-0.5" style={{ fontSize: 10, color: "var(--muted-foreground)" }}>
-                                    <Clock size={10} />
-                                    <span title={new Date(prop.sent_at).toLocaleString("fr-FR")} key={tick /* force refresh */}>
-                                      envoyée {elapsed(prop.sent_at)}
-                                    </span>
+                                  <div style={{ fontSize: 10, color: "var(--muted-foreground)", marginTop: 2 }}>
+                                    Envoyée le {new Date(prop.sent_at).toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                                   </div>
                                 </div>
+                                <span
+                                  key={tick}
+                                  className="rounded-full inline-flex items-center gap-1 px-2 py-0.5 tabular-nums"
+                                  style={{ fontSize: 10, fontWeight: 500, backgroundColor: tone.bg, color: tone.text }}
+                                  title={isPending ? "Temps écoulé depuis l'envoi" : "Temps avant réponse"}
+                                >
+                                  <Clock size={10} />
+                                  {elapsed(prop.sent_at)}
+                                </span>
                                 <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, fontWeight: 500, backgroundColor: ss.bg, color: ss.text }}>{ss.label}</span>
                                 {prop.status === "pending" && (
                                   <button onClick={() => cancelOne(prop.id)} title="Annuler" className="flex items-center justify-center rounded-md" style={{ width: 22, height: 22, color: "var(--muted-foreground)" }}>
