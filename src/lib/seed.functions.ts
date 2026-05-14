@@ -212,16 +212,20 @@ async function ensureStaffingTemplates(rhodeId: string, chatelainId: string, log
       templates.push({ studio_id: chatelainId, day_of_week: d, start_time: "10:00:00", end_time: "15:00:00",
         business_role: "Host", allowed_roles: ["Host", "Accueil"] });
     }
-    // Cuisine
-    for (let d = 0; d <= 3; d++) {
-      templates.push({ studio_id: chatelainId, day_of_week: d, start_time: "07:00:00", end_time: "15:30:00",
+    // Cuisine — Lundi 7h-15h30 (8h30) | Mar/Mer/Jeu 7h-14h30 (7h30) | Ven 7h-16h30 (9h30) — CDI uniquement
+    templates.push({ studio_id: chatelainId, day_of_week: 0, start_time: "07:00:00", end_time: "15:30:00",
+      business_role: "Cuisine", allowed_roles: ["Cuisine"], required_contract: "CDI" });
+    for (const d of [1, 2, 3]) {
+      templates.push({ studio_id: chatelainId, day_of_week: d, start_time: "07:00:00", end_time: "14:30:00",
         business_role: "Cuisine", allowed_roles: ["Cuisine"], required_contract: "CDI" });
     }
     templates.push({ studio_id: chatelainId, day_of_week: 4, start_time: "07:00:00", end_time: "16:30:00",
       business_role: "Cuisine", allowed_roles: ["Cuisine"], required_contract: "CDI" });
+    // Sam/Dim 8h30-15h30 (7h chacun) — ouvert à CDI / Étudiant / Flexi
     for (const d of [5, 6]) {
       templates.push({ studio_id: chatelainId, day_of_week: d, start_time: "08:30:00", end_time: "15:30:00",
-        business_role: "Cuisine", allowed_roles: ["Cuisine"], required_contract: "CDI" });
+        business_role: "Cuisine", allowed_roles: ["Cuisine"],
+        allowed_contracts: ["CDI", "Étudiant", "Flexi"] });
     }
   }
 
