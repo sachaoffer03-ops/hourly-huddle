@@ -16,7 +16,10 @@ interface Template {
   end_time: string;
   business_role: string;
   required_count: number;
+  is_optional: boolean;
+  required_contract: "Étudiant" | "Flexi" | "CDI" | null;
 }
+const CONTRACTS = ["Tous", "CDI", "Étudiant", "Flexi"] as const;
 
 interface Props {
   /** Si fourni : verrouille la sélection sur ce studio (par nom). */
