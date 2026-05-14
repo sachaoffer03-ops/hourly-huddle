@@ -4,12 +4,13 @@ import { Send, Clock, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet } from "@/components/staff-app/shared";
-import { acceptProposal, declineProposal } from "@/lib/proposals.functions";
+import { acceptProposal, declineProposal, acceptReplacementProposal } from "@/lib/proposals.functions";
 
 interface ProposalView {
   id: string;
   status: string;
   sent_at: string;
+  replacement_request_id: string | null;
   shift: {
     id: string; shift_date: string; start_time: string; end_time: string;
     business_role: string; studio_id: string | null; user_id: string | null;
