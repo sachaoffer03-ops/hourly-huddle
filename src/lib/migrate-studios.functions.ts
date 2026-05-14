@@ -1,4 +1,4 @@
-// Migration des studios doublons vers les vrais studios.
+// Migration v2 : nettoyage radical + bascule des doublons vers les vrais studios.
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -9,7 +9,7 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Réservé aux administrateurs");
 }
 
-type StudioInfo = {
+export type StudioInfo = {
   id: string; name: string;
   staffing_templates: number;
   user_studios: number;
@@ -47,7 +47,6 @@ async function loadStudios(): Promise<StudioInfo[]> {
 }
 
 function autoMatchPairs(studios: StudioInfo[]) {
-  // On considère "vrai" tout studio dont le nom commence par "Skult".
   const reals = studios.filter(s => /^skult\b/i.test(s.name));
   const others = studios.filter(s => !/^skult\b/i.test(s.name));
   const pairs: Array<{ src: StudioInfo; dst: StudioInfo }> = [];
@@ -65,9 +64,20 @@ export const previewStudioMigration = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     const studios = await loadStudios();
     const pairs = autoMatchPairs(studios);
+
+    // Compteurs prévisionnels pour le bandeau de stratégie
+    const totalShifts = studios.reduce((a, s) => a + s.shifts, 0);
+    const oldTemplatesOnReal = studios
+      .filter(s => /^skult\b/i.test(s.name))
+      .reduce((a, s) => a + s.staffing_templates, 0);
+    const newTemplatesToMove = pairs.reduce((a, p) => a + p.src.staffing_templates, 0);
+    const employeesToMove = pairs.reduce((a, p) => a + p.src.user_studios, 0);
+    const profilesToMove = pairs.reduce((a, p) => a + p.src.profiles, 0);
+
     return {
       studios,
       pairs: pairs.map(p => ({ src: p.src, dst: p.dst })),
+      preview: { totalShifts, oldTemplatesOnReal, newTemplatesToMove, employeesToMove, profilesToMove },
     };
   });
 
@@ -78,16 +88,18 @@ export const executeStudioMigration = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     if (!data.pairs?.length) throw new Error("Aucune paire à migrer");
 
-    const results: Array<{ src_id: string; dst_id: string; stats: any }> = [];
-    for (const p of data.pairs) {
-      const { data: stats, error } = await supabaseAdmin.rpc("merge_studio" as any, {
-        src_id: p.src_id, dst_id: p.dst_id,
-      });
-      if (error) throw new Error(`merge ${p.src_id}→${p.dst_id}: ${error.message}`);
-      console.log(`[migrate-studios] ${p.src_id} → ${p.dst_id}`, stats);
-      results.push({ src_id: p.src_id, dst_id: p.dst_id, stats });
+    console.log("[migrate-studios v2] start", data.pairs);
+
+    const { data: report, error } = await supabaseAdmin.rpc(
+      "migrate_studios_v2" as any,
+      { pairs: data.pairs as any },
+    );
+    if (error) {
+      console.error("[migrate-studios v2] failed", error);
+      throw new Error(error.message);
     }
 
+    console.log("[migrate-studios v2] success", report);
     const finalStudios = await loadStudios();
-    return { results, finalStudios };
+    return { report, finalStudios };
   });
