@@ -1,5 +1,5 @@
 import { useRouterState, useNavigate } from "@tanstack/react-router";
-import { Bell, Search, Plus, Menu } from "lucide-react";
+import { Bell, Search, Plus, Menu, LogOut } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import logo from "@/assets/kadence-logo.png";
 import { CreateShiftModal } from "@/components/CreateShiftModal";
@@ -192,6 +192,17 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
             </button>
           </>
         )}
+        <button
+          onClick={async () => {
+            await supabase.auth.signOut();
+            navigate({ to: "/login" });
+          }}
+          title="Déconnexion"
+          className="flex items-center justify-center rounded-md transition-colors"
+          style={{ width: 32, height: 32 }}
+        >
+          <LogOut size={16} strokeWidth={1.8} style={{ color: "var(--foreground)" }} />
+        </button>
       </div>
     </header>
     <CreateShiftModal open={shiftOpen} onClose={() => setShiftOpen(false)} />
