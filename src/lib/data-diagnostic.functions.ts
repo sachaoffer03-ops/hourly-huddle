@@ -31,15 +31,13 @@ export const runDataDiagnostic = createServerFn({ method: "GET" })
       studios,
       settingsRows,
     ] = await Promise.all([
-      fetchAll<any>(supabase, "profiles", "id, first_name, last_name, status, contract"),
-      fetchAll<any>(supabase, "user_contracts", "user_id, contract"),
-      fetchAll<any>(supabase, "user_business_roles", "user_id, role"),
-      fetchAll<any>(supabase, "user_studios", "user_id, studio_id"),
-      fetchAll<any>(supabase, "staffing_templates", "id, studio_id, day_of_week, start_time, end_time, required_count"),
-      supabase.from("availabilities").select("id, user_id, avail_date, start_time, end_time")
-        .gte("avail_date", periodStart).lte("avail_date", periodEnd)
-        .then((r) => r.data ?? []),
-      fetchAll<any>(supabase, "studios", "id, name"),
+      fetchAll<any>(supabase.from("profiles").select("id, first_name, last_name, status, contract")),
+      fetchAll<any>(supabase.from("user_contracts").select("user_id, contract")),
+      fetchAll<any>(supabase.from("user_business_roles").select("user_id, role")),
+      fetchAll<any>(supabase.from("user_studios").select("user_id, studio_id")),
+      fetchAll<any>(supabase.from("staffing_templates").select("id, studio_id, day_of_week, start_time, end_time, required_count")),
+      fetchAll<any>(supabase.from("availabilities").select("id, user_id, avail_date, start_time, end_time").gte("avail_date", periodStart).lte("avail_date", periodEnd)),
+      fetchAll<any>(supabase.from("studios").select("id, name")),
       supabase.from("ai_planning_settings").select("*").limit(1).then((r) => r.data ?? []),
     ]);
 
