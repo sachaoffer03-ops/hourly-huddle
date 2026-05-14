@@ -640,6 +640,44 @@ export type Database = {
           },
         ]
       }
+      shift_proposals: {
+        Row: {
+          id: string
+          responded_at: string | null
+          sent_at: string
+          sent_by: string | null
+          shift_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          responded_at?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          shift_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          responded_at?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          shift_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_proposals_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shift_reports: {
         Row: {
           author_id: string

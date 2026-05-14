@@ -16,6 +16,7 @@ import { DisposSheet, disposKey } from "@/components/staff-app/DisposSheet";
 import { FormationPanel } from "@/components/staff-app/FormationPanel";
 import { ChatPanel } from "@/components/staff-app/ChatPanel";
 import { useStaffNotifications } from "@/hooks/use-staff-notifications";
+import { ProposalsSheet, useProposals } from "@/components/staff-app/ProposalsSheet";
 
 export const Route = createFileRoute("/staff-app")({
   component: StaffAppPage,
@@ -121,6 +122,8 @@ function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: Profi
   const [shiftDetail, setShiftDetail] = useState<ShiftRow | null>(null);
   const [disposOpen, setDisposOpen] = useState(false);
   const [disposValidated, setDisposValidated] = useState(false);
+  const [proposalsOpen, setProposalsOpen] = useState(false);
+  const { proposals } = useProposals(userId);
 
   // Mois suivant
   const nextMonth = useMemo(() => {
@@ -339,7 +342,26 @@ function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: Profi
         );
       })()}
 
-      {/* Bandeau dispos */}
+      {/* Bandeau propositions de shift */}
+      {proposals.length > 0 && (
+        <button
+          onClick={() => setProposalsOpen(true)}
+          className="w-full rounded-xl px-4 py-4 mb-3 flex items-center gap-3 text-left"
+          style={{ backgroundColor: "var(--coral-light)", border: "1px solid var(--coral)" }}
+        >
+          <div className="rounded-lg flex items-center justify-center" style={{ width: 40, height: 40, backgroundColor: "var(--coral)", color: "#fff" }}>
+            <Inbox size={18} />
+          </div>
+          <div className="flex-1">
+            <div style={{ fontSize: 13, fontWeight: 500, color: "var(--coral-dark)" }}>
+              {proposals.length} proposition{proposals.length > 1 ? "s" : ""} de shift
+            </div>
+            <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>Touchez pour accepter ou refuser</div>
+          </div>
+          <ChevronRight size={16} style={{ color: "var(--coral-dark)" }} />
+        </button>
+      )}
+
       <button
         onClick={() => !disposValidated && setDisposOpen(true)}
         className="w-full rounded-xl px-4 py-4 mb-5 flex items-center gap-3 text-left"
@@ -410,6 +432,7 @@ function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: Profi
       <RequestModificationSheet open={reqOpen} onClose={() => { setReqOpen(false); setReqShiftId(null); }} userId={userId} shiftId={reqShiftId} />
       <MyRequestsSheet open={myReqOpen} onClose={() => setMyReqOpen(false)} userId={userId} />
       <DisposSheet open={disposOpen} onClose={() => setDisposOpen(false)} userId={userId} />
+      <ProposalsSheet open={proposalsOpen} onClose={() => setProposalsOpen(false)} userId={userId} studios={studios} />
     </div>
   );
 }
