@@ -970,6 +970,53 @@ function PlanningCalendarPage() {
               {visibleDayIndices.map((dayIdx) => {
                 const cellShifts = studioShifts.filter((s) => s.day === dayIdx);
                 const isSelected = selectedDayIdx === dayIdx;
+
+                // Compute lanes (parallel columns) for overlapping shifts
+                const sorted = [...cellShifts].sort((a, b) => {
+                  const sa = String(a.startTime).slice(0, 5);
+                  const sb = String(b.startTime).slice(0, 5);
+                  if (sa !== sb) return sa.localeCompare(sb);
+                  return String(a.endTime).localeCompare(String(b.endTime));
+                });
+                const laneEnds: string[] = []; // end time per lane
+                const laneOf = new Map<string, number>();
+                for (const s of sorted) {
+                  const start = String(s.startTime).slice(0, 5);
+                  const end = String(s.endTime).slice(0, 5);
+                  let placed = -1;
+                  for (let i = 0; i < laneEnds.length; i++) {
+                    if (laneEnds[i] <= start) { placed = i; break; }
+                  }
+                  if (placed === -1) { placed = laneEnds.length; laneEnds.push(end); }
+                  else laneEnds[placed] = end;
+                  laneOf.set(s.id, placed);
+                }
+                // Group into clusters of mutually-overlapping shifts to compute width
+                const clusterOf = new Map<string, { size: number }>();
+                {
+                  let cluster: PlanningShift[] = [];
+                  let clusterEnd = "";
+                  const flush = () => {
+                    const lanes = new Set(cluster.map((c) => laneOf.get(c.id)!)).size;
+                    const ref = { size: lanes };
+                    cluster.forEach((c) => clusterOf.set(c.id, ref));
+                    cluster = [];
+                    clusterEnd = "";
+                  };
+                  for (const s of sorted) {
+                    const start = String(s.startTime).slice(0, 5);
+                    const end = String(s.endTime).slice(0, 5);
+                    if (cluster.length === 0 || start < clusterEnd) {
+                      cluster.push(s);
+                      if (end > clusterEnd) clusterEnd = end;
+                    } else {
+                      flush();
+                      cluster.push(s);
+                      clusterEnd = end;
+                    }
+                  }
+                  if (cluster.length) flush();
+                }
                 return (
                   <div
                     key={dayIdx}
