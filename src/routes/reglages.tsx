@@ -169,6 +169,26 @@ function AISettings() {
         </div>
       </div>
 
+      <div className="rounded-xl border p-5" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
+        <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Bornes des shifts générés</div>
+        <div style={{ fontSize: 12, color: "var(--muted-foreground)", marginBottom: 16 }}>Durée minimale et maximale d'un bloc créé par l'IA (heures)</div>
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2" style={{ fontSize: 13 }}>
+            Min
+            <input type="number" min={1} max={8} value={bounds.min}
+              onChange={(e) => setBounds((p) => ({ ...p, min: Math.max(1, Number(e.target.value)) }))}
+              className="rounded-md px-2 py-1 outline-none" style={{ width: 70, fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "var(--background)" }} />
+            h
+          </label>
+          <label className="flex items-center gap-2" style={{ fontSize: 13 }}>
+            Max
+            <input type="number" min={bounds.min} max={12} value={bounds.max}
+              onChange={(e) => setBounds((p) => ({ ...p, max: Math.max(bounds.min, Number(e.target.value)) }))}
+              className="rounded-md px-2 py-1 outline-none" style={{ width: 70, fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "var(--background)" }} />
+            h
+          </label>
+        </div>
+      </div>
       <button
         onClick={save}
         disabled={saving || total !== 100}
