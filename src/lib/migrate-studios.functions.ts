@@ -88,11 +88,11 @@ export const executeStudioMigration = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     if (!data.pairs?.length) throw new Error("Aucune paire à migrer");
 
-    console.log("[migrate-studios v2] start", data.pairs);
+    console.log("[migrate-studios v2] start", { caller: context.userId, pairs: data.pairs });
 
     const { data: report, error } = await supabaseAdmin.rpc(
       "migrate_studios_v2" as any,
-      { pairs: data.pairs as any },
+      { caller_id: context.userId, pairs: data.pairs as any },
     );
     if (error) {
       console.error("[migrate-studios v2] failed", error);
