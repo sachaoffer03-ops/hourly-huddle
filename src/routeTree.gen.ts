@@ -32,6 +32,7 @@ import { Route as StaffIndexRouteImport } from './routes/staff.index'
 import { Route as StaffIdRouteImport } from './routes/staff.$id'
 import { Route as PlanningGenerateRouteImport } from './routes/planning.generate'
 import { Route as AdminSeederRouteImport } from './routes/admin.seeder'
+import { Route as AdminMigrateStudiosRouteImport } from './routes/admin.migrate-studios'
 import { Route as AdminDataDiagnosticRouteImport } from './routes/admin.data-diagnostic'
 
 const TrousRoute = TrousRouteImport.update({
@@ -149,6 +150,11 @@ const AdminSeederRoute = AdminSeederRouteImport.update({
   path: '/admin/seeder',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminMigrateStudiosRoute = AdminMigrateStudiosRouteImport.update({
+  id: '/admin/migrate-studios',
+  path: '/admin/migrate-studios',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminDataDiagnosticRoute = AdminDataDiagnosticRouteImport.update({
   id: '/admin/data-diagnostic',
   path: '/admin/data-diagnostic',
@@ -176,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/studios': typeof StudiosRoute
   '/trous': typeof TrousRoute
   '/admin/data-diagnostic': typeof AdminDataDiagnosticRoute
+  '/admin/migrate-studios': typeof AdminMigrateStudiosRoute
   '/admin/seeder': typeof AdminSeederRoute
   '/planning/generate': typeof PlanningGenerateRoute
   '/staff/$id': typeof StaffIdRoute
@@ -201,6 +208,7 @@ export interface FileRoutesByTo {
   '/studios': typeof StudiosRoute
   '/trous': typeof TrousRoute
   '/admin/data-diagnostic': typeof AdminDataDiagnosticRoute
+  '/admin/migrate-studios': typeof AdminMigrateStudiosRoute
   '/admin/seeder': typeof AdminSeederRoute
   '/planning/generate': typeof PlanningGenerateRoute
   '/staff/$id': typeof StaffIdRoute
@@ -228,6 +236,7 @@ export interface FileRoutesById {
   '/studios': typeof StudiosRoute
   '/trous': typeof TrousRoute
   '/admin/data-diagnostic': typeof AdminDataDiagnosticRoute
+  '/admin/migrate-studios': typeof AdminMigrateStudiosRoute
   '/admin/seeder': typeof AdminSeederRoute
   '/planning/generate': typeof PlanningGenerateRoute
   '/staff/$id': typeof StaffIdRoute
@@ -256,6 +265,7 @@ export interface FileRouteTypes {
     | '/studios'
     | '/trous'
     | '/admin/data-diagnostic'
+    | '/admin/migrate-studios'
     | '/admin/seeder'
     | '/planning/generate'
     | '/staff/$id'
@@ -281,6 +291,7 @@ export interface FileRouteTypes {
     | '/studios'
     | '/trous'
     | '/admin/data-diagnostic'
+    | '/admin/migrate-studios'
     | '/admin/seeder'
     | '/planning/generate'
     | '/staff/$id'
@@ -307,6 +318,7 @@ export interface FileRouteTypes {
     | '/studios'
     | '/trous'
     | '/admin/data-diagnostic'
+    | '/admin/migrate-studios'
     | '/admin/seeder'
     | '/planning/generate'
     | '/staff/$id'
@@ -334,6 +346,7 @@ export interface RootRouteChildren {
   StudiosRoute: typeof StudiosRoute
   TrousRoute: typeof TrousRoute
   AdminDataDiagnosticRoute: typeof AdminDataDiagnosticRoute
+  AdminMigrateStudiosRoute: typeof AdminMigrateStudiosRoute
   AdminSeederRoute: typeof AdminSeederRoute
 }
 
@@ -500,6 +513,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSeederRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/migrate-studios': {
+      id: '/admin/migrate-studios'
+      path: '/admin/migrate-studios'
+      fullPath: '/admin/migrate-studios'
+      preLoaderRoute: typeof AdminMigrateStudiosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/data-diagnostic': {
       id: '/admin/data-diagnostic'
       path: '/admin/data-diagnostic'
@@ -555,8 +575,19 @@ const rootRouteChildren: RootRouteChildren = {
   StudiosRoute: StudiosRoute,
   TrousRoute: TrousRoute,
   AdminDataDiagnosticRoute: AdminDataDiagnosticRoute,
+  AdminMigrateStudiosRoute: AdminMigrateStudiosRoute,
   AdminSeederRoute: AdminSeederRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
