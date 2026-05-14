@@ -82,15 +82,15 @@ function GeneratePlanningPage() {
           <div className="rounded-full mx-auto flex items-center justify-center mb-6" style={{ width: 64, height: 64, backgroundColor: "var(--coral-light)" }}>
             <Sparkles size={28} style={{ color: "var(--coral-dark)" }} />
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 500, marginBottom: 8 }}>Générer le planning</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 500, marginBottom: 8 }}>Générer Châtelain + Rhodes</h1>
           <p style={{ fontSize: 13, color: "var(--muted-foreground)", lineHeight: 1.7, marginBottom: 16 }}>
-            L'IA crée tous les shifts selon les besoins définis dans Réglages, avec les pondérations actuelles de l'algorithme.
+            Un seul run partagé pour les deux studios. L'équité, les plafonds hebdo et le repos 11h sont calculés en cumulé entre Châtelain et Rhodes — un même employé ne sera jamais placé deux fois en même temps, ni surchargé.
           </p>
 
           <div className="rounded-lg p-3 mb-5 flex items-start gap-2 text-left" style={{ backgroundColor: "var(--info-bg)" }}>
             <Info size={14} style={{ color: "var(--info-text)", marginTop: 2, flexShrink: 0 }} />
             <div style={{ fontSize: 11, color: "var(--info-text)", lineHeight: 1.5 }}>
-              Les besoins sont lus en direct au moment de la génération. Si tu modifies un créneau dans <Link to="/reglages" style={{ textDecoration: "underline" }}>Réglages › Besoins par studio</Link>, relance la génération sur la période concernée.
+              Les besoins des 2 studios sont lus en direct depuis <Link to="/reglages" style={{ textDecoration: "underline" }}>Réglages › Besoins par studio</Link>. Les besoins les plus contraints (ex. CDI Châtelain) sont servis en premier pour éviter qu'ils manquent de monde.
             </div>
           </div>
 
