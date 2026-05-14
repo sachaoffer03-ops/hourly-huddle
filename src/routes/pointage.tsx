@@ -110,7 +110,7 @@ function PointagePage() {
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center" style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Aucun shift aujourd'hui.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center" style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Aucun shift aujourd'hui.</td></tr>
             ) : filtered.map((entry) => {
               const profile = entry.user_id ? profiles.get(entry.user_id) : null;
               const status = getStatus(entry);
