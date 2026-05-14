@@ -36,10 +36,8 @@ export const Route = createFileRoute("/studios")({
 const baseStudioTabs: Studio[] = ["Skult Rhodes", "Skult Châtelain"];
 const subTabs = [
   "Informations",
-  "Horaires d'ouverture",
   "Besoins en staff",
   "Exceptions",
-  "Checklists",
 ] as const;
 
 // Fallback statique (utilisé pour seed mock data uniquement) ; les listes UI
