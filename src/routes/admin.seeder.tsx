@@ -34,6 +34,9 @@ function SeederPage() {
       <Link to="/planning/generate" className="flex items-center gap-1 mb-4" style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
         <ArrowLeft size={12} /> Retour
       </Link>
+      <Link to="/admin/migrate-studios" className="inline-block mb-4 ml-3" style={{ fontSize: 12, color: "var(--primary)" }}>
+        → Migrer les studios doublons
+      </Link>
 
       <h1 style={{ fontSize: 26, fontWeight: 500, marginBottom: 6 }}>Seeder de données fictives</h1>
       <p style={{ fontSize: 13, color: "var(--muted-foreground)", marginBottom: 24 }}>
