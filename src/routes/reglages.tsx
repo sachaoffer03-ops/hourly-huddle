@@ -79,13 +79,14 @@ function AISettings() {
     enforce_max_weekly_cdi: true,
     strict_preferences: false,
   });
+  const [bounds, setBounds] = useState({ min: 3, max: 6 });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     supabase.from("ai_planning_settings").select("*").order("updated_at", { ascending: false }).limit(1)
       .then(({ data }) => {
-        const r = data?.[0];
+        const r = data?.[0] as any;
         if (r) {
           setId(r.id);
           setWeights({
@@ -100,6 +101,7 @@ function AISettings() {
             enforce_max_weekly_cdi: r.enforce_max_weekly_cdi,
             strict_preferences: r.strict_preferences,
           });
+          setBounds({ min: r.min_shift_hours ?? 3, max: r.max_shift_hours ?? 6 });
         }
         setLoading(false);
       });
@@ -109,12 +111,15 @@ function AISettings() {
 
   const save = async () => {
     if (total !== 100) return toast.error("Le total des poids doit faire 100%");
+    if (bounds.min < 1 || bounds.max < bounds.min) return toast.error("Les bornes min/max sont invalides");
     setSaving(true);
     const payload = {
       weight_performance: weights.performance,
       weight_equity: weights.equity,
       weight_preference: weights.preference,
       weight_random: weights.random,
+      min_shift_hours: bounds.min,
+      max_shift_hours: bounds.max,
       ...rules,
     };
     const { error } = id
@@ -164,6 +169,26 @@ function AISettings() {
         </div>
       </div>
 
+      <div className="rounded-xl border p-5" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
+        <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Bornes des shifts générés</div>
+        <div style={{ fontSize: 12, color: "var(--muted-foreground)", marginBottom: 16 }}>Durée minimale et maximale d'un bloc créé par l'IA (heures)</div>
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2" style={{ fontSize: 13 }}>
+            Min
+            <input type="number" min={1} max={8} value={bounds.min}
+              onChange={(e) => setBounds((p) => ({ ...p, min: Math.max(1, Number(e.target.value)) }))}
+              className="rounded-md px-2 py-1 outline-none" style={{ width: 70, fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "var(--background)" }} />
+            h
+          </label>
+          <label className="flex items-center gap-2" style={{ fontSize: 13 }}>
+            Max
+            <input type="number" min={bounds.min} max={12} value={bounds.max}
+              onChange={(e) => setBounds((p) => ({ ...p, max: Math.max(bounds.min, Number(e.target.value)) }))}
+              className="rounded-md px-2 py-1 outline-none" style={{ width: 70, fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "var(--background)" }} />
+            h
+          </label>
+        </div>
+      </div>
       <button
         onClick={save}
         disabled={saving || total !== 100}

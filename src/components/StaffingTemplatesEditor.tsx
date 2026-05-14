@@ -16,7 +16,10 @@ interface Template {
   end_time: string;
   business_role: string;
   required_count: number;
+  is_optional: boolean;
+  required_contract: "Étudiant" | "Flexi" | "CDI" | null;
 }
+const CONTRACTS = ["Tous", "CDI", "Étudiant", "Flexi"] as const;
 
 interface Props {
   /** Si fourni : verrouille la sélection sur ce studio (par nom). */
@@ -64,6 +67,8 @@ export function StaffingTemplatesEditor({ lockedStudioName, hideHint }: Props) {
       end_time: "15:00",
       business_role: ROLES[0] ?? "Barista",
       required_count: 1,
+      is_optional: false,
+      required_contract: null,
     });
     if (error) return toast.error(error.message);
     reload();
@@ -135,6 +140,8 @@ export function StaffingTemplatesEditor({ lockedStudioName, hideHint }: Props) {
                   <th className="text-left px-2 py-1" style={{ fontSize: 10 }}>Début</th>
                   <th className="text-left px-2 py-1" style={{ fontSize: 10 }}>Fin</th>
                   <th className="text-left px-2 py-1" style={{ fontSize: 10 }}>Rôle</th>
+                  <th className="text-left px-2 py-1" style={{ fontSize: 10 }}>Contrat</th>
+                  <th className="text-left px-2 py-1" style={{ fontSize: 10 }}>Type</th>
                   <th className="text-left px-2 py-1" style={{ fontSize: 10 }}>Nombre</th>
                   <th></th>
                 </tr>
@@ -157,6 +164,22 @@ export function StaffingTemplatesEditor({ lockedStudioName, hideHint }: Props) {
                     </td>
                     <td className="px-2 py-1">
                       <Dropdown value={t.business_role} options={[...ROLES]} onChange={(v) => updateRow(t.id, { business_role: v as typeof ROLES[number] })} minWidth={120} />
+                    </td>
+                    <td className="px-2 py-1">
+                      <Dropdown
+                        value={t.required_contract ?? "Tous"}
+                        options={[...CONTRACTS]}
+                        onChange={(v) => updateRow(t.id, { required_contract: v === "Tous" ? null : (v as "CDI" | "Étudiant" | "Flexi") })}
+                        minWidth={110}
+                      />
+                    </td>
+                    <td className="px-2 py-1">
+                      <Dropdown
+                        value={t.is_optional ? "Renfort" : "Obligatoire"}
+                        options={["Obligatoire", "Renfort"]}
+                        onChange={(v) => updateRow(t.id, { is_optional: v === "Renfort" })}
+                        minWidth={120}
+                      />
                     </td>
                     <td className="px-2 py-1">
                       <input type="number" min={0} max={20} value={t.required_count} onChange={(e) => updateRow(t.id, { required_count: Math.max(0, Number(e.target.value)) })}
