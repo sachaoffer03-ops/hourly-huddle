@@ -156,11 +156,18 @@ function GeneratePlanningPage() {
           <h1 style={{ fontSize: 22, fontWeight: 500 }}>Générer le planning</h1>
           <p style={{ fontSize: 13, color: "var(--muted-foreground)", marginTop: 2 }}>1 mois (4 semaines) à partir du 1er du mois choisi</p>
         </div>
-        <button onClick={() => setShowHistory(true)}
-          className="rounded-md px-3 py-2 flex items-center gap-2"
-          style={{ fontSize: 12, fontWeight: 500, border: "0.5px solid var(--border)", backgroundColor: "var(--card)" }}>
-          <History size={14} /> Historique
-        </button>
+        <div className="flex items-center gap-2">
+          <Link to="/admin/data-diagnostic"
+            className="rounded-md px-3 py-2 flex items-center gap-2"
+            style={{ fontSize: 12, fontWeight: 500, border: "0.5px solid var(--border)", backgroundColor: "var(--card)" }}>
+            Diagnostic
+          </Link>
+          <button onClick={() => setShowHistory(true)}
+            className="rounded-md px-3 py-2 flex items-center gap-2"
+            style={{ fontSize: 12, fontWeight: 500, border: "0.5px solid var(--border)", backgroundColor: "var(--card)" }}>
+            <History size={14} /> Historique
+          </button>
+        </div>
       </div>
 
       <div className="rounded-xl border p-6 mb-5" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", maxWidth: 640 }}>
