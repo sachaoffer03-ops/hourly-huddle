@@ -67,10 +67,10 @@ const SECTIONS: Section[] = [
         recommendation: "Domaine fictif @fake-coffee.test généré par le seeder. Inaccessible en prod (route gated).",
       },
       {
-        severity: "info",
+        severity: "ok",
         file: "src/lib/mock-data.ts",
-        verdict: "🟡 Tableau employees inerte",
-        recommendation: "Le tableau employees fictif existe encore dans mock-data.ts mais n'est plus importé par planning.tsx ni aucune page applicative. Suppression complète possible une fois studios.tsx refactoré.",
+        verdict: "🟢 Résolu",
+        recommendation: "Le tableau employees a été supprimé. mock-data.ts ne contient plus que les types partagés, le Proxy roleColors et getQuotaStatus.",
       },
     ],
   },
