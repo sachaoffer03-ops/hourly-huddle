@@ -1268,19 +1268,36 @@ interface ExceptionItem {
 const exceptionTypes: ExceptionType[] = ["fermeture", "événement", "ajustement"];
 
 function ExceptionsTab({ studio }: { studio: Studio }) {
-  const [items, setItems] = useState<ExceptionItem[]>(() =>
-    studioExceptions
-      .filter((e) => e.studio === studio)
-      .map((e) => ({
-        id: e.id,
-        dateLabel: e.dateLabel,
-        type: e.type,
-        title: e.title,
-        description: e.description,
-        hoursAdjust: e.hoursAdjust,
-        impact: e.impact,
-      })),
+  const { studios } = useStudios();
+  const studioId = useMemo(
+    () => studios.find((s) => s.name === studio)?.id ?? null,
+    [studios, studio],
   );
+  const { exceptions, reload } = useStudioExceptions(studioId);
+
+  // UI <-> DB mapping
+  const dbToUi = useCallback((e: StudioException): ExceptionItem => ({
+    id: e.id,
+    dateLabel: e.date_label || e.exception_date,
+    type: e.exception_type === "evenement" ? "événement" : (e.exception_type as ExceptionType),
+    title: e.title,
+    description: e.description ?? "",
+    hoursAdjust: e.hours_adjust ?? "",
+    impact: (e.staff_adjustments ?? []).map((a) => ({ role: a.role as Role, delta: a.delta })),
+  }), []);
+
+  const uiToDbPatch = (it: ExceptionItem) => ({
+    studio_id: studioId!,
+    exception_date: /^\d{4}-\d{2}-\d{2}$/.test(it.dateLabel) ? it.dateLabel : new Date().toISOString().slice(0, 10),
+    exception_type: (it.type === "événement" ? "evenement" : it.type) as DbExceptionType,
+    title: it.title.trim(),
+    description: it.description || null,
+    hours_adjust: it.hoursAdjust || null,
+    date_label: it.dateLabel,
+    staff_adjustments: it.impact.map((i) => ({ role: i.role, delta: i.delta })),
+  });
+
+  const items = useMemo(() => exceptions.map(dbToUi), [exceptions, dbToUi]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<ExceptionItem | null>(null);
 
@@ -1304,19 +1321,30 @@ function ExceptionsTab({ studio }: { studio: Studio }) {
     setEditingId(null);
     setDraft(null);
   };
-  const save = () => {
-    if (!draft || !draft.title.trim() || !draft.dateLabel.trim()) return;
-    setItems((prev) =>
-      editingId === "__new__"
-        ? [...prev, draft]
-        : prev.map((i) => (i.id === editingId ? draft : i)),
-    );
-    cancel();
+  const save = async () => {
+    if (!draft || !draft.title.trim() || !draft.dateLabel.trim() || !studioId) return;
+    try {
+      if (editingId === "__new__") {
+        await createException(uiToDbPatch(draft) as any);
+      } else {
+        await updateException(editingId!, uiToDbPatch(draft) as any);
+      }
+      await reload();
+      cancel();
+    } catch (e: any) {
+      toast.error(e?.message || "Erreur");
+    }
   };
-  const remove = (id: string) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
-    if (editingId === id) cancel();
+  const remove = async (id: string) => {
+    try {
+      await deleteException(id);
+      await reload();
+      if (editingId === id) cancel();
+    } catch (e: any) {
+      toast.error(e?.message || "Erreur");
+    }
   };
+
 
   return (
     <>
