@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { DevOnly } from "@/components/DevOnly";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Sparkles, ArrowLeft, Check, AlertTriangle, ArrowRight, Loader2, ChefHat } from "lucide-react";
