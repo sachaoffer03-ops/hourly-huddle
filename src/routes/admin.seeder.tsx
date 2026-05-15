@@ -23,7 +23,7 @@ function SeederPage() {
   const [kitchenErr, setKitchenErr] = useState("");
 
   const handleClick = async () => {
-    if (!confirm("Cela va SUPPRIMER tous les profils existants (sauf admin et sachaoffer@gmail.com) puis créer ~30 employés fictifs. Continuer ?")) return;
+    if (!confirm("Cela va SUPPRIMER tous les profils existants (sauf admins et comptes marqués protégés) puis créer ~30 employés fictifs. Continuer ?")) return;
     setState("running"); setErr(""); setResult(null);
     try {
       const r = await seed();
