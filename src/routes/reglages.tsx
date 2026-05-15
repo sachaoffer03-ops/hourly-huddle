@@ -131,6 +131,7 @@ function AISettings() {
       max_weekly_student_hours: weekly.student,
       max_weekly_flexi_hours: weekly.flexi,
       max_weekly_cdi_hours: weekly.cdi,
+      availability_deadline_day: deadlineDay,
       ...rules,
     };
     const { error } = id
