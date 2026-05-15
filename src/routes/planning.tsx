@@ -752,6 +752,32 @@ function PlanningCalendarPage() {
     }
   };
 
+  const handleMoveShiftPrecise = async (shiftId: string, newDay: number, newStartMinRaw: number) => {
+    const original = studioShifts.find((s) => s.id === shiftId);
+    if (!original) return;
+    const date = weekDays[newDay];
+    const shiftDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    const toMin = (t: string) => {
+      const [h, m] = String(t).slice(0, 5).split(":").map(Number);
+      return h * 60 + m;
+    };
+    const dur = Math.max(15, toMin(original.endTime) - toMin(original.startTime));
+    // Snap to 15 min, clamp to [0, 24h - dur]
+    const snap = Math.round(newStartMinRaw / 15) * 15;
+    const startMin = Math.max(0, Math.min(snap, 24 * 60 - dur));
+    const endMin = startMin + dur;
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const startTime = `${pad(Math.floor(startMin / 60))}:${pad(startMin % 60)}:00`;
+    const endTime = `${pad(Math.floor(endMin / 60))}:${pad(endMin % 60)}:00`;
+    try {
+      await updateShiftFn({ data: { shiftId, shiftDate, startTime, endTime } });
+      toast.success("Shift déplacé");
+      refresh();
+    } catch (e: any) {
+      toast.error(e.message ?? "Erreur");
+    }
+  };
+
   const handleUnlockShift = async (id: string) => {
     try {
       await updateShiftFn({ data: { shiftId: id, unlock: true, markManual: false } });
@@ -1001,7 +1027,45 @@ function PlanningCalendarPage() {
                               const sid = e.dataTransfer.getData("text/shift-id");
                               if (!sid) return;
                               const orig = studioShifts.find((s) => s.id === sid);
-                              handleMoveShift(sid, dayIdx, orig?.slot ?? 0);
+                              if (!orig) return;
+                              const toMin = (t: string) => {
+                                const [h, m] = String(t).slice(0, 5).split(":").map(Number);
+                                return h * 60 + m;
+                              };
+                              // Détecte un shift cible sous le curseur (style Google Calendar)
+                              const cellEl = e.currentTarget as HTMLElement;
+                              const dropY = e.clientY;
+                              const targets = Array.from(cellEl.querySelectorAll<HTMLElement>("[data-shift-start]"));
+                              let newStartMin: number | null = null;
+                              for (const el of targets) {
+                                if (el.dataset.shiftId === sid) continue;
+                                const r = el.getBoundingClientRect();
+                                if (dropY < r.top - 4 || dropY > r.bottom + 4) continue;
+                                const baseStart = el.dataset.shiftStart!;
+                                const baseMin = toMin(baseStart);
+                                const ratio = (dropY - r.top) / Math.max(1, r.height);
+                                if (ratio < 0.4) {
+                                  newStartMin = baseMin; // superposer (même heure)
+                                } else if (ratio < 0.75) {
+                                  newStartMin = baseMin + 15;
+                                } else {
+                                  newStartMin = baseMin + 30; // décalé ~30 min
+                                }
+                                break;
+                              }
+                              if (newStartMin === null && targets.length > 0) {
+                                // Drop sous le dernier shift → enchaîner +30 min après son début
+                                const last = targets[targets.length - 1];
+                                const lastRect = last.getBoundingClientRect();
+                                if (dropY > lastRect.bottom) {
+                                  newStartMin = toMin(last.dataset.shiftStart!) + 30;
+                                }
+                              }
+                              if (newStartMin !== null) {
+                                handleMoveShiftPrecise(sid, dayIdx, newStartMin);
+                              } else {
+                                handleMoveShift(sid, dayIdx, orig.slot ?? 0);
+                              }
                             }}
                           >
                             {cellShifts.length === 0 ? (
@@ -1037,6 +1101,8 @@ function PlanningCalendarPage() {
                                   key={shift.id}
                                   onClick={() => setSelectedShift(shift)}
                                   draggable
+                                  data-shift-id={shift.id}
+                                  data-shift-start={shift.startTime}
                                   onDragStart={(e) => { e.dataTransfer.setData("text/shift-id", shift.id); e.dataTransfer.effectAllowed = "move"; }}
                                   className="transition-opacity"
                                   style={{ ...baseStyle, backgroundColor: rc.bg, color: rc.text, opacity: shift.isDraft ? 0.78 : 1 }}
