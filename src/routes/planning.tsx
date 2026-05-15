@@ -1101,6 +1101,8 @@ function PlanningCalendarPage() {
                                   key={shift.id}
                                   onClick={() => setSelectedShift(shift)}
                                   draggable
+                                  data-shift-id={shift.id}
+                                  data-shift-start={shift.startTime}
                                   onDragStart={(e) => { e.dataTransfer.setData("text/shift-id", shift.id); e.dataTransfer.effectAllowed = "move"; }}
                                   className="transition-opacity"
                                   style={{ ...baseStyle, backgroundColor: rc.bg, color: rc.text, opacity: shift.isDraft ? 0.78 : 1 }}
