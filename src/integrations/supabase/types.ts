@@ -1040,6 +1040,76 @@ export type Database = {
         }
         Relationships: []
       }
+      studio_business_roles: {
+        Row: {
+          created_at: string
+          role: string
+          studio_id: string
+        }
+        Insert: {
+          created_at?: string
+          role: string
+          studio_id: string
+        }
+        Update: {
+          created_at?: string
+          role?: string
+          studio_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_business_roles_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_exceptions: {
+        Row: {
+          created_at: string
+          description: string | null
+          exception_date: string
+          exception_type: string
+          id: string
+          staff_adjustments: Json
+          studio_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          exception_date: string
+          exception_type: string
+          id?: string
+          staff_adjustments?: Json
+          studio_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          exception_date?: string
+          exception_type?: string
+          id?: string
+          staff_adjustments?: Json
+          studio_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_exceptions_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       studios: {
         Row: {
           address: string | null
@@ -1049,14 +1119,19 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           description: string | null
+          email: string | null
           has_kitchen: boolean
           id: string
+          internal_notes: string | null
           manager_id: string | null
           name: string
+          opened_at: string | null
           opening_hours: string | null
           phone: string | null
           postal_code: string | null
+          role_hours: Json
           short_name: string | null
+          surface_m2: number | null
         }
         Insert: {
           address?: string | null
@@ -1066,14 +1141,19 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           description?: string | null
+          email?: string | null
           has_kitchen?: boolean
           id?: string
+          internal_notes?: string | null
           manager_id?: string | null
           name: string
+          opened_at?: string | null
           opening_hours?: string | null
           phone?: string | null
           postal_code?: string | null
+          role_hours?: Json
           short_name?: string | null
+          surface_m2?: number | null
         }
         Update: {
           address?: string | null
@@ -1083,14 +1163,19 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           description?: string | null
+          email?: string | null
           has_kitchen?: boolean
           id?: string
+          internal_notes?: string | null
           manager_id?: string | null
           name?: string
+          opened_at?: string | null
           opening_hours?: string | null
           phone?: string | null
           postal_code?: string | null
+          role_hours?: Json
           short_name?: string | null
+          surface_m2?: number | null
         }
         Relationships: []
       }
