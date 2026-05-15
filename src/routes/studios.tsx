@@ -626,6 +626,36 @@ function InformationsTab({
           ))}
         </div>
 
+        <div className="mt-5 pt-4 flex items-center justify-between" style={{ borderTop: "0.5px solid var(--border)" }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 500 }}>Cuisine</div>
+            <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 2 }}>
+              Active si ce studio dispose d'une cuisine. L'algo de planning et le poste Cuisine en dépendent.
+            </div>
+          </div>
+          <button
+            onClick={() => onKitchenChange(!hasKitchen)}
+            className="rounded-full transition-colors"
+            style={{
+              width: 38, height: 22, padding: 2,
+              backgroundColor: hasKitchen ? "var(--coral)" : "var(--muted)",
+              border: "0.5px solid var(--border)",
+            }}
+            aria-pressed={hasKitchen}
+            title={hasKitchen ? "Désactiver la cuisine" : "Activer la cuisine"}
+          >
+            <span
+              className="block rounded-full"
+              style={{
+                width: 16, height: 16,
+                backgroundColor: "var(--card)",
+                transform: hasKitchen ? "translateX(16px)" : "translateX(0)",
+                transition: "transform 0.15s ease",
+              }}
+            />
+          </button>
+        </div>
+
         <div className="mt-5 pt-4" style={{ borderTop: "0.5px solid var(--border)" }}>
           <div
             style={{
