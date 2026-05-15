@@ -1027,7 +1027,45 @@ function PlanningCalendarPage() {
                               const sid = e.dataTransfer.getData("text/shift-id");
                               if (!sid) return;
                               const orig = studioShifts.find((s) => s.id === sid);
-                              handleMoveShift(sid, dayIdx, orig?.slot ?? 0);
+                              if (!orig) return;
+                              const toMin = (t: string) => {
+                                const [h, m] = String(t).slice(0, 5).split(":").map(Number);
+                                return h * 60 + m;
+                              };
+                              // Détecte un shift cible sous le curseur (style Google Calendar)
+                              const cellEl = e.currentTarget as HTMLElement;
+                              const dropY = e.clientY;
+                              const targets = Array.from(cellEl.querySelectorAll<HTMLElement>("[data-shift-start]"));
+                              let newStartMin: number | null = null;
+                              for (const el of targets) {
+                                if (el.dataset.shiftId === sid) continue;
+                                const r = el.getBoundingClientRect();
+                                if (dropY < r.top - 4 || dropY > r.bottom + 4) continue;
+                                const baseStart = el.dataset.shiftStart!;
+                                const baseMin = toMin(baseStart);
+                                const ratio = (dropY - r.top) / Math.max(1, r.height);
+                                if (ratio < 0.4) {
+                                  newStartMin = baseMin; // superposer (même heure)
+                                } else if (ratio < 0.75) {
+                                  newStartMin = baseMin + 15;
+                                } else {
+                                  newStartMin = baseMin + 30; // décalé ~30 min
+                                }
+                                break;
+                              }
+                              if (newStartMin === null && targets.length > 0) {
+                                // Drop sous le dernier shift → enchaîner +30 min après son début
+                                const last = targets[targets.length - 1];
+                                const lastRect = last.getBoundingClientRect();
+                                if (dropY > lastRect.bottom) {
+                                  newStartMin = toMin(last.dataset.shiftStart!) + 30;
+                                }
+                              }
+                              if (newStartMin !== null) {
+                                handleMoveShiftPrecise(sid, dayIdx, newStartMin);
+                              } else {
+                                handleMoveShift(sid, dayIdx, orig.slot ?? 0);
+                              }
                             }}
                           >
                             {cellShifts.length === 0 ? (
