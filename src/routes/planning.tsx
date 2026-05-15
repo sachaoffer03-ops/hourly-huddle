@@ -466,6 +466,7 @@ function PlanningCalendarPage() {
   const [selectedDayIdx, setSelectedDayIdx] = useState<number | null>(null);
   const [selectedShift, setSelectedShift] = useState<PlanningShift | null>(null);
   const [holeShift, setHoleShift] = useState<PlanningShift | null>(null);
+  const [editShift, setEditShift] = useState<PlanningShift | null>(null);
 
   const weekDays = useMemo(() => getWeekDays(year, month, weekOffset), [year, month, weekOffset]);
   const [shifts, setShifts] = useState<PlanningShift[]>([]);
