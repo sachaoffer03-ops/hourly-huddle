@@ -456,7 +456,10 @@ function StudiosPage() {
           {activeSubTab === 0 && (
             <InformationsTab
               info={rowToInfo(currentRow)}
+              hasKitchen={currentRow.has_kitchen}
+              onKitchenChange={(v) => updateKitchen(currentRow.id, v)}
               onChange={(patch) => queueInfoPatch(currentRow.id, patch)}
+              onCommit={() => flushPatch(currentRow.id)}
               activeRoles={activeRoles}
               onToggleRole={(role) => onToggleRole(role)}
               customRoles={customRoles}
