@@ -125,6 +125,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          is_kitchen: boolean
           name: string
           position: number
           updated_at: string
@@ -134,6 +135,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          is_kitchen?: boolean
           name: string
           position?: number
           updated_at?: string
@@ -143,6 +145,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          is_kitchen?: boolean
           name?: string
           position?: number
           updated_at?: string
@@ -631,6 +634,7 @@ export type Database = {
           hire_date: string | null
           iban: string | null
           id: string
+          is_protected: boolean
           is_test: boolean
           last_name: string
           nationality: string | null
@@ -659,6 +663,7 @@ export type Database = {
           hire_date?: string | null
           iban?: string | null
           id: string
+          is_protected?: boolean
           is_test?: boolean
           last_name?: string
           nationality?: string | null
@@ -687,6 +692,7 @@ export type Database = {
           hire_date?: string | null
           iban?: string | null
           id?: string
+          is_protected?: boolean
           is_test?: boolean
           last_name?: string
           nationality?: string | null
@@ -1042,11 +1048,14 @@ export type Database = {
           color: string | null
           created_at: string
           description: string | null
+          has_kitchen: boolean
           id: string
+          manager_id: string | null
           name: string
           opening_hours: string | null
           phone: string | null
           postal_code: string | null
+          short_name: string | null
         }
         Insert: {
           address?: string | null
@@ -1055,11 +1064,14 @@ export type Database = {
           color?: string | null
           created_at?: string
           description?: string | null
+          has_kitchen?: boolean
           id?: string
+          manager_id?: string | null
           name: string
           opening_hours?: string | null
           phone?: string | null
           postal_code?: string | null
+          short_name?: string | null
         }
         Update: {
           address?: string | null
@@ -1068,11 +1080,14 @@ export type Database = {
           color?: string | null
           created_at?: string
           description?: string | null
+          has_kitchen?: boolean
           id?: string
+          manager_id?: string | null
           name?: string
           opening_hours?: string | null
           phone?: string | null
           postal_code?: string | null
+          short_name?: string | null
         }
         Relationships: []
       }
