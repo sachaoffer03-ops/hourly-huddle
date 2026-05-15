@@ -59,16 +59,35 @@ export const runDiagnostic = createServerFn({ method: "POST" })
       }));
     }
 
-    // S3 — Marco dispos 1-7 juin 2026
-    const { data: marco } = await sb.from("profiles").select("id").eq("first_name", "Marco").eq("last_name", "Bianchi").maybeSingle();
+    // S3 — Premier CDI cuisine trouvé : ses dispos sur la 1ʳᵉ semaine
+    //       du mois suivant (calcul dynamique, aucun nom en dur)
+    const today = new Date();
+    const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    const nextMonthDay7 = new Date(today.getFullYear(), today.getMonth() + 1, 7);
+    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+    const periodStart = fmt(nextMonthStart);
+    const periodEnd = fmt(nextMonthDay7);
+
+    // Chercher CDI cuisine via flags (rôle is_kitchen + contrat CDI)
+    const { data: kitchenRoleRows } = await sb.from("business_roles").select("name").eq("is_kitchen", true);
+    const kitchenRoleNames = (kitchenRoleRows ?? []).map((r: any) => r.name);
+    let cdiCuisineEmployee: { id: string; nom: string } | null = null;
+    if (kitchenRoleNames.length && cuisineIds.length) {
+      const { data: cdis } = await sb.from("user_contracts").select("user_id").eq("contract", "CDI").in("user_id", cuisineIds);
+      const cdiKitchenIds = Array.from(new Set((cdis ?? []).map((c: any) => c.user_id)));
+      if (cdiKitchenIds.length) {
+        const { data: p } = await sb.from("profiles").select("id,first_name,last_name").in("id", cdiKitchenIds).limit(1).maybeSingle();
+        if (p?.id) cdiCuisineEmployee = { id: p.id, nom: `${p.first_name} ${p.last_name}` };
+      }
+    }
     let s3: any[] = [];
-    if (marco?.id) {
+    if (cdiCuisineEmployee) {
       const { data: av } = await sb
         .from("availabilities")
         .select("avail_date,start_time,end_time")
-        .eq("user_id", marco.id)
-        .gte("avail_date", "2026-06-01")
-        .lte("avail_date", "2026-06-07")
+        .eq("user_id", cdiCuisineEmployee.id)
+        .gte("avail_date", periodStart)
+        .lte("avail_date", periodEnd)
         .order("avail_date").order("start_time");
       s3 = (av ?? []).map((a: any) => {
         const dow = new Date(a.avail_date + "T00:00:00").getDay();
@@ -84,42 +103,43 @@ export const runDiagnostic = createServerFn({ method: "POST" })
       });
     }
 
-    // S4 — Léa & Karim
-    const { data: lk } = await sb
-      .from("profiles")
-      .select("id,first_name,last_name,email")
-      .or("first_name.eq.Léa,first_name.eq.Karim");
-    const lkIds = (lk ?? []).filter((p: any) => p.last_name === "Bernardi" || p.last_name === "El Amrani");
+    // S4 — Dispos week-end de tous les profils qualifiés cuisine non-CDI
     let s4: any[] = [];
-    if (lkIds.length) {
-      const { data: av } = await sb
-        .from("availabilities")
-        .select("user_id,avail_date,start_time,end_time")
-        .in("user_id", lkIds.map((p: any) => p.id))
-        .gte("avail_date", "2026-06-01")
-        .lte("avail_date", "2026-06-07");
-      s4 = (av ?? []).map((a: any) => {
-        const p = lkIds.find((x: any) => x.id === a.user_id);
-        const dow = new Date(a.avail_date + "T00:00:00").getDay();
-        return {
-          nom: `${p?.first_name} ${p?.last_name}`,
-          avail_date: a.avail_date,
-          jour: DOW_LABEL_PG[dow],
-          start_time: a.start_time,
-          end_time: a.end_time,
-        };
-      }).sort((a, b) => (a.nom + a.avail_date).localeCompare(b.nom + b.avail_date));
+    if (cuisineIds.length) {
+      const { data: nonCdiContracts } = await sb.from("user_contracts").select("user_id,contract").in("user_id", cuisineIds);
+      const nonCdiIds = Array.from(new Set((nonCdiContracts ?? []).filter((c: any) => c.contract !== "CDI").map((c: any) => c.user_id)));
+      if (nonCdiIds.length) {
+        const { data: profs } = await sb.from("profiles").select("id,first_name,last_name").in("id", nonCdiIds);
+        const { data: av } = await sb
+          .from("availabilities")
+          .select("user_id,avail_date,start_time,end_time")
+          .in("user_id", nonCdiIds)
+          .gte("avail_date", periodStart)
+          .lte("avail_date", periodEnd);
+        s4 = (av ?? []).map((a: any) => {
+          const p = (profs ?? []).find((x: any) => x.id === a.user_id);
+          const dow = new Date(a.avail_date + "T00:00:00").getDay();
+          return {
+            nom: p ? `${p.first_name} ${p.last_name}` : "?",
+            avail_date: a.avail_date,
+            jour: DOW_LABEL_PG[dow],
+            start_time: a.start_time,
+            end_time: a.end_time,
+          };
+        }).filter((a) => a.jour === "Samedi" || a.jour === "Dimanche")
+          .sort((a, b) => (a.nom + a.avail_date).localeCompare(b.nom + b.avail_date));
+      }
     }
 
-    // S5 — shifts Marco
+    // S5 — shifts du CDI cuisine sur la période
     let s5: any[] = [];
-    if (marco?.id) {
+    if (cdiCuisineEmployee) {
       const { data: sh } = await sb
         .from("shifts")
         .select("shift_date,start_time,end_time,business_role,studios(name)")
-        .eq("user_id", marco.id)
-        .gte("shift_date", "2026-06-01")
-        .lte("shift_date", "2026-06-07")
+        .eq("user_id", cdiCuisineEmployee.id)
+        .gte("shift_date", periodStart)
+        .lte("shift_date", periodEnd)
         .order("shift_date").order("start_time");
       s5 = (sh ?? []).map((x: any) => {
         const dow = new Date(x.shift_date + "T00:00:00").getDay();
@@ -161,5 +181,5 @@ export const runDiagnostic = createServerFn({ method: "POST" })
     // S7 — settings IA
     const { data: settings } = await sb.from("ai_planning_settings").select("*").limit(1).maybeSingle();
 
-    return { s1, s2, s3, s4, s5, s6, settings };
+    return { s1, s2, s3, s4, s5, s6, settings, cdi_cuisine_employee: cdiCuisineEmployee, period: { start: periodStart, end: periodEnd } };
   });

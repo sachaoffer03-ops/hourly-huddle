@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, Mail, Phone, MapPin, Star, Download, UserX, MessageSquare, AlertCircle, Clock, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { roleColors, type Role } from "@/lib/mock-data";
+import { roleColors, type Role } from "@/lib/role-colors";
 import { useAuth } from "@/hooks/use-auth";
 import { computePunctuality, punctualityColor } from "@/lib/staff-helpers";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, ReferenceLine } from "recharts";

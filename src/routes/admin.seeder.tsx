@@ -1,11 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { DevOnly } from "@/components/DevOnly";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Sparkles, ArrowLeft, Check, AlertTriangle, ArrowRight, Loader2, ChefHat } from "lucide-react";
 import { seedFakeData, addKitchenWeekendStaff } from "@/lib/seed.functions";
 
 export const Route = createFileRoute("/admin/seeder")({
-  component: SeederPage,
+  component: () => (<DevOnly label="Le seeder de données fictives"><SeederPage /></DevOnly>),
   head: () => ({ meta: [{ title: "Seeder données fictives — Kadence" }] }),
 });
 
@@ -22,7 +23,7 @@ function SeederPage() {
   const [kitchenErr, setKitchenErr] = useState("");
 
   const handleClick = async () => {
-    if (!confirm("Cela va SUPPRIMER tous les profils existants (sauf admin et sachaoffer@gmail.com) puis créer ~30 employés fictifs. Continuer ?")) return;
+    if (!confirm("Cela va SUPPRIMER tous les profils existants (sauf admins et comptes marqués protégés) puis créer ~30 employés fictifs. Continuer ?")) return;
     setState("running"); setErr(""); setResult(null);
     try {
       const r = await seed();
@@ -67,7 +68,7 @@ function SeederPage() {
           <div>
             <div style={{ fontWeight: 500, marginBottom: 4 }}>Action destructive</div>
             <div style={{ color: "var(--muted-foreground)" }}>
-              Tous les profils <strong>sauf</strong> les administrateurs et <code>sachaoffer@gmail.com</code> seront supprimés. Idempotent.
+              Tous les profils <strong>sauf</strong> les administrateurs et les comptes marqués <code>is_protected = true</code> seront supprimés. Idempotent.
             </div>
           </div>
         </div>

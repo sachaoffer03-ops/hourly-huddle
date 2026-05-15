@@ -6,7 +6,7 @@ import {
   Star, Sparkles, MapPin, Phone, Trash2, Sparkle, Lock, FileEdit
 } from "lucide-react";
 import { toast } from "sonner";
-import { roleColors, type Role, type Studio } from "@/lib/mock-data";
+import { roleColors, type Role, type Studio } from "@/lib/role-colors";
 import { Dropdown } from "@/components/Dropdown";
 import { supabase } from "@/integrations/supabase/client";
 import { createShift, updateShift, deleteShift as deleteShiftFn, publishPlanning } from "@/lib/shifts.functions";

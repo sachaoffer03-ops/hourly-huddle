@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { DevOnly } from "@/components/DevOnly";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { previewStudioMigration, executeStudioMigration } from "@/lib/migrate-studios.functions";
@@ -8,7 +9,7 @@ import { toast } from "sonner";
 import { AlertTriangle, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/admin/migrate-studios")({
-  component: MigrateStudiosPage,
+  component: () => (<DevOnly label="L'outil de migration des studios"><MigrateStudiosPage /></DevOnly>),
 });
 
 function MigrateStudiosPage() {

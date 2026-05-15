@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { GripVertical, Plus, Trash2, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { roleColors, type Role } from "@/lib/mock-data";
+import { roleColors, type Role } from "@/lib/role-colors";
 import { useBusinessRoles } from "@/hooks/use-business-roles";
 
 export const Route = createFileRoute("/checklists")({

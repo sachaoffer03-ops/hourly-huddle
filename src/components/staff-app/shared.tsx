@@ -1,4 +1,4 @@
-import { roleColors as rc, type Role } from "@/lib/mock-data";
+import { roleColors as rc, type Role } from "@/lib/role-colors";
 import { X } from "lucide-react";
 import { useEffect } from "react";
 

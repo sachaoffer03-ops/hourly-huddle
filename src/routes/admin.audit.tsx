@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { DevOnly } from "@/components/DevOnly";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Loader2, Copy, Download, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 import { runAudit } from "@/lib/audit.functions";
 
 export const Route = createFileRoute("/admin/audit")({
-  component: AuditPage,
+  component: () => (<DevOnly label="L'audit production"><AuditPage /></DevOnly>),
   head: () => ({ meta: [{ title: "Audit production — Kadence" }] }),
 });
 
