@@ -152,6 +152,7 @@ function StudiosPage() {
 
   const [showNewModal, setShowNewModal] = useState(false);
   const [newStudioName, setNewStudioName] = useState("");
+  const [newStudioKitchen, setNewStudioKitchen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<StudioRow | null>(null);
 
   // Garde l'index dans les bornes quand la liste change
