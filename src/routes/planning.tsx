@@ -317,7 +317,7 @@ function ShiftDetailModal({ shift, employee, onClose, onDelete, onUpdateSlot, on
 }
 
 // ── Fill Hole Modal ────────────────────────────────────────
-function FillHoleModal({ shift, onClose, onFill }: { shift: PlanningShift; onClose: () => void; onFill: (empId: string) => void }) {
+function FillHoleModal({ shift, employees, onClose, onFill }: { shift: PlanningShift; employees: EmployeeLite[]; onClose: () => void; onFill: (empId: string) => void }) {
   const [search, setSearch] = useState("");
 
   // Find eligible employees for this role
