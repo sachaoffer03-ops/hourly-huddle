@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Search, Mail, UserPlus, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { roleColors, type Role } from "@/lib/mock-data";
+import { roleColors, type Role } from "@/lib/role-colors";
 import { InviteEmployeeModal } from "@/components/InviteEmployeeModal";
 import { InvitationsList } from "@/components/InvitationsList";
 import { useBusinessRoles } from "@/hooks/use-business-roles";

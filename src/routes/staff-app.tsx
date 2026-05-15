@@ -6,7 +6,7 @@ import {
   AlertCircle, Replace, Inbox, MessageCircle, CalendarCheck, CheckCircle2, Phone,
   MapPin, Cake, CreditCard, Hash, Mail, Bell, Sparkles
 } from "lucide-react";
-import { roleColors, getQuotaStatus, type Role } from "@/lib/mock-data";
+import { roleColors, getQuotaStatus, type Role } from "@/lib/role-colors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { EndShiftSheet } from "@/components/staff-app/EndShiftSheet";
