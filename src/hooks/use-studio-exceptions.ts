@@ -16,6 +16,8 @@ export interface StudioException {
   title: string;
   description: string | null;
   staff_adjustments: StaffAdjustment[];
+  hours_adjust: string | null;
+  date_label: string | null;
   created_at: string;
 }
 
