@@ -11,6 +11,7 @@ import { Dropdown } from "@/components/Dropdown";
 import { supabase } from "@/integrations/supabase/client";
 import { createShift, updateShift, deleteShift as deleteShiftFn, publishPlanning } from "@/lib/shifts.functions";
 import { useBusinessRoles } from "@/hooks/use-business-roles";
+import { EditShiftModal } from "@/components/EditShiftModal";
 
 export const Route = createFileRoute("/planning")({
   component: PlanningPage,
