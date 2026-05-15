@@ -228,8 +228,15 @@ function StudiosPage() {
 
   const onToggleRole = async (role: string) => {
     if (!currentRow) return;
+    const isAdding = !studioRoles.includes(role);
+    if (isAdding && /cuisine/i.test(role) && !currentRow.has_kitchen) {
+      toast.error("Ce studio n'a pas de cuisine", {
+        description: "Active la cuisine dans les informations avant d'ajouter un poste Cuisine.",
+      });
+      return;
+    }
     try {
-      if (studioRoles.includes(role)) {
+      if (!isAdding) {
         await removeRoleFromStudio(currentRow.id, role);
       } else {
         await addRoleToStudio(currentRow.id, role);
