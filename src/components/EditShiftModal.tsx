@@ -76,17 +76,37 @@ export function EditShiftModal({ shift, onClose, onSaved }: Props) {
     })();
   }, []);
 
+  // Charge les rôles autorisés pour ce studio (table studio_business_roles).
+  // Si vide, fallback sur tous les rôles métier actifs.
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("studio_business_roles")
+        .select("role")
+        .eq("studio_id", shift.studioId);
+      const list = (data ?? []).map((r: any) => r.role);
+      setStudioRoleNames(list.length > 0 ? list : null);
+    })();
+  }, [shift.studioId]);
+
+  const availableRoles = useMemo(() => {
+    const names = allRoles.map((r) => r.name);
+    if (!studioRoleNames) return names;
+    const set = new Set(studioRoleNames);
+    return names.filter((n) => set.has(n));
+  }, [allRoles, studioRoleNames]);
+
   const eligible = useMemo(() => {
     return employees
       .filter((e) =>
-        (e.roles.length === 0 || e.roles.includes(shift.role)) &&
+        (e.roles.length === 0 || e.roles.includes(role)) &&
         (e.studio_ids.length === 0 || e.studio_ids.includes(shift.studioId)),
       )
       .filter((e) =>
         search === "" ||
         `${e.first_name} ${e.last_name}`.toLowerCase().includes(search.toLowerCase()),
       );
-  }, [employees, search, shift.role, shift.studioId]);
+  }, [employees, search, role, shift.studioId]);
 
   const durationMin = useMemo(() => {
     const [sh, sm] = start.split(":").map(Number);
