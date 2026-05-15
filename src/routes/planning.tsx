@@ -6,11 +6,12 @@ import {
   Star, Sparkles, MapPin, Phone, Trash2, Sparkle, Lock, FileEdit
 } from "lucide-react";
 import { toast } from "sonner";
-import { employees, roleColors, type Role, type Studio, type Employee } from "@/lib/mock-data";
+import { roleColors, type Role, type Studio, type Employee } from "@/lib/mock-data";
 import { Dropdown } from "@/components/Dropdown";
 import { supabase } from "@/integrations/supabase/client";
 import { createShift, updateShift, deleteShift as deleteShiftFn, publishPlanning } from "@/lib/shifts.functions";
 import { useBusinessRoles } from "@/hooks/use-business-roles";
+import { useEmployees, type EmployeeLite } from "@/hooks/use-employees";
 import { EditShiftModal } from "@/components/EditShiftModal";
 
 export const Route = createFileRoute("/planning")({
