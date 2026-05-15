@@ -374,7 +374,7 @@ function StudiosPage() {
                 if (e.key === "Enter") createStudioAction();
                 if (e.key === "Escape") setShowNewModal(false);
               }}
-              placeholder="Ex. Skult Sablon"
+              placeholder="Nom du nouveau studio"
               className="w-full rounded-md px-2.5 py-2 mb-4"
               style={{
                 fontSize: 13,
