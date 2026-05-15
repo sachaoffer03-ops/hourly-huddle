@@ -527,7 +527,7 @@ function PlanningCalendarPage() {
         const startH = parseInt(String(row.start_time).slice(0, 2), 10);
         const slot = startH < 9 ? 0 : startH < 13 ? 1 : startH < 16 ? 2 : 3;
         const fmt = (t: string) => `${t.slice(0, 2)}h${t.slice(3, 5)}`;
-        const studioName = (studioMap.get(row.studio_id) as Studio) ?? "Skult Rhodes";
+        const studioName = (studioMap.get(row.studio_id) as Studio) ?? "";
         const fn = row.profiles?.first_name ?? "";
         const ln = row.profiles?.last_name ?? "";
         const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
