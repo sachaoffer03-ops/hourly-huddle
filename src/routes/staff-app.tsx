@@ -294,7 +294,7 @@ function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: Profi
 
               {next && isToday && (
                 <button
-                  onClick={() => setEndShift(next)}
+                  onClick={() => handleEndShift(next)}
                   className="mt-4 inline-flex items-center gap-1.5 rounded-md px-3 py-2"
                   style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--coral)", color: "#1A1614" }}
                 >
