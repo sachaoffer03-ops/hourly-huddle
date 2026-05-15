@@ -20,8 +20,9 @@ import { fetchAll } from "@/lib/supabase-paginate";
 // ─── Constantes ──────────────────────────────────────────────────────────────
 const CELL_MIN = 15;             // granularité (15 min)
 const MAX_OPT_ITERS = 100;       // passe C
-const KITCHEN_ROLE = "Cuisine";
-const CHATELAIN_NAME_HINTS = ["Châtelain", "Chatelain", "châtelain", "chatelain"];
+// Le rôle "cuisine" est identifié via business_roles.is_kitchen.
+// Fallback string pour rétro-compat tant que tous les rôles ne sont pas étiquetés.
+const KITCHEN_ROLE_FALLBACK = "Cuisine";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type ContractType = "CDI" | "Étudiant" | "Flexi";
