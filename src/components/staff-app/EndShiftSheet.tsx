@@ -36,31 +36,19 @@ export function EndShiftSheet({ open, onClose, shift, userId, onCompleted }: Pro
 
   useEffect(() => {
     if (!open || !shift) return;
-    setStep("checklist");
+    // Phase 1 refonte checklists : étape checklist temporairement désactivée
+    // (sera réintroduite en Phase 3 avec la nouvelle structure)
+    setStep("feedback");
     setRating(0); setFeedbackMsg(""); setReportMsg(""); setHandoffMsg("");
-
-    (async () => {
-      const { data } = await supabase.from("shift_checklist_items")
-        .select("id,label,checked_at").eq("shift_id", shift.id).order("position");
-      if (data && data.length > 0) {
-        setItems(data);
-      } else {
-        // Seed default checklist
-        const rows = DEFAULT_CHECKLIST.map((label, i) => ({ shift_id: shift.id, position: i, label }));
-        const { data: inserted } = await supabase.from("shift_checklist_items").insert(rows).select("id,label,checked_at");
-        setItems(inserted || []);
-      }
-    })();
+    setItems([]);
   }, [open, shift]);
 
-  const toggleItem = async (id: string, current: string | null) => {
-    const next = current ? null : new Date().toISOString();
-    setItems((prev) => prev.map((it) => it.id === id ? { ...it, checked_at: next } : it));
-    await supabase.from("shift_checklist_items").update({ checked_at: next }).eq("id", id);
+  const toggleItem = async (_id: string, _current: string | null) => {
+    // Désactivé temporairement (Phase 1 refonte)
   };
 
-  const allChecked = items.length > 0 && items.every((it) => it.checked_at);
-  const checkedCount = items.filter((it) => it.checked_at).length;
+  const allChecked = true;
+  const checkedCount = 0;
 
   const handleFinish = async () => {
     if (!shift) return;
