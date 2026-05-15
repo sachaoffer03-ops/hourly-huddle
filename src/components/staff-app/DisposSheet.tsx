@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Sheet, PrimaryButton } from "./shared";
-import { CheckCircle2, Plus, X } from "lucide-react";
+import { CheckCircle2, Plus, X, Lock } from "lucide-react";
+import { createAvailability, updateAvailability, deleteAvailability, getAvailabilityDeadline } from "@/lib/availabilities.functions";
 
 const DAY_NAMES = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 
