@@ -58,15 +58,15 @@ function DiagnosticPage() {
       }
     }
   }
-  // S2
-  const expected2 = ["Marco Bianchi", "Léa Bernardi", "Karim El Amrani"];
-  for (const n of expected2) if (!data.s2.find((p: any) => p.nom === n)) anomalies.push({ level: "crit", msg: `S2: profil cuisine manquant: ${n}` });
-  // S3 - Marco doit avoir lun-ven
-  const marcoJours = new Set(data.s3.map((a: any) => a.jour));
-  for (const j of ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"]) if (!marcoJours.has(j)) anomalies.push({ level: "warn", msg: `S3: Marco pas dispo ${j}` });
-  if (marcoJours.has("Samedi") || marcoJours.has("Dimanche")) anomalies.push({ level: "warn", msg: `S3: Marco dispo week-end → peut être placé en WE` });
-  // S4
-  if (!data.s4.length) anomalies.push({ level: "crit", msg: `S4: aucune dispo Léa/Karim — week-end cuisine restera vide` });
+  // S2 — au moins un CDI cuisine présent
+  const hasCdiKitchen = (data.s2 ?? []).some((p: any) => (p.contrats ?? []).includes("CDI"));
+  if (!hasCdiKitchen) anomalies.push({ level: "crit", msg: `S2: aucun profil CDI cuisine trouvé` });
+  // S3 — le CDI cuisine identifié doit avoir des dispos lun-ven
+  const cdiName = data.cdi_cuisine_employee?.nom ?? "—";
+  const cdiJours = new Set(data.s3.map((a: any) => a.jour));
+  for (const j of ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"]) if (!cdiJours.has(j)) anomalies.push({ level: "warn", msg: `S3: ${cdiName} pas dispo ${j}` });
+  // S4 — au moins une dispo cuisine non-CDI le week-end
+  if (!data.s4.length) anomalies.push({ level: "crit", msg: `S4: aucune dispo cuisine non-CDI sur le week-end` });
   // S6
   if (data.s6.target.includes("solo") || data.s6.cap.toLowerCase().includes("solo")) {
     anomalies.push({ level: "warn", msg: "S6: référence à 'solo' encore présente dans target/cap" });
