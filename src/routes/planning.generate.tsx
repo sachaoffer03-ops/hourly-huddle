@@ -521,9 +521,10 @@ function HistoryModal({ onClose }: { onClose: () => void }) {
               return (
                 <div key={r.id} className="rounded-lg border p-3 flex items-center gap-3" style={{ borderColor: "var(--border)" }}>
                   <div className="flex-1">
-                    <div style={{ fontSize: 13, fontWeight: 500 }}>
+                    <div className="flex items-center gap-2 flex-wrap" style={{ fontSize: 13, fontWeight: 500 }}>
                       {r.month_start_date} → {r.month_end_date}
-                      {r.dry_run && <span className="ml-2 rounded-full px-1.5 py-0.5" style={{ fontSize: 10, backgroundColor: "var(--muted)" }}>dry-run</span>}
+                      <WorkflowBadge status={(r.workflow_status ?? "draft") as any} />
+                      {r.dry_run && <span className="rounded-full px-1.5 py-0.5" style={{ fontSize: 10, backgroundColor: "var(--muted)" }}>dry-run</span>}
                     </div>
                     <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
                       {new Date(r.started_at).toLocaleString("fr-FR")} · {r.studios_included?.length ?? 0} studios · {r.duration_ms ? `${(r.duration_ms / 1000).toFixed(1)}s` : "—"}
