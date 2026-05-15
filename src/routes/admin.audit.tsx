@@ -9,7 +9,7 @@ export const Route = createFileRoute("/admin/audit")({
   head: () => ({ meta: [{ title: "Audit production — Kadence" }] }),
 });
 
-const ICON: Record<string, JSX.Element> = {
+const ICON: Record<string, React.ReactNode> = {
   ok: <CheckCircle2 size={14} style={{ color: "#16a34a" }} />,
   partial: <AlertTriangle size={14} style={{ color: "#a16207" }} />,
   missing: <XCircle size={14} style={{ color: "#b91c1c" }} />,
