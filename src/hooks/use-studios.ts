@@ -23,6 +23,7 @@ export interface StudioRow {
   phone: string | null;
   email: string | null;
   manager_id: string | null;
+  manager_name: string | null;
   capacity: number | null;
   surface_m2: number | null;
   opened_at: string | null;
