@@ -368,29 +368,30 @@ async function runEngine(ctx: EngineCtx) {
   logs.employee_count = employees.size;
   logs.template_count = templatesRows.length;
 
-  // ─── PHASE 1 — Détection "CDI cuisine unique" (Châtelain seulement) ──────
+  // ─── PHASE 1 — Détection "CDI cuisine unique" (studios avec cuisine) ─────
   const t_p1 = Date.now();
   const kitchenSoloByStudio = new Map<string, string | null>(); // studio_id → user_id ou null
-  const chatelainStudio = ctx.studiosArr.find((st) =>
-    CHATELAIN_NAME_HINTS.some((h) => st.name?.toLowerCase().includes(h.toLowerCase())),
-  );
-  if (chatelainStudio && studioIds.includes(chatelainStudio.id)) {
+  const kitchenStudios = ctx.studiosArr.filter((st) => st.has_kitchen && studioIds.includes(st.id));
+  for (const kStudio of kitchenStudios) {
     const cdiKitchen = Array.from(employees.values()).filter(
-      (e) => e.contracts.has("CDI") && e.roles.has(KITCHEN_ROLE) && e.studios.has(chatelainStudio.id),
+      (e) => e.contracts.has("CDI")
+        && Array.from(e.roles).some((r) => isKitchenRole(r))
+        && e.studios.has(kStudio.id),
     );
     if (cdiKitchen.length === 1) {
+      kitchenSoloByStudio.set(kStudio.id, cdiKitchen[0].id);
       alerts.push({
         type: "kitchen_solo",
         severity: "info",
         user_id: cdiKitchen[0].id,
         user_name: `${cdiKitchen[0].first_name} ${cdiKitchen[0].last_name}`,
-        message: `${cdiKitchen[0].first_name} est l'unique CDI cuisine qualifié à ${chatelainStudio.name} (staffing fragile : aucun remplaçant CDI en cas d'absence).`,
+        message: `${cdiKitchen[0].first_name} est l'unique CDI cuisine qualifié à ${kStudio.name} (staffing fragile : aucun remplaçant CDI en cas d'absence).`,
       });
     } else if (cdiKitchen.length === 0) {
       alerts.push({
         type: "kitchen_solo",
         severity: "warning",
-        message: `Aucun CDI cuisine actif à ${chatelainStudio.name}. Les besoins cuisine seront comblés par étudiants/flexis qualifiés s'il y en a.`,
+        message: `Aucun CDI cuisine actif à ${kStudio.name}. Les besoins cuisine seront comblés par étudiants/flexis qualifiés s'il y en a.`,
       });
     }
   }
