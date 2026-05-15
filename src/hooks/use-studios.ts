@@ -107,26 +107,11 @@ export async function updateStudio(id: string, patch: Partial<StudioRow>): Promi
   if (error) throw error;
 }
 
-export async function softDeleteStudio(id: string): Promise<{ ok: boolean; blockers?: any }> {
-  // Vérifier les blockers via RPC existante
-  const { data: blockers } = await supabase.rpc("studio_blockers", { _studio_id: id });
-  const b: any = blockers ?? {};
-  const totalBlock =
-    (b.shifts ?? 0) +
-    (b.staffing_templates ?? 0) +
-    (b.profiles ?? 0) +
-    (b.user_studios ?? 0) +
-    (b.checklist_templates ?? 0) +
-    (b.signalements ?? 0);
-  if (totalBlock > 0) {
-    return { ok: false, blockers: b };
-  }
-  const { error } = await supabase
-    .from("studios")
-    .update({ deleted_at: new Date().toISOString() } as any)
-    .eq("id", id);
+export async function softDeleteStudio(id: string): Promise<{ ok: boolean; blockers?: any; report?: any }> {
+  // Suppression complète (hard delete) : efface toutes les données liées partout
+  const { data, error } = await supabase.rpc("force_delete_studio" as any, { _studio_id: id });
   if (error) throw error;
-  return { ok: true };
+  return { ok: true, report: data };
 }
 
 // ----- studio_business_roles -----

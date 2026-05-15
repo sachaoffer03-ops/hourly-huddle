@@ -288,20 +288,11 @@ function StudiosPage() {
     try {
       const res = await softDeleteStudio(row.id);
       if (!res.ok) {
-        const b = res.blockers ?? {};
-        const parts: string[] = [];
-        if (b.shifts) parts.push(`${b.shifts} shift(s)`);
-        if (b.staffing_templates) parts.push(`${b.staffing_templates} besoin(s)`);
-        if (b.profiles) parts.push(`${b.profiles} profil(s)`);
-        if (b.user_studios) parts.push(`${b.user_studios} affectation(s)`);
-        if (b.checklist_templates) parts.push(`${b.checklist_templates} checklist(s)`);
-        if (b.signalements) parts.push(`${b.signalements} signalement(s)`);
-        toast.error("Suppression impossible", {
-          description: `Ce studio est encore lié à : ${parts.join(", ")}.`,
-        });
+        toast.error("Suppression impossible");
         setConfirmDelete(null);
         return;
       }
+      toast.success(`Studio « ${row.name} » supprimé`);
       setConfirmDelete(null);
       setActiveStudio((i) => Math.max(0, i - 1));
       await reload();

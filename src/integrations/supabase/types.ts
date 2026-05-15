@@ -1306,6 +1306,7 @@ export type Database = {
         Args: { _from_shift_id: string; _user_id: string }
         Returns: boolean
       }
+      force_delete_studio: { Args: { _studio_id: string }; Returns: Json }
       get_default_admin: {
         Args: never
         Returns: {
