@@ -1047,7 +1047,6 @@ export type Database = {
           city: string | null
           color: string | null
           created_at: string
-          deleted_at: string | null
           description: string | null
           has_kitchen: boolean
           id: string
@@ -1064,7 +1063,6 @@ export type Database = {
           city?: string | null
           color?: string | null
           created_at?: string
-          deleted_at?: string | null
           description?: string | null
           has_kitchen?: boolean
           id?: string
@@ -1081,7 +1079,6 @@ export type Database = {
           city?: string | null
           color?: string | null
           created_at?: string
-          deleted_at?: string | null
           description?: string | null
           has_kitchen?: boolean
           id?: string
@@ -1233,7 +1230,6 @@ export type Database = {
         Returns: Json
       }
       recalculate_all_scores: { Args: never; Returns: number }
-      studio_blockers: { Args: { _studio_id: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "manager" | "employee"
