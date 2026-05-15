@@ -109,6 +109,7 @@ function AISettings() {
             flexi: r.max_weekly_flexi_hours ?? 20,
             cdi: r.max_weekly_cdi_hours ?? 48,
           });
+          setDeadlineDay(r.availability_deadline_day ?? 20);
         }
         setLoading(false);
       });
