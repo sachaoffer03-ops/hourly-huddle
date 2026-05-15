@@ -123,7 +123,7 @@ export function BusinessRolesEditor() {
       await supabase.from("shifts").update({ business_role: r.nw }).eq("business_role", r.old);
       await supabase.from("staffing_templates").update({ business_role: r.nw }).eq("business_role", r.old);
       await supabase.from("user_business_roles").update({ role: r.nw }).eq("role", r.old);
-      await supabase.from("checklist_templates").update({ business_role: r.nw }).eq("business_role", r.old);
+      // checklist_templates: désormais lié par business_role_id (FK uuid), renommage géré automatiquement
       await supabase.from("formations").update({ required_role: r.nw }).eq("required_role", r.old);
       await supabase.from("training_paths").update({ required_role: r.nw }).eq("required_role", r.old);
     }
