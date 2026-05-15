@@ -5,7 +5,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-const PROTECTED_EMAILS = ["sachaoffer@gmail.com"];
+// La protection des profils est désormais portée par profiles.is_protected (DB).
+// Les admins sont toujours protégés implicitement (via user_roles.role='admin').
 
 // ---------- Helpers ----------
 function rand<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
@@ -39,7 +40,7 @@ async function cleanup(log: string[]) {
   const adminIds = new Set((adminRoles ?? []).map((r: any) => r.user_id));
 
   const { data: protectedProfiles } = await supabaseAdmin.from("profiles")
-    .select("id, email").in("email", PROTECTED_EMAILS);
+    .select("id, email").eq("is_protected", true);
   const protectedIds = new Set((protectedProfiles ?? []).map((p: any) => p.id));
 
   const keepIds = new Set([...adminIds, ...protectedIds]);
@@ -49,7 +50,7 @@ async function cleanup(log: string[]) {
   const deleteIds = toDelete.map((p: any) => p.id);
 
   log.push(`${toDelete.length} profils à supprimer`);
-  log.push(`${keepIds.size} profils protégés (admins + sachaoffer@gmail.com)`);
+  log.push(`${keepIds.size} profils protégés (admins + flag is_protected)`);
 
   if (deleteIds.length === 0) return { deletedProfiles: 0, deletedLinked: 0, keptEmails: [] };
 

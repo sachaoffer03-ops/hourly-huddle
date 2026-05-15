@@ -20,8 +20,9 @@ import { fetchAll } from "@/lib/supabase-paginate";
 // ─── Constantes ──────────────────────────────────────────────────────────────
 const CELL_MIN = 15;             // granularité (15 min)
 const MAX_OPT_ITERS = 100;       // passe C
-const KITCHEN_ROLE = "Cuisine";
-const CHATELAIN_NAME_HINTS = ["Châtelain", "Chatelain", "châtelain", "chatelain"];
+// Le rôle "cuisine" est identifié via business_roles.is_kitchen.
+// Fallback string pour rétro-compat tant que tous les rôles ne sont pas étiquetés.
+const KITCHEN_ROLE_FALLBACK = "Cuisine";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type ContractType = "CDI" | "Étudiant" | "Flexi";
@@ -178,8 +179,8 @@ export const generatePlanning = createServerFn({ method: "POST" })
     }
 
     // ── Studios cibles
-    const { data: allStudios } = await supabase.from("studios").select("id, name");
-    const studiosArr = (allStudios ?? []) as Array<{ id: string; name: string }>;
+    const { data: allStudios } = await supabase.from("studios").select("id, name, has_kitchen");
+    const studiosArr = (allStudios ?? []) as Array<{ id: string; name: string; has_kitchen: boolean }>;
     const studioIds = data.studio_ids?.length
       ? studiosArr.filter((s) => data.studio_ids!.includes(s.id)).map((s) => s.id)
       : studiosArr.map((s) => s.id);
@@ -294,7 +295,7 @@ interface EngineCtx {
   monthStart: string;
   monthEnd: string;
   studioIds: string[];
-  studiosArr: Array<{ id: string; name: string }>;
+  studiosArr: Array<{ id: string; name: string; has_kitchen: boolean }>;
   studioName: Map<string, string>;
   preserveManual: boolean;
   preserveLocked: boolean;
@@ -308,7 +309,7 @@ async function runEngine(ctx: EngineCtx) {
 
   // ─── PHASE 0 — Chargement des données ─────────────────────────────────────
   const t_load = Date.now();
-  const [settingsRows, profilesRows, contractsRows, rolesRows, studiosRows, availsRows, templatesRows, existingShifts] = await Promise.all([
+  const [settingsRows, profilesRows, contractsRows, rolesRows, studiosRows, availsRows, templatesRows, existingShifts, kitchenRolesRows] = await Promise.all([
     supabase.from("ai_planning_settings").select("*").order("updated_at", { ascending: false }).limit(1),
     fetchAll<any>(supabase.from("profiles").select("id, first_name, last_name, score, contract, status").eq("status", "active")),
     fetchAll<any>(supabase.from("user_contracts").select("user_id, contract")),
@@ -317,7 +318,15 @@ async function runEngine(ctx: EngineCtx) {
     fetchAll<any>(supabase.from("availabilities").select("user_id, avail_date, start_time, end_time").gte("avail_date", monthStart).lte("avail_date", monthEnd)),
     fetchAll<any>(supabase.from("staffing_templates").select("*").in("studio_id", studioIds)),
     fetchAll<any>(supabase.from("shifts").select("id, user_id, studio_id, shift_date, start_time, end_time, business_role, is_manual, is_locked").gte("shift_date", monthStart).lte("shift_date", monthEnd).in("studio_id", studioIds)),
+    fetchAll<any>(supabase.from("business_roles").select("name, is_kitchen").eq("is_kitchen", true)),
   ]);
+
+  // Set des rôles considérés "cuisine" (DB-driven, fallback sur le nom historique)
+  const kitchenRoles = new Set<string>(
+    (kitchenRolesRows ?? []).map((r: any) => r.name).filter(Boolean),
+  );
+  if (kitchenRoles.size === 0) kitchenRoles.add(KITCHEN_ROLE_FALLBACK);
+  const isKitchenRole = (role: string) => kitchenRoles.has(role);
 
   const s = parseSettings(settingsRows.data?.[0]);
 
@@ -359,29 +368,30 @@ async function runEngine(ctx: EngineCtx) {
   logs.employee_count = employees.size;
   logs.template_count = templatesRows.length;
 
-  // ─── PHASE 1 — Détection "CDI cuisine unique" (Châtelain seulement) ──────
+  // ─── PHASE 1 — Détection "CDI cuisine unique" (studios avec cuisine) ─────
   const t_p1 = Date.now();
   const kitchenSoloByStudio = new Map<string, string | null>(); // studio_id → user_id ou null
-  const chatelainStudio = ctx.studiosArr.find((st) =>
-    CHATELAIN_NAME_HINTS.some((h) => st.name?.toLowerCase().includes(h.toLowerCase())),
-  );
-  if (chatelainStudio && studioIds.includes(chatelainStudio.id)) {
+  const kitchenStudios = ctx.studiosArr.filter((st) => st.has_kitchen && studioIds.includes(st.id));
+  for (const kStudio of kitchenStudios) {
     const cdiKitchen = Array.from(employees.values()).filter(
-      (e) => e.contracts.has("CDI") && e.roles.has(KITCHEN_ROLE) && e.studios.has(chatelainStudio.id),
+      (e) => e.contracts.has("CDI")
+        && Array.from(e.roles).some((r) => isKitchenRole(r))
+        && e.studios.has(kStudio.id),
     );
     if (cdiKitchen.length === 1) {
+      kitchenSoloByStudio.set(kStudio.id, cdiKitchen[0].id);
       alerts.push({
         type: "kitchen_solo",
         severity: "info",
         user_id: cdiKitchen[0].id,
         user_name: `${cdiKitchen[0].first_name} ${cdiKitchen[0].last_name}`,
-        message: `${cdiKitchen[0].first_name} est l'unique CDI cuisine qualifié à ${chatelainStudio.name} (staffing fragile : aucun remplaçant CDI en cas d'absence).`,
+        message: `${cdiKitchen[0].first_name} est l'unique CDI cuisine qualifié à ${kStudio.name} (staffing fragile : aucun remplaçant CDI en cas d'absence).`,
       });
     } else if (cdiKitchen.length === 0) {
       alerts.push({
         type: "kitchen_solo",
         severity: "warning",
-        message: `Aucun CDI cuisine actif à ${chatelainStudio.name}. Les besoins cuisine seront comblés par étudiants/flexis qualifiés s'il y en a.`,
+        message: `Aucun CDI cuisine actif à ${kStudio.name}. Les besoins cuisine seront comblés par étudiants/flexis qualifiés s'il y en a.`,
       });
     }
   }
@@ -468,8 +478,8 @@ async function runEngine(ctx: EngineCtx) {
       // Studio
       if (e.studios.size > 0 && !e.studios.has(r.studio_id)) continue;
       // Rôle
-      if (r.role === KITCHEN_ROLE) {
-        if (!e.roles.has(KITCHEN_ROLE)) continue;
+      if (isKitchenRole(r.role)) {
+        if (!Array.from(e.roles).some((er) => isKitchenRole(er))) continue;
       } else if (r.allowed_roles.length > 0) {
         if (!r.allowed_roles.some((ar) => e.roles.has(ar))) continue;
       } else {
