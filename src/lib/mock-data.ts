@@ -369,14 +369,8 @@ export const checklistTemplates: ChecklistTemplate[] = [
   },
 ];
 
-export const studioExceptions: StudioException[] = [
-  { id: 'se1', studio: 'Skult Rhodes', date: '2026-05-21', dateLabel: 'Jeudi 21 mai', type: 'fermeture', title: 'Ascension', description: 'Jour férié — les deux studios sont fermés.', impact: [] },
-  { id: 'se2', studio: 'Skult Châtelain', date: '2026-05-21', dateLabel: 'Jeudi 21 mai', type: 'fermeture', title: 'Ascension', description: 'Jour férié — les deux studios sont fermés.', impact: [] },
-  { id: 'se3', studio: 'Skult Rhodes', date: '2026-05-23', dateLabel: 'Samedi 23 mai', type: 'événement', title: 'Soirée jazz live', description: 'Concert jazz de 19h à 23h. Besoin de staff supplémentaire en soirée.', impact: [{ role: 'Host', delta: 2 }, { role: 'Barista', delta: 1 }], hoursAdjust: '+2h fermeture' },
-  { id: 'se4', studio: 'Skult Châtelain', date: '2026-05-14', dateLabel: 'Mercredi 14 mai', type: 'ajustement', title: 'Travaux rue Châtelain', description: 'Travaux de voirie = moins de passage. Réduction du staff midi.', impact: [{ role: 'Barista', delta: -1 }, { role: 'Cuisine', delta: -1 }] },
-  { id: 'se5', studio: 'Skult Rhodes', date: '2026-06-01', dateLabel: 'Lundi 1 juin', type: 'fermeture', title: 'Lundi de Pentecôte', description: 'Jour férié.', impact: [] },
-  { id: 'se6', studio: 'Skult Châtelain', date: '2026-05-30', dateLabel: 'Samedi 30 mai', type: 'événement', title: 'Brunch spécial anniversaire', description: 'Brunch à volonté de 10h à 15h pour les 2 ans du studio.', impact: [{ role: 'Cuisine', delta: 2 }, { role: 'Accueil', delta: 1 }], hoursAdjust: 'Service étendu 10h-16h' },
-];
+// studioExceptions: migrated to DB table `studio_exceptions` (see use-studio-exceptions.ts)
+
 
 export const pendingSignups: PendingSignup[] = [
   { id: 'ps1', firstName: 'Mathis', lastName: 'Delvaux', email: 'mathis.d@gmail.com', phone: '+32 475 11 22 33', age: 20, city: 'Bruxelles', experience: "2 ans d'expérience comme barista chez Starbucks. Je cherche un endroit plus artisanal et humain. Disponible les weekends et mercredis.", desiredRoles: ['Barista'], desiredStudios: ['Skult Rhodes', 'Skult Châtelain'], submittedAt: 'Aujourd\'hui', status: 'en-attente' },
