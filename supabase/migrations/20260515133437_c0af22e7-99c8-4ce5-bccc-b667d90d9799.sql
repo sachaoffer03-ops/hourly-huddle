@@ -1,0 +1,1 @@
+ALTER TABLE public.studios ADD COLUMN IF NOT EXISTS manager_name text;

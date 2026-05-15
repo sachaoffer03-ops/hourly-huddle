@@ -23,6 +23,7 @@ export interface StudioRow {
   phone: string | null;
   email: string | null;
   manager_id: string | null;
+  manager_name: string | null;
   capacity: number | null;
   surface_m2: number | null;
   opened_at: string | null;
@@ -90,6 +91,7 @@ export async function createStudio(name: string): Promise<StudioRow | null> {
     .insert({
       name: trimmed,
       short_name: short || trimmed,
+      opened_at: new Date().toISOString().slice(0, 10),
       opening_hours: DEFAULT_WEEK as any,
       role_hours: {} as any,
     })
