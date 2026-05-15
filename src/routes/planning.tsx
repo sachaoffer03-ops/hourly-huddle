@@ -1118,7 +1118,6 @@ function PlanningCalendarPage() {
           employee={employees.find((e) => e.id === selectedShift.employeeId)}
           onClose={() => setSelectedShift(null)}
           onDelete={() => handleDeleteShift(selectedShift.id)}
-          onUpdateSlot={(slot) => handleUpdateSlot(selectedShift.id, slot)}
           onConfirm={() => handleConfirmShift(selectedShift.id)}
           onUnlock={() => { handleUnlockShift(selectedShift.id); setSelectedShift(null); }}
           onEdit={() => { setEditShift(selectedShift); setSelectedShift(null); }}
