@@ -68,7 +68,7 @@ function SeederPage() {
           <div>
             <div style={{ fontWeight: 500, marginBottom: 4 }}>Action destructive</div>
             <div style={{ color: "var(--muted-foreground)" }}>
-              Tous les profils <strong>sauf</strong> les administrateurs et <code>sachaoffer@gmail.com</code> seront supprimés. Idempotent.
+              Tous les profils <strong>sauf</strong> les administrateurs et les comptes marqués <code>is_protected = true</code> seront supprimés. Idempotent.
             </div>
           </div>
         </div>
