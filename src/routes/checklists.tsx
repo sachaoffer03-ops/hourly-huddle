@@ -2,9 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ClipboardCheck, Plus, Trash2, X, Image as ImageIcon, Camera, Check,
-  ArrowUp, ArrowDown, MessageSquare, Eye, Power,
+  ArrowUp, ArrowDown, MessageSquare, Eye,
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   useChecklistTemplates, useTemplateWithContent, createTemplate, updateTemplate, deleteTemplate,
   createItem, updateItem, deleteItem, reorderItems,
@@ -719,9 +720,9 @@ function SubmissionDrawer({ submissionId, onClose }: { submissionId: string; onC
 
       // Load template items + photos labels
       if (sub?.template_id) {
-        const { data: ti } = await (await import("@/integrations/supabase/client")).supabase
+        const { data: ti } = await supabase
           .from("checklist_template_items").select("id, label").eq("template_id", sub.template_id);
-        const { data: tp } = await (await import("@/integrations/supabase/client")).supabase
+        const { data: tp } = await supabase
           .from("checklist_template_photos").select("*").eq("template_id", sub.template_id);
         if (alive) {
           setTplItems(new Map((ti ?? []).map((i: any) => [i.id, i.label])));
