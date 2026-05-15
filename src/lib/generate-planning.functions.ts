@@ -309,7 +309,7 @@ async function runEngine(ctx: EngineCtx) {
 
   // ─── PHASE 0 — Chargement des données ─────────────────────────────────────
   const t_load = Date.now();
-  const [settingsRows, profilesRows, contractsRows, rolesRows, studiosRows, availsRows, templatesRows, existingShifts] = await Promise.all([
+  const [settingsRows, profilesRows, contractsRows, rolesRows, studiosRows, availsRows, templatesRows, existingShifts, kitchenRolesRows] = await Promise.all([
     supabase.from("ai_planning_settings").select("*").order("updated_at", { ascending: false }).limit(1),
     fetchAll<any>(supabase.from("profiles").select("id, first_name, last_name, score, contract, status").eq("status", "active")),
     fetchAll<any>(supabase.from("user_contracts").select("user_id, contract")),
@@ -318,7 +318,15 @@ async function runEngine(ctx: EngineCtx) {
     fetchAll<any>(supabase.from("availabilities").select("user_id, avail_date, start_time, end_time").gte("avail_date", monthStart).lte("avail_date", monthEnd)),
     fetchAll<any>(supabase.from("staffing_templates").select("*").in("studio_id", studioIds)),
     fetchAll<any>(supabase.from("shifts").select("id, user_id, studio_id, shift_date, start_time, end_time, business_role, is_manual, is_locked").gte("shift_date", monthStart).lte("shift_date", monthEnd).in("studio_id", studioIds)),
+    fetchAll<any>(supabase.from("business_roles").select("name, is_kitchen").eq("is_kitchen", true)),
   ]);
+
+  // Set des rôles considérés "cuisine" (DB-driven, fallback sur le nom historique)
+  const kitchenRoles = new Set<string>(
+    (kitchenRolesRows ?? []).map((r: any) => r.name).filter(Boolean),
+  );
+  if (kitchenRoles.size === 0) kitchenRoles.add(KITCHEN_ROLE_FALLBACK);
+  const isKitchenRole = (role: string) => kitchenRoles.has(role);
 
   const s = parseSettings(settingsRows.data?.[0]);
 
