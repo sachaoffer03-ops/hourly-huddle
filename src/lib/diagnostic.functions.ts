@@ -131,15 +131,15 @@ export const runDiagnostic = createServerFn({ method: "POST" })
       }
     }
 
-    // S5 — shifts Marco
+    // S5 — shifts du CDI cuisine sur la période
     let s5: any[] = [];
-    if (marco?.id) {
+    if (cdiCuisineEmployee) {
       const { data: sh } = await sb
         .from("shifts")
         .select("shift_date,start_time,end_time,business_role,studios(name)")
-        .eq("user_id", marco.id)
-        .gte("shift_date", "2026-06-01")
-        .lte("shift_date", "2026-06-07")
+        .eq("user_id", cdiCuisineEmployee.id)
+        .gte("shift_date", periodStart)
+        .lte("shift_date", periodEnd)
         .order("shift_date").order("start_time");
       s5 = (sh ?? []).map((x: any) => {
         const dow = new Date(x.shift_date + "T00:00:00").getDay();
