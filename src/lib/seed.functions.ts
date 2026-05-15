@@ -5,7 +5,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-const PROTECTED_EMAILS = ["sachaoffer@gmail.com"];
+// La protection des profils est désormais portée par profiles.is_protected (DB).
+// Les admins sont toujours protégés implicitement (via user_roles.role='admin').
 
 // ---------- Helpers ----------
 function rand<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
