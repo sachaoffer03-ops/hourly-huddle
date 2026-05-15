@@ -69,7 +69,7 @@ export const updateShift = createServerFn({ method: "POST" })
 
     const { data: current, error: eCur } = await supabase
       .from("shifts")
-      .select("user_id, shift_date, start_time, end_time")
+      .select("user_id, shift_date, start_time, end_time, published_at")
       .eq("id", data.shiftId)
       .single();
     if (eCur) throw new Error(eCur.message);
@@ -79,6 +79,13 @@ export const updateShift = createServerFn({ method: "POST" })
     const nextStart = data.startTime ?? current.start_time;
     const nextEnd = data.endTime ?? current.end_time;
     await assertNoOverlap(supabase, nextUserId, nextDate, nextStart, nextEnd, data.shiftId);
+
+    const wasPublished = !!current.published_at;
+    const userChanged = data.userId !== undefined && data.userId !== current.user_id;
+    const timeChanged =
+      (data.shiftDate && data.shiftDate !== current.shift_date) ||
+      (data.startTime && data.startTime !== String(current.start_time).slice(0, 8)) ||
+      (data.endTime && data.endTime !== String(current.end_time).slice(0, 8));
 
     const patch: any = { updated_at: new Date().toISOString() };
     if (data.markManual !== false) patch.is_manual = true;
