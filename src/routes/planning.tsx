@@ -172,22 +172,8 @@ function ShiftDetailModal({ shift, employee, onClose, onDelete, onConfirm, onUnl
           <div className="flex items-center gap-3">
             <Clock size={14} style={{ color: "var(--muted-foreground)" }} />
             <div className="flex-1">
-              {editing ? (
-                <Dropdown
-                  value={timeSlotDefs[shift.slot].time}
-                  options={timeSlotDefs.map(s => s.time)}
-                  onChange={(v) => {
-                    const idx = timeSlotDefs.findIndex(s => s.time === v);
-                    if (idx >= 0) onUpdateSlot(idx);
-                  }}
-                  minWidth={180}
-                />
-              ) : (
-                <>
-                  <div style={{ fontSize: 13, fontWeight: 500 }}>{shift.time}</div>
-                  <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>5 heures</div>
-                </>
-              )}
+              <div style={{ fontSize: 13, fontWeight: 500 }}>{shift.time}</div>
+              <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{durationH}h</div>
             </div>
           </div>
 
