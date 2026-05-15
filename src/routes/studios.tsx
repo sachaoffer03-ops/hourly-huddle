@@ -382,6 +382,14 @@ function StudiosPage() {
                 backgroundColor: "var(--background)",
               }}
             />
+            <label className="flex items-center gap-2 mb-4 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={newStudioKitchen}
+                onChange={(e) => setNewStudioKitchen(e.target.checked)}
+              />
+              <span style={{ fontSize: 13 }}>Ce studio a une cuisine</span>
+            </label>
             <div className="flex items-center justify-end gap-2">
               <button
                 onClick={() => setShowNewModal(false)}
