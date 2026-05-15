@@ -133,8 +133,13 @@ function TimeBar({ leftPct, widthPct, color }: { leftPct: number; widthPct: numb
 }
 
 // ── Shift Detail Modal ─────────────────────────────────────
-function ShiftDetailModal({ shift, employee, onClose, onDelete, onUpdateSlot, onConfirm, onUnlock, onEdit }: { shift: PlanningShift; employee?: EmployeeLite; onClose: () => void; onDelete: () => void; onUpdateSlot: (slot: number) => void; onConfirm: () => void; onUnlock?: () => void; onEdit: () => void }) {
-  const [editing, setEditing] = useState(false);
+function ShiftDetailModal({ shift, employee, onClose, onDelete, onConfirm, onUnlock, onEdit }: { shift: PlanningShift; employee?: EmployeeLite; onClose: () => void; onDelete: () => void; onConfirm: () => void; onUnlock?: () => void; onEdit: () => void }) {
+  const durationH = useMemo(() => {
+    const [sh, sm] = String(shift.startTime).slice(0, 5).split(":").map(Number);
+    const [eh, em] = String(shift.endTime).slice(0, 5).split(":").map(Number);
+    const mins = (eh * 60 + em) - (sh * 60 + sm);
+    return Math.round((mins / 60) * 10) / 10;
+  }, [shift.startTime, shift.endTime]);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.3)" }} onClick={onClose}>
       <div
