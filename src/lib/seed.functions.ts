@@ -416,8 +416,9 @@ function generateAvailabilities(employees: Array<{ id: string; spec: EmployeeSpe
       const isWeekend = dow >= 5;
 
       // Jours de dispo selon contrat (cuisine non-CDI = focus week-end)
+      // CDI cuisine : lun-ven uniquement (jamais le week-end → réservé Léa/Karim)
       let dispoChance = 0;
-      if (isCDI && isCuisine) dispoChance = 0.85;
+      if (isCDI && isCuisine) dispoChance = isWeekend ? 0 : 0.95;
       else if (isCDI) dispoChance = 0.75;
       else if (isStudent && isCuisine) dispoChance = isWeekend ? 0.95 : 0.20;
       else if (isFlexi && isCuisine) dispoChance = isWeekend ? 0.95 : 0.40;
