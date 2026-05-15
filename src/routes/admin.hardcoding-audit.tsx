@@ -99,18 +99,16 @@ const SECTIONS: Section[] = [
         recommendation: "La liste des studios est désormais dérivée dynamiquement de studioMap (issu de la DB). Plus aucun fallback en dur.",
       },
       {
-        severity: "warn",
+        severity: "ok",
         file: "src/routes/studios.tsx",
-        line: "36, 65-200+",
-        snippet: `const baseStudioTabs: Studio[] = ["Skult Rhodes", "Skult Châtelain"];\n"Skult Rhodes": { name, address, manager, ... }`,
-        verdict: "🟠 À refactorer (UI mock)",
-        recommendation: "La page /studios reste un mock UI 2100 lignes. À reconstruire en CRUD branché sur la table studios (phase dédiée).",
+        verdict: "🟢 Résolu",
+        recommendation: "Page entièrement réécrite en CRUD admin branché sur la table studios. Plus aucun nom de studio en dur, plus aucun import de mock-data. Création/édition/suppression via server functions (admin-only) avec soft delete (deleted_at).",
       },
       {
-        severity: "info",
+        severity: "ok",
         file: "studios DB",
-        verdict: "🟡 short_name disponible",
-        recommendation: `La colonne studios.short_name est désormais présente et backfillée. Les pages qui font studioName.replace("Skult ", "") peuvent migrer vers ce champ.`,
+        verdict: "🟢 short_name + soft delete",
+        recommendation: "Colonne short_name backfillée. Colonne deleted_at ajoutée pour préserver l'historique des shifts. Tous les sélecteurs de studios filtrent désormais .is('deleted_at', null).",
       },
     ],
   },
@@ -233,12 +231,10 @@ const SECTIONS: Section[] = [
         recommendation: "roleColors est un Proxy qui lit business_roles via le hook (pas une constante hardcodée). Re-exporté via @/lib/role-colors pour que les pages n'importent plus jamais 'mock-data'.",
       },
       {
-        severity: "warn",
+        severity: "ok",
         file: "src/routes/studios.tsx",
-        line: 326,
-        snippet: `placeholder="Ex. Skult Sablon"`,
-        verdict: "🟡 Cosmétique",
-        recommendation: "Placeholder à généraliser lors du refactor CRUD de la page studios.",
+        verdict: "🟢 Résolu",
+        recommendation: "Placeholder du formulaire généralisé (« Ex: Skult Sablon, Bar du Coin… »). Aucun nom d'enseigne en dur dans la logique.",
       },
     ],
   },
@@ -351,9 +347,8 @@ function HardcodingAuditPage() {
             Reste à nettoyer
           </h2>
           <ol style={{ paddingLeft: 20, fontSize: 14, lineHeight: 1.8 }}>
-            <li><strong>Refactor studios.tsx</strong> — la page reste un mock UI 2100 lignes ; à reconstruire en CRUD branché sur la table studios.</li>
-            <li><strong>Trim mock-data.ts</strong> — supprimer le tableau <code>employees</code> et tous ses dérivés (todayShifts, holeShifts, feedbacks, checklistTemplates, studioExceptions) une fois studios.tsx migré.</li>
-            <li><strong>Migrer le préfixe "Skult "</strong> — utiliser studios.short_name au lieu de <code>.replace("Skult ", "")</code> dans les pages d'affichage.</li>
+            <li><strong>Trim mock-data.ts</strong> — réduire le fichier au strict minimum (Role/Studio types + roleColors proxy). Le tableau <code>employees</code> et ses dérivés (todayShifts, holeShifts, feedbacks, checklistTemplates, studioExceptions) ne sont plus consommés.</li>
+            <li><strong>Migrer le préfixe « Skult »</strong> — préférer <code>studio.short_name</code> au lieu de <code>.replace("Skult ", "")</code> dans les vues compactes restantes.</li>
           </ol>
         </div>
       )}
