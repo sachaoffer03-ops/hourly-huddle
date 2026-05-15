@@ -104,6 +104,42 @@ export const updateShift = createServerFn({ method: "POST" })
 
     const { error } = await supabase.from("shifts").update(patch).eq("id", data.shiftId);
     if (error) throw new Error(error.message);
+
+    // Notifications quand on modifie un shift déjà publié
+    if (wasPublished) {
+      const fmtRange = `${nextDate} ${String(nextStart).slice(0,5)}–${String(nextEnd).slice(0,5)}`;
+      const notifs: any[] = [];
+      if (userChanged) {
+        if (current.user_id) {
+          notifs.push({
+            user_id: current.user_id,
+            type: "shift_removed",
+            title: "Shift retiré",
+            body: `Le shift du ${current.shift_date} ${String(current.start_time).slice(0,5)} a été réassigné.`,
+            link: "/staff-app",
+          });
+        }
+        if (nextUserId) {
+          notifs.push({
+            user_id: nextUserId,
+            type: "shift_added",
+            title: "Nouveau shift",
+            body: fmtRange,
+            link: "/staff-app",
+          });
+        }
+      } else if (timeChanged && nextUserId) {
+        notifs.push({
+          user_id: nextUserId,
+          type: "shift_updated",
+          title: "Shift modifié",
+          body: fmtRange,
+          link: "/staff-app",
+        });
+      }
+      if (notifs.length > 0) await supabase.from("notifications").insert(notifs);
+    }
+
     return { ok: true };
   });
 
