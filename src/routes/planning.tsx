@@ -133,7 +133,7 @@ function TimeBar({ leftPct, widthPct, color }: { leftPct: number; widthPct: numb
 }
 
 // ── Shift Detail Modal ─────────────────────────────────────
-function ShiftDetailModal({ shift, employee, onClose, onDelete, onUpdateSlot, onConfirm, onUnlock }: { shift: PlanningShift; employee?: Employee; onClose: () => void; onDelete: () => void; onUpdateSlot: (slot: number) => void; onConfirm: () => void; onUnlock?: () => void }) {
+function ShiftDetailModal({ shift, employee, onClose, onDelete, onUpdateSlot, onConfirm, onUnlock, onEdit }: { shift: PlanningShift; employee?: Employee; onClose: () => void; onDelete: () => void; onUpdateSlot: (slot: number) => void; onConfirm: () => void; onUnlock?: () => void; onEdit: () => void }) {
   const [editing, setEditing] = useState(false);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.3)" }} onClick={onClose}>
