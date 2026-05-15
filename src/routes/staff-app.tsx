@@ -1,5 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { findApplicableTemplate } from "@/lib/checklists.helpers";
 import { toast } from "sonner";
 import {
   Home, Calendar, User, ChevronRight, Clock, GraduationCap, ArrowLeft, CheckSquare,
@@ -124,6 +125,18 @@ function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: Profi
   const [disposValidated, setDisposValidated] = useState(false);
   const [proposalsOpen, setProposalsOpen] = useState(false);
   const { proposals } = useProposals(userId);
+  const navigate = useNavigate();
+
+  async function handleEndShift(s: ShiftRow) {
+    try {
+      const tpl = await findApplicableTemplate({ studioId: s.studio_id ?? null, businessRole: s.business_role });
+      if (tpl) {
+        navigate({ to: "/staff/checklist/$shiftId", params: { shiftId: s.id } });
+        return;
+      }
+    } catch {}
+    setEndShift(s);
+  }
 
   // Mois suivant
   const nextMonth = useMemo(() => {
@@ -293,7 +306,7 @@ function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: Profi
 
               {next && isToday && (
                 <button
-                  onClick={() => setEndShift(next)}
+                  onClick={() => handleEndShift(next)}
                   className="mt-4 inline-flex items-center gap-1.5 rounded-md px-3 py-2"
                   style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--coral)", color: "#1A1614" }}
                 >
