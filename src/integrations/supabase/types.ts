@@ -1124,6 +1124,7 @@ export type Database = {
           id: string
           internal_notes: string | null
           manager_id: string | null
+          manager_name: string | null
           name: string
           opened_at: string | null
           opening_hours: string | null
@@ -1146,6 +1147,7 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           manager_id?: string | null
+          manager_name?: string | null
           name: string
           opened_at?: string | null
           opening_hours?: string | null
@@ -1168,6 +1170,7 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           manager_id?: string | null
+          manager_name?: string | null
           name?: string
           opened_at?: string | null
           opening_hours?: string | null
