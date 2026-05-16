@@ -91,6 +91,7 @@ function StaffAppPage() {
       <div className="flex-1 overflow-y-auto pb-20">
         {tab === "accueil" && <AccueilTab profile={profile} studios={studios} userId={user.id} onOpenNotifs={() => setNotifOpen(true)} />}
         {tab === "planning" && <PlanningTab studios={studios} userId={user.id} />}
+        {tab === "pointage" && <PointageTab studios={studios} userId={user.id} />}
         {tab === "formation" && <FormationPanel userId={user.id} />}
         {tab === "chat" && <ChatPanel meId={user.id} peerId={adminId} peerName={adminName} />}
         {tab === "profil" && <ProfilTab profile={profile} businessRoles={businessRoles} studios={studios} onNavigate={setTab} />}
@@ -103,13 +104,14 @@ function StaffAppPage() {
         {([
           { id: "accueil" as Tab, label: "Accueil", icon: Home },
           { id: "planning" as Tab, label: "Planning", icon: Calendar },
+          { id: "pointage" as Tab, label: "Pointage", icon: Clock },
           { id: "formation" as Tab, label: "Formation", icon: GraduationCap },
           { id: "chat" as Tab, label: "Chat", icon: MessageCircle },
           { id: "profil" as Tab, label: "Profil", icon: User },
         ]).map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} className="flex flex-col items-center gap-0.5 py-2 px-2">
-            <t.icon size={20} strokeWidth={1.6} style={{ color: tab === t.id ? "var(--coral)" : "var(--muted-foreground)" }} />
-            <span style={{ fontSize: 10, fontWeight: tab === t.id ? 500 : 400, color: tab === t.id ? "var(--coral-dark)" : "var(--muted-foreground)" }}>{t.label}</span>
+          <button key={t.id} onClick={() => setTab(t.id)} className="flex flex-col items-center gap-0.5 py-2 px-1">
+            <t.icon size={18} strokeWidth={1.6} style={{ color: tab === t.id ? "var(--coral)" : "var(--muted-foreground)" }} />
+            <span style={{ fontSize: 9, fontWeight: tab === t.id ? 500 : 400, color: tab === t.id ? "var(--coral-dark)" : "var(--muted-foreground)" }}>{t.label}</span>
           </button>
         ))}
       </div>
