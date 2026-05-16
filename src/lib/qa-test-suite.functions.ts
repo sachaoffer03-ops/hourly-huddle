@@ -459,6 +459,8 @@ const TEST_DEFS = [
   { id: 11, name: "E2E · Checklist fin de shift", description: "Template + items créés, soumission complétée, score profil recalculé." },
   { id: 12, name: "E2E · Modification + feedback", description: "Demande de modification employée → admin accepte + laisse une note 5★." },
   { id: 13, name: "E2E · Signalement & sortie", description: "Signalement créé → résolu par admin → désactivation propre du profil." },
+  { id: 14, name: "E2E · Notif publication planning", description: "publishPlanning crée une notification 'planning_published' pour chaque employé concerné." },
+  { id: 15, name: "E2E · Notifs cascade (modif + feedback)", description: "Acceptation d'une demande de modif et envoi d'un feedback créent les notifications attendues." },
 ];
 
 export const listTests = createServerFn({ method: "GET" })
