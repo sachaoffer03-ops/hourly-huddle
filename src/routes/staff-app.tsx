@@ -133,6 +133,22 @@ function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: Profi
   const { proposals, reload: reloadProposals } = useProposals(userId);
   const navigate = useNavigate();
 
+  // tick toutes les 1s pour le timer "en service"
+  const [nowTs, setNowTs] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNowTs(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  async function handleClockIn(s: ShiftRow) {
+    const nowIso = new Date().toISOString();
+    const { error } = await supabase.from("shifts")
+      .update({ clocked_in_at: nowIso })
+      .eq("id", s.id);
+    if (error) { toast.error("Impossible de pointer", { description: error.message }); return; }
+    toast.success("Arrivée enregistrée");
+  }
+
   async function handleEndShift(s: ShiftRow) {
     try {
       const tpl = await findApplicableTemplate({ studioId: s.studio_id ?? null, businessRole: s.business_role });
