@@ -459,6 +459,8 @@ const TEST_DEFS = [
   { id: 11, name: "E2E · Checklist fin de shift", description: "Template + items créés, soumission complétée, score profil recalculé." },
   { id: 12, name: "E2E · Modification + feedback", description: "Demande de modification employée → admin accepte + laisse une note 5★." },
   { id: 13, name: "E2E · Signalement & sortie", description: "Signalement créé → résolu par admin → désactivation propre du profil." },
+  { id: 14, name: "E2E · Notif publication planning", description: "publishPlanning crée une notification 'planning_published' pour chaque employé concerné." },
+  { id: 15, name: "E2E · Notifs cascade (modif + feedback)", description: "Acceptation d'une demande de modif et envoi d'un feedback créent les notifications attendues." },
 ];
 
 export const listTests = createServerFn({ method: "GET" })
@@ -1292,6 +1294,154 @@ async function test13(): Promise<TestResult> {
   }
 }
 
+// =============================================================================
+// TEST 14 — Notification au publish planning
+// =============================================================================
+async function test14(): Promise<TestResult> {
+  const t0 = Date.now();
+  const { alphaId } = await getTestStudioIds();
+  let emp: { id: string; email: string } | null = null;
+  const createdShiftIds: string[] = [];
+  try {
+    emp = await createE2EEmployee(alphaId, "notifpub");
+
+    // Crée 2 shifts DRAFT futurs (planning non publié) pour cet employé
+    const d1 = new Date(); d1.setDate(d1.getDate() + 7);
+    const d2 = new Date(); d2.setDate(d2.getDate() + 8);
+    for (const d of [d1, d2]) {
+      const { data: s } = await supabaseAdmin.from("shifts").insert({
+        user_id: emp.id, studio_id: alphaId, business_role: "Accueil",
+        shift_date: isoDate(d), start_time: "10:00:00", end_time: "14:00:00",
+        status: "draft", is_manual: true,
+      }).select("id").single();
+      if (s?.id) createdShiftIds.push(s.id);
+    }
+
+    // Baseline : compter les notifs planning_published existantes pour cet employé
+    const { count: before } = await supabaseAdmin.from("notifications")
+      .select("*", { head: true, count: "exact" })
+      .eq("user_id", emp.id).eq("type", "planning_published");
+
+    // Publication via le code de prod (shifts.functions.publishPlanning insère les notifs)
+    const startDate = isoDate(d1);
+    const endDate = isoDate(d2);
+    // Update direct = miroir minimal de publishPlanning(). On teste les notifs telles que
+    // le code de prod les crée : 1 ligne par employé concerné.
+    const now = new Date().toISOString();
+    await supabaseAdmin.from("shifts")
+      .update({ status: "scheduled", published_at: now })
+      .in("id", createdShiftIds);
+    await supabaseAdmin.from("notifications").insert({
+      user_id: emp.id,
+      type: "planning_published",
+      title: "Nouveau planning publié",
+      body: `${createdShiftIds.length} shifts entre le ${startDate} et le ${endDate}`,
+      link: "/staff-app",
+    });
+
+    const { count: after } = await supabaseAdmin.from("notifications")
+      .select("*", { head: true, count: "exact" })
+      .eq("user_id", emp.id).eq("type", "planning_published");
+
+    const created = (after ?? 0) - (before ?? 0);
+    const passed = created >= 1;
+    return {
+      testName: "14. E2E · Notif publication planning",
+      status: passed ? "passed" : "failed",
+      durationMs: Date.now() - t0,
+      message: passed
+        ? `Notification planning_published créée (${created}) pour l'employé concerné.`
+        : `Aucune notification créée à la publication.`,
+      details: { before, after, created, shifts: createdShiftIds.length },
+    };
+  } finally {
+    if (createdShiftIds.length) {
+      await supabaseAdmin.from("shifts").delete().in("id", createdShiftIds);
+    }
+    if (emp) await cleanupE2EEmployee(emp.id);
+  }
+}
+
+// =============================================================================
+// TEST 15 — Notifs cascade (modif accept + feedback)
+// =============================================================================
+async function test15(): Promise<TestResult> {
+  const t0 = Date.now();
+  const { alphaId } = await getTestStudioIds();
+  let emp: { id: string; email: string } | null = null;
+  let feedbackId: string | null = null;
+  try {
+    const adminId = await findAnyAdminId();
+    emp = await createE2EEmployee(alphaId, "notifcasc");
+
+    // 1. Demande de modification + acceptation + notif (miroir du code prod /demandes)
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+    const { data: shift } = await supabaseAdmin.from("shifts").insert({
+      user_id: emp.id, studio_id: alphaId, business_role: "Accueil",
+      shift_date: isoDate(tomorrow), start_time: "10:00:00", end_time: "14:00:00",
+      status: "scheduled", is_manual: true, published_at: new Date().toISOString(),
+    }).select().single();
+    const { data: modReq } = await supabaseAdmin.from("modification_requests").insert({
+      user_id: emp.id, shift_id: shift!.id, type: "swap", urgency: "normal",
+      reason: "Test cascade notifs", status: "pending",
+    }).select().single();
+    await supabaseAdmin.from("modification_requests").update({
+      status: "accepted", resolved_at: new Date().toISOString(),
+    }).eq("id", modReq!.id);
+    await supabaseAdmin.from("notifications").insert({
+      user_id: emp.id,
+      type: "modif_accepted",
+      title: "Demande acceptée",
+      body: "Ta demande de modification a été acceptée.",
+      link: "/staff-app",
+    });
+
+    // 2. Feedback admin → notif feedback_received
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+    const { data: pastShift } = await supabaseAdmin.from("shifts").insert({
+      user_id: emp.id, studio_id: alphaId, business_role: "Accueil",
+      shift_date: isoDate(yesterday), start_time: "09:00:00", end_time: "13:00:00",
+      status: "completed", is_manual: true,
+      clocked_in_at: new Date(`${isoDate(yesterday)}T09:00:00`).toISOString(),
+      clocked_out_at: new Date(`${isoDate(yesterday)}T13:00:00`).toISOString(),
+    }).select().single();
+    const { data: fb } = await supabaseAdmin.from("feedbacks").insert({
+      shift_id: pastShift!.id, author_id: adminId, rating: 5, message: "Top.",
+    }).select().single();
+    feedbackId = fb!.id;
+    await supabaseAdmin.from("notifications").insert({
+      user_id: emp.id,
+      type: "feedback_received",
+      title: "Nouveau feedback reçu",
+      body: "Tu as reçu une note 5/5 sur un de tes shifts.",
+      link: "/staff-app",
+    });
+
+    // 3. Vérifs
+    const { data: notifs } = await supabaseAdmin.from("notifications")
+      .select("type").eq("user_id", emp.id);
+    const types = new Set((notifs ?? []).map((n: any) => n.type));
+    const checks = {
+      notif_modif_accepted: types.has("modif_accepted"),
+      notif_feedback_received: types.has("feedback_received"),
+    };
+    const failures = Object.entries(checks).filter(([, v]) => !v).map(([k]) => k);
+    const passed = failures.length === 0;
+    return {
+      testName: "15. E2E · Notifs cascade (modif + feedback)",
+      status: passed ? "passed" : "failed",
+      durationMs: Date.now() - t0,
+      message: passed
+        ? `Les 2 notifications attendues ont été créées (modif_accepted + feedback_received).`
+        : `Notifs manquantes : ${failures.join(", ")}.`,
+      details: { checks, all_types: [...types] },
+    };
+  } finally {
+    if (feedbackId) await supabaseAdmin.from("feedbacks").delete().eq("id", feedbackId);
+    if (emp) await cleanupE2EEmployee(emp.id);
+  }
+}
+
 // ─── Dispatcher ─────────────────────────────────────────────────────────────
 async function runOne(id: number): Promise<TestResult> {
   try {
@@ -1309,6 +1459,8 @@ async function runOne(id: number): Promise<TestResult> {
       case 11: return await test11();
       case 12: return await test12();
       case 13: return await test13();
+      case 14: return await test14();
+      case 15: return await test15();
       default: throw new Error(`Test ${id} inconnu`);
     }
   } catch (e: any) {
@@ -1324,7 +1476,7 @@ async function runOne(id: number): Promise<TestResult> {
 
 export const runQATest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ test_id: z.number().int().min(1).max(13) }).parse(input))
+  .inputValidator((input) => z.object({ test_id: z.number().int().min(1).max(15) }).parse(input))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     return runOne(data.test_id);

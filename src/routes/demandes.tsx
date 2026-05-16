@@ -135,11 +135,22 @@ function DemandesPage() {
     if (propIds.length > 0) {
       try { await cancelFn({ data: { proposalIds: propIds } }); } catch { /* ignore */ }
     }
+    const { data: reqRow } = await supabase.from("modification_requests")
+      .select("user_id").eq("id", id).maybeSingle();
     const { error } = await supabase.from("modification_requests").update({
       status: "refused", resolved_at: new Date().toISOString(),
     }).eq("id", id);
     setBusy(false);
     if (error) { toast.error("Erreur"); return; }
+    if (reqRow?.user_id) {
+      await supabase.from("notifications").insert({
+        user_id: reqRow.user_id,
+        type: "modif_rejected",
+        title: "Demande refusée",
+        body: "Ta demande de modification a été refusée.",
+        link: "/staff-app",
+      });
+    }
     setExpandedId(null);
     toast.success("Demande refusée");
   };
@@ -303,7 +314,15 @@ function DemandesPage() {
                             const { error } = await supabase.from("modification_requests").update({
                               status: "accepted", resolved_at: new Date().toISOString(),
                             }).eq("id", req.id);
-                            if (error) toast.error("Erreur"); else { setExpandedId(null); toast.success("Demande acceptée"); }
+                            if (error) { toast.error("Erreur"); return; }
+                            await supabase.from("notifications").insert({
+                              user_id: req.user_id,
+                              type: "modif_accepted",
+                              title: "Demande acceptée",
+                              body: "Ta demande de modification a été acceptée.",
+                              link: "/staff-app",
+                            });
+                            setExpandedId(null); toast.success("Demande acceptée");
                           }}
                             className="rounded-md px-4 py-2 flex items-center gap-1.5"
                             style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)" }}>

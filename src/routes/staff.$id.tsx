@@ -109,6 +109,15 @@ function EmployeeDetailPage() {
     });
     setSaving(false);
     if (error) { toast.error("Erreur lors de l'enregistrement"); return; }
+    if (id && id !== user.id) {
+      await supabase.from("notifications").insert({
+        user_id: id,
+        type: "feedback_received",
+        title: "Nouveau feedback reçu",
+        body: `Tu as reçu une note ${rateValue}/5 sur un de tes shifts.`,
+        link: "/staff-app",
+      });
+    }
     toast.success("Note enregistrée");
     setRateShiftId(null); setRateMsg(""); setRateValue(5);
     load();
