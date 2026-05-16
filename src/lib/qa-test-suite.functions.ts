@@ -453,6 +453,12 @@ const TEST_DEFS = [
   { id: 6, name: "Cas extrême : pénurie de dispos", description: "80% des dispos supprimées : pas de crash, trous listés." },
   { id: 7, name: "Cas extrême : surcharge d'employés", description: "100 candidats sur Beta : génération rapide, couverture maintenue." },
   { id: 8, name: "Idempotence / déterminisme", description: "2 runs consécutifs donnent des métriques équivalentes." },
+  // ─── E2E : cycle complet d'un employé ────────────────────────────────────
+  { id: 9, name: "E2E · Arrivée employé", description: "Création complète d'un employé (profile + rôles + studio + contrat) avec vérification de cohérence." },
+  { id: 10, name: "E2E · Cycle de shift", description: "Shift créé → publié → clock-in en retard → clock-out → status completed." },
+  { id: 11, name: "E2E · Checklist fin de shift", description: "Template + items créés, soumission complétée, score profil recalculé." },
+  { id: 12, name: "E2E · Modification + feedback", description: "Demande de modification employée → admin accepte + laisse une note 5★." },
+  { id: 13, name: "E2E · Signalement & sortie", description: "Signalement créé → résolu par admin → désactivation propre du profil." },
 ];
 
 export const listTests = createServerFn({ method: "GET" })
