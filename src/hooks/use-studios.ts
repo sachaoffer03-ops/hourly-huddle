@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface DayHours {
@@ -58,6 +58,7 @@ function normalize(row: any): StudioRow {
 export function useStudios() {
   const [studios, setStudios] = useState<StudioRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const channelId = useRef(`studios-list-${Math.random().toString(36).slice(2)}`);
 
   const reload = useCallback(async () => {
     const { data, error } = await supabase
@@ -71,7 +72,7 @@ export function useStudios() {
   useEffect(() => {
     reload();
     const ch = supabase
-      .channel("studios-list")
+      .channel(channelId.current)
       .on("postgres_changes", { event: "*", schema: "public", table: "studios" }, () => reload())
       .subscribe();
     return () => {
