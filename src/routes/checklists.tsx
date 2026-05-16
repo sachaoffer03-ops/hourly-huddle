@@ -122,7 +122,7 @@ function TemplatesView() {
 
       {/* Main editor */}
       <div>
-        {selectedId ? <TemplateEditor templateId={selectedId} /> : (
+        {selectedId ? <TemplateEditor templateId={selectedId} onDeleted={() => { setSelectedId(null); reload(); }} /> : (
           <div className="rounded-lg border p-12 text-center" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
             <div style={{ fontSize: 13, color: "var(--muted-foreground)" }}>Sélectionne un modèle pour l'éditer.</div>
           </div>
