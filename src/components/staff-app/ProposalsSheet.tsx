@@ -50,7 +50,7 @@ export function useProposals(userId: string) {
   useEffect(() => {
     load();
     const ch = supabase
-      .channel(`proposals-${userId}`)
+      .channel(`proposals-${userId}-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "shift_proposals", filter: `user_id=eq.${userId}` }, load)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
