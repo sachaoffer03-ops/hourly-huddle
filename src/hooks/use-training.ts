@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type {
   TrainingFolder, TrainingStep, TrainingResource, TrainingProgress,
@@ -28,10 +28,11 @@ export function useTrainingFolders() {
     setLoading(false);
   }, []);
 
+  const cid = useRef(`tf-${Math.random().toString(36).slice(2)}`);
   useEffect(() => {
     reload();
     const ch = supabase
-      .channel("training-folders")
+      .channel(cid.current)
       .on("postgres_changes", { event: "*", schema: "public", table: FOLDERS }, () => reload())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -64,8 +65,9 @@ export function useFolderWithContent(folderId: string | null) {
   useEffect(() => {
     reload();
     if (!folderId) return;
+    const cid = `tfc-${folderId}-${Math.random().toString(36).slice(2)}`;
     const ch = supabase
-      .channel(`training-folder-${folderId}`)
+      .channel(cid)
       .on("postgres_changes", { event: "*", schema: "public", table: STEPS }, () => reload())
       .on("postgres_changes", { event: "*", schema: "public", table: RESOURCES }, () => reload())
       .subscribe();
@@ -90,10 +92,11 @@ export function useMyTrainingProgress() {
     setLoading(false);
   }, []);
 
+  const cid = useRef(`tpm-${Math.random().toString(36).slice(2)}`);
   useEffect(() => {
     reload();
     const ch = supabase
-      .channel("training-progress-me")
+      .channel(cid.current)
       .on("postgres_changes", { event: "*", schema: "public", table: PROGRESS }, () => reload())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -112,10 +115,11 @@ export function useAllTrainingProgress() {
     setLoading(false);
   }, []);
 
+  const cid = useRef(`tpa-${Math.random().toString(36).slice(2)}`);
   useEffect(() => {
     reload();
     const ch = supabase
-      .channel("training-progress-all")
+      .channel(cid.current)
       .on("postgres_changes", { event: "*", schema: "public", table: PROGRESS }, () => reload())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
