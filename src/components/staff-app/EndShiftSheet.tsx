@@ -36,12 +36,16 @@ export function EndShiftSheet({ open, onClose, shift, userId, onCompleted }: Pro
 
   useEffect(() => {
     if (!open || !shift) return;
-    // Phase 1 refonte checklists : étape checklist temporairement désactivée
-    // (sera réintroduite en Phase 3 avec la nouvelle structure)
+    if (shift.clocked_out_at) {
+      // Déjà clôturé : on ferme la sheet et on prévient
+      toast.info("Ce shift est déjà clôturé");
+      onClose();
+      return;
+    }
     setStep("feedback");
     setRating(0); setFeedbackMsg(""); setReportMsg(""); setHandoffMsg("");
     setItems([]);
-  }, [open, shift]);
+  }, [open, shift, onClose]);
 
   const toggleItem = async (_id: string, _current: string | null) => {
     // Désactivé temporairement (Phase 1 refonte)
@@ -54,36 +58,45 @@ export function EndShiftSheet({ open, onClose, shift, userId, onCompleted }: Pro
     if (!shift) return;
     setSubmitting(true);
     try {
-      // Feedback
       if (rating > 0 || feedbackMsg.trim()) {
-        await supabase.from("feedbacks").insert({
+        const { error: fbErr } = await supabase.from("feedbacks").insert({
           shift_id: shift.id, author_id: userId,
           rating: rating || 3,
           message: feedbackMsg.trim() || null,
         });
+        if (fbErr) throw fbErr;
       }
-      // Report to admin
       if (reportMsg.trim()) {
-        await supabase.from("shift_reports").insert({
+        const { error: rErr } = await supabase.from("shift_reports").insert({
           shift_id: shift.id, author_id: userId, message: reportMsg.trim(),
         });
+        if (rErr) throw rErr;
       }
-      // Handoff to next employee
       if (handoffMsg.trim()) {
-        await supabase.from("shift_handoffs").insert({
+        const { error: hErr } = await supabase.from("shift_handoffs").insert({
           shift_id: shift.id, author_id: userId, message: handoffMsg.trim(),
         });
+        if (hErr) throw hErr;
       }
-      // Mark shift completed + clock-out
-      await supabase.from("shifts").update({
-        status: "completed", clocked_out_at: new Date().toISOString(),
-      }).eq("id", shift.id);
+      // Mark shift completed + clock-out — vérifier qu'au moins 1 ligne est mise à jour
+      const { data: upd, error: uErr } = await supabase
+        .from("shifts")
+        .update({ status: "completed", clocked_out_at: new Date().toISOString() })
+        .eq("id", shift.id)
+        .is("clocked_out_at", null)
+        .select("id");
+      if (uErr) throw uErr;
+      if (!upd || upd.length === 0) {
+        toast.info("Shift déjà clôturé");
+      } else {
+        toast.success("Shift terminé");
+      }
 
       setStep("done");
       onCompleted?.();
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      toast.error("Erreur lors de la clôture du shift");
+      toast.error("Erreur lors de la clôture", { description: e?.message ?? String(e) });
     } finally {
       setSubmitting(false);
     }

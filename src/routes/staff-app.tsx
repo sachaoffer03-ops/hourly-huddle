@@ -152,6 +152,7 @@ function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: Profi
   }
 
   async function handleEndShift(s: ShiftRow) {
+    if (s.clocked_out_at) { toast.info("Ce shift est déjà clôturé"); return; }
     try {
       const tpl = await findApplicableTemplate({ studioId: s.studio_id ?? null, businessRole: s.business_role });
       if (tpl) {
@@ -492,20 +493,21 @@ function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: Profi
       {shifts.slice(1).map((s) => {
         const role = s.business_role as Role;
         const rc = roleColors[role];
-        const active = s.shift_date === today;
-        const dateLabel = active ? "Aujourd'hui" : new Date(s.shift_date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric" });
+        const active = s.shift_date === today && !s.clocked_out_at;
+        const dateLabel = s.shift_date === today ? "Aujourd'hui" : new Date(s.shift_date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric" });
         const studioName = (s.studio_id && studios[s.studio_id]) || "—";
+        const done = !!s.clocked_out_at;
         return (
-          <button key={s.id} onClick={() => setShiftDetail(s)} className="w-full rounded-xl border px-4 py-3.5 flex items-center gap-3 mb-2 text-left" style={{ backgroundColor: active ? "var(--coral-light)" : "#fff", borderColor: active ? "var(--coral)" : "rgba(0,0,0,0.08)" }}>
+          <button key={s.id} onClick={() => setShiftDetail(s)} className="w-full rounded-xl border px-4 py-3.5 flex items-center gap-3 mb-2 text-left" style={{ backgroundColor: active ? "var(--coral-light)" : "#fff", borderColor: active ? "var(--coral)" : "rgba(0,0,0,0.08)", opacity: done ? 0.7 : 1 }}>
             <div className="rounded-lg flex items-center justify-center" style={{ width: 36, height: 36, backgroundColor: rc?.bg }}>
               <Clock size={16} style={{ color: rc?.text }} />
             </div>
             <div className="flex-1">
               <div style={{ fontSize: 13, fontWeight: 500 }}>{dateLabel} · {fmtTime(s.start_time)} — {fmtTime(s.end_time)}</div>
-              <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{role} · {studioName.replace("Skult ", "")}</div>
+              <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{role} · {studioName.replace("Skult ", "")}{done ? " · terminé" : ""}</div>
             </div>
             {active && (
-              <span onClick={(e) => { e.stopPropagation(); setEndShift(s); }} className="rounded-md px-3 py-1.5 flex items-center gap-1 cursor-pointer" style={{ fontSize: 11, fontWeight: 500, backgroundColor: "var(--foreground)", color: "#fff" }}>
+              <span onClick={(e) => { e.stopPropagation(); handleEndShift(s); }} className="rounded-md px-3 py-1.5 flex items-center gap-1 cursor-pointer" style={{ fontSize: 11, fontWeight: 500, backgroundColor: "var(--foreground)", color: "#fff" }}>
                 <CheckSquare size={12} /> Fin de shift
               </span>
             )}
@@ -525,7 +527,7 @@ function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: Profi
       <ShiftDetailSheet
         open={!!shiftDetail} onClose={() => setShiftDetail(null)}
         shift={shiftDetail} studios={studios}
-        onEndShift={() => { if (shiftDetail) { setEndShift(shiftDetail); setShiftDetail(null); } }}
+        onEndShift={() => { if (shiftDetail) { const s = shiftDetail; setShiftDetail(null); handleEndShift(s); } }}
         onRequestModif={() => { if (shiftDetail) { setReqShiftId(shiftDetail.id); setShiftDetail(null); setReqOpen(true); } }}
       />
       <EndShiftSheet open={!!endShift} onClose={() => setEndShift(null)} shift={endShift} userId={userId} />
@@ -556,12 +558,22 @@ function QuickLink({ icon, label, sub, onClick }: { icon: React.ReactNode; label
 
 /* ─── PLANNING ─── */
 function PlanningTab({ studios, userId }: { studios: Record<string, string>; userId: string }) {
+  const navigate = useNavigate();
   const [shifts, setShifts] = useState<ShiftRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [shiftDetail, setShiftDetail] = useState<ShiftRow | null>(null);
   const [endShift, setEndShift] = useState<ShiftRow | null>(null);
   const [reqOpen, setReqOpen] = useState(false);
   const [reqShiftId, setReqShiftId] = useState<string | null>(null);
+
+  async function handleEndShift(s: ShiftRow) {
+    if (s.clocked_out_at) { toast.info("Ce shift est déjà clôturé"); return; }
+    try {
+      const tpl = await findApplicableTemplate({ studioId: s.studio_id ?? null, businessRole: s.business_role });
+      if (tpl) { navigate({ to: "/staff/checklist/$shiftId", params: { shiftId: s.id } }); return; }
+    } catch {}
+    setEndShift(s);
+  }
 
   const days = useMemo(() => {
     const arr: { iso: string; label: string }[] = [];
@@ -661,7 +673,7 @@ function PlanningTab({ studios, userId }: { studios: Record<string, string>; use
       <ShiftDetailSheet
         open={!!shiftDetail} onClose={() => setShiftDetail(null)}
         shift={shiftDetail} studios={studios}
-        onEndShift={() => { if (shiftDetail) { setEndShift(shiftDetail); setShiftDetail(null); } }}
+        onEndShift={() => { if (shiftDetail) { const s = shiftDetail; setShiftDetail(null); handleEndShift(s); } }}
         onRequestModif={() => { if (shiftDetail) { setReqShiftId(shiftDetail.id); setShiftDetail(null); setReqOpen(true); } }}
       />
       <EndShiftSheet open={!!endShift} onClose={() => setEndShift(null)} shift={endShift} userId={userId} />
