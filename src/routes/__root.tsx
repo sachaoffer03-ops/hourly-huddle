@@ -194,13 +194,14 @@ function AppShell() {
 
       // Mauvais espace pour ce rôle → déconnexion + message
       if (isEmployeeSpace && !userIsEmployee) {
-        toast.error("Cet espace est réservé aux employés. Connectez-vous sur admin.shyft.flashsite.fr");
+        toast.error("Ce compte est administrateur. Utilisez un compte employé pour app.shyft.flashsite.fr");
         supabase.auth.signOut();
         return;
       }
       if (!isEmployeeSpace && userIsEmployee) {
-        toast.error("Cet espace est réservé aux administrateurs. Connectez-vous sur app.shyft.flashsite.fr");
+        toast.error("Ce compte est employé. Redirection vers l'espace employé…");
         supabase.auth.signOut();
+        if (typeof window !== "undefined") window.location.replace("https://app.shyft.flashsite.fr/login");
         return;
       }
 
