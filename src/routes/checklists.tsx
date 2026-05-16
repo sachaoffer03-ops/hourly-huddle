@@ -451,7 +451,7 @@ function PhotoCard({ photo, templateId }: { photo: ChecklistTemplatePhoto; templ
 
 // =============== Template Settings ===============
 
-function TemplateSettings({ template }: { template: { id: string; name: string; description: string | null; business_role_id: string | null; studio_id: string | null; is_blocking: boolean; is_active: boolean } }) {
+function TemplateSettings({ template, onDeleted }: { template: { id: string; name: string; description: string | null; business_role_id: string | null; studio_id: string | null; is_blocking: boolean; is_active: boolean }; onDeleted?: () => void }) {
   const { roles } = useBusinessRoles({ onlyActive: true });
   const { studios } = useStudios();
   const [name, setName] = useState(template.name);
