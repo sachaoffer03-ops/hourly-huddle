@@ -135,11 +135,22 @@ function DemandesPage() {
     if (propIds.length > 0) {
       try { await cancelFn({ data: { proposalIds: propIds } }); } catch { /* ignore */ }
     }
+    const { data: reqRow } = await supabase.from("modification_requests")
+      .select("user_id").eq("id", id).maybeSingle();
     const { error } = await supabase.from("modification_requests").update({
       status: "refused", resolved_at: new Date().toISOString(),
     }).eq("id", id);
     setBusy(false);
     if (error) { toast.error("Erreur"); return; }
+    if (reqRow?.user_id) {
+      await supabase.from("notifications").insert({
+        user_id: reqRow.user_id,
+        type: "modif_rejected",
+        title: "Demande refusée",
+        body: "Ta demande de modification a été refusée.",
+        link: "/staff-app",
+      });
+    }
     setExpandedId(null);
     toast.success("Demande refusée");
   };
