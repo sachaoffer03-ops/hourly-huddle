@@ -180,7 +180,7 @@ function TemplateEditor({ templateId, onDeleted }: { templateId: string; onDelet
       <div className="p-5">
         {section === "items" && <ItemsEditor templateId={templateId} items={data.items} />}
         {section === "photos" && <PhotosEditor templateId={templateId} photos={data.photos} />}
-        {section === "settings" && <TemplateSettings template={data} />}
+        {section === "settings" && <TemplateSettings template={data} onDeleted={onDeleted} />}
       </div>
     </div>
   );
