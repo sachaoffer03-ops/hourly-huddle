@@ -448,7 +448,6 @@ function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: Profi
       <ProposalsSheet
         open={proposalsOpen}
         onClose={() => setProposalsOpen(false)}
-        userId={userId}
         studios={studios}
         proposals={proposals}
         reload={reloadProposals}

@@ -59,8 +59,8 @@ export function useProposals(userId: string) {
   return { proposals, reload: load };
 }
 
-export function ProposalsSheet({ open, onClose, userId, studios, proposals, reload }: {
-  open: boolean; onClose: () => void; userId: string; studios: Record<string, string>;
+export function ProposalsSheet({ open, onClose, studios, proposals, reload }: {
+  open: boolean; onClose: () => void; studios: Record<string, string>;
   proposals: ProposalView[]; reload: () => Promise<void>;
 }) {
   const acceptFn = useServerFn(acceptProposal);
