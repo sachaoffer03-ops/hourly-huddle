@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ClipboardCheck, Plus, Trash2, X, Image as ImageIcon, Camera, Check,
-  ArrowUp, ArrowDown, MessageSquare, Eye,
+  GripVertical, MessageSquare, Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -204,6 +204,11 @@ function ItemsEditor({ templateId, items }: { templateId: string; items: Checkli
   const [adding, setAdding] = useState(false);
   const [newLabel, setNewLabel] = useState("");
   const [busy, setBusy] = useState(false);
+  const [localOrder, setLocalOrder] = useState<ChecklistTemplateItem[]>(items);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
+
+  useEffect(() => { setLocalOrder(items); }, [items]);
 
   async function handleAdd() {
     if (!newLabel.trim()) return;
@@ -215,26 +220,48 @@ function ItemsEditor({ templateId, items }: { templateId: string; items: Checkli
     finally { setBusy(false); }
   }
 
-  async function handleMove(idx: number, dir: -1 | 1) {
-    const newOrder = [...items];
-    const target = idx + dir;
-    if (target < 0 || target >= newOrder.length) return;
-    [newOrder[idx], newOrder[target]] = [newOrder[target], newOrder[idx]];
-    await reorderItems(newOrder.map((i) => i.id));
+  function onDragStart(idx: number) { setDragIdx(idx); }
+  function onDragOver(e: React.DragEvent, idx: number) {
+    e.preventDefault();
+    if (dragIdx === null || dragIdx === idx) return;
+    setOverIdx(idx);
+  }
+  async function onDrop() {
+    if (dragIdx === null || overIdx === null || dragIdx === overIdx) {
+      setDragIdx(null); setOverIdx(null); return;
+    }
+    const next = [...localOrder];
+    const [moved] = next.splice(dragIdx, 1);
+    next.splice(overIdx, 0, moved);
+    setLocalOrder(next);
+    setDragIdx(null); setOverIdx(null);
+    try { await reorderItems(next.map((i) => i.id)); }
+    catch (e: any) { toast.error("Erreur de réorganisation"); }
   }
 
   return (
     <div>
-      {items.length === 0 && !adding && (
+      {localOrder.length === 0 && !adding && (
         <div className="rounded-md border-dashed border p-6 text-center mb-3" style={{ borderColor: "var(--border)" }}>
           <div style={{ fontSize: 13, color: "var(--muted-foreground)", marginBottom: 8 }}>Aucun item à cocher pour ce modèle.</div>
         </div>
       )}
 
       <div className="flex flex-col gap-1.5 mb-3">
-        {items.map((item, idx) => (
-          <ItemRow key={item.id} item={item} canUp={idx > 0} canDown={idx < items.length - 1}
-            onUp={() => handleMove(idx, -1)} onDown={() => handleMove(idx, 1)} />
+        {localOrder.map((item, idx) => (
+          <div key={item.id}
+            draggable
+            onDragStart={() => onDragStart(idx)}
+            onDragOver={(e) => onDragOver(e, idx)}
+            onDrop={onDrop}
+            onDragEnd={() => { setDragIdx(null); setOverIdx(null); }}
+            style={{
+              opacity: dragIdx === idx ? 0.4 : 1,
+              transform: overIdx === idx && dragIdx !== idx ? "translateY(2px)" : "none",
+              transition: "transform 120ms ease",
+            }}>
+            <ItemRow item={item} />
+          </div>
         ))}
       </div>
 
@@ -264,11 +291,11 @@ function ItemsEditor({ templateId, items }: { templateId: string; items: Checkli
   );
 }
 
-function ItemRow({ item, canUp, canDown, onUp, onDown }: {
-  item: ChecklistTemplateItem; canUp: boolean; canDown: boolean; onUp: () => void; onDown: () => void;
-}) {
+function ItemRow({ item }: { item: ChecklistTemplateItem }) {
   const [editing, setEditing] = useState(false);
   const [label, setLabel] = useState(item.label);
+
+  useEffect(() => { setLabel(item.label); }, [item.label]);
 
   async function save() {
     if (label.trim() && label !== item.label) {
@@ -285,16 +312,14 @@ function ItemRow({ item, canUp, canDown, onUp, onDown }: {
   }
 
   return (
-    <div className="flex items-center gap-2 rounded-md border px-3 py-2 group hover:bg-[var(--muted)] transition-colors"
+    <div className="flex items-center gap-2 rounded-md border px-2 py-2 group hover:bg-[var(--muted)] transition-colors"
       style={{ backgroundColor: "#fff", borderColor: "var(--border)" }}>
-      <div className="flex flex-col">
-        <button onClick={onUp} disabled={!canUp} className="p-0.5 disabled:opacity-20" style={{ color: "var(--muted-foreground)" }}>
-          <ArrowUp size={11} />
-        </button>
-        <button onClick={onDown} disabled={!canDown} className="p-0.5 disabled:opacity-20" style={{ color: "var(--muted-foreground)" }}>
-          <ArrowDown size={11} />
-        </button>
-      </div>
+      <span className="cursor-grab active:cursor-grabbing p-1" style={{ color: "var(--muted-foreground)" }} title="Glisser pour réorganiser">
+        <GripVertical size={14} />
+      </span>
+      <span className="rounded-sm shrink-0" style={{
+        width: 18, height: 18, border: "1.5px solid rgba(0,0,0,0.25)", backgroundColor: "#fff",
+      }} aria-hidden />
       {editing ? (
         <input autoFocus value={label} onChange={(e) => setLabel(e.target.value)}
           onBlur={save} onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") { setLabel(item.label); setEditing(false); } }}
