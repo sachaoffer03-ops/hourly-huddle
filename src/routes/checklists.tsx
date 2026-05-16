@@ -69,7 +69,7 @@ function TabButton({ active, onClick, label }: { active: boolean; onClick: () =>
 // ============================================================
 
 function TemplatesView() {
-  const { templates, loading } = useChecklistTemplates();
+  const { templates, loading, reload } = useChecklistTemplates();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
 
@@ -122,7 +122,7 @@ function TemplatesView() {
 
       {/* Main editor */}
       <div>
-        {selectedId ? <TemplateEditor templateId={selectedId} /> : (
+        {selectedId ? <TemplateEditor templateId={selectedId} onDeleted={() => { setSelectedId(null); reload(); }} /> : (
           <div className="rounded-lg border p-12 text-center" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
             <div style={{ fontSize: 13, color: "var(--muted-foreground)" }}>Sélectionne un modèle pour l'éditer.</div>
           </div>
@@ -138,7 +138,7 @@ function TemplatesView() {
 // TEMPLATE EDITOR
 // ============================================================
 
-function TemplateEditor({ templateId }: { templateId: string }) {
+function TemplateEditor({ templateId, onDeleted }: { templateId: string; onDeleted?: () => void }) {
   const { data, loading } = useTemplateWithContent(templateId);
   const { roles } = useBusinessRoles({ onlyActive: true });
   const { studios } = useStudios();
@@ -180,7 +180,7 @@ function TemplateEditor({ templateId }: { templateId: string }) {
       <div className="p-5">
         {section === "items" && <ItemsEditor templateId={templateId} items={data.items} />}
         {section === "photos" && <PhotosEditor templateId={templateId} photos={data.photos} />}
-        {section === "settings" && <TemplateSettings template={data} />}
+        {section === "settings" && <TemplateSettings template={data} onDeleted={onDeleted} />}
       </div>
     </div>
   );
@@ -451,7 +451,7 @@ function PhotoCard({ photo, templateId }: { photo: ChecklistTemplatePhoto; templ
 
 // =============== Template Settings ===============
 
-function TemplateSettings({ template }: { template: { id: string; name: string; description: string | null; business_role_id: string | null; studio_id: string | null; is_blocking: boolean; is_active: boolean } }) {
+function TemplateSettings({ template, onDeleted }: { template: { id: string; name: string; description: string | null; business_role_id: string | null; studio_id: string | null; is_blocking: boolean; is_active: boolean }; onDeleted?: () => void }) {
   const { roles } = useBusinessRoles({ onlyActive: true });
   const { studios } = useStudios();
   const [name, setName] = useState(template.name);
@@ -488,6 +488,7 @@ function TemplateSettings({ template }: { template: { id: string; name: string; 
     try {
       await deleteTemplate(template.id);
       toast.success("Modèle supprimé");
+      onDeleted?.();
     } catch (e: any) { toast.error(e.message); }
   }
 
