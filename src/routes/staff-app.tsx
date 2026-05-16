@@ -23,7 +23,7 @@ export const Route = createFileRoute("/staff-app")({
   component: StaffAppPage,
 });
 
-type Tab = "accueil" | "planning" | "formation" | "chat" | "profil";
+type Tab = "accueil" | "planning" | "pointage" | "formation" | "chat" | "profil";
 
 interface ProfileRow {
   first_name: string; last_name: string; email: string; phone: string | null;
