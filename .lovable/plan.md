@@ -1,52 +1,55 @@
-# Refonte `/formation` — Plateforme de formation interne
+# QA Test Suite — Moteur de planning
 
-Gros chantier (DB + admin UI + employé UI + tracking). Je vais le découper en **3 sous-tours** pour livrer proprement sans tout casser, comme suggéré dans ton prompt.
+## Fichiers à créer
 
-## Sous-tour 1 — Fondations (DB + types + data layer)
+1. **`src/lib/qa-test-suite.functions.ts`** — server functions (admin-guard via `requireSupabaseAuth` + check `user_roles.role='admin'`, utilise `supabaseAdmin`)
+   - `prepareTestDataset()` → crée Studio Alpha + Beta, 30 employés `is_test=true`, 52 staffing templates, ~600 dispos sur 4 semaines
+   - `cleanupTestDataset()` → supprime tout `is_test=true` + studios `name LIKE 'Test Studio %'` + leurs auth.users, shifts, dispos, templates, planning_runs liés
+   - `resetTestDataset()` → cleanup puis prepare
+   - `runTest1_CoverageStandard` … `runTest8_Idempotence` → chacun retourne `TestResult { testName, status, durationMs, message, details?, error? }`
+   - Chaque test : appel direct du handler de `generatePlanning` via une fonction interne partagée (pas via fetch), assertions sur le résultat
+   - Tests 6 & 7 sauvegardent/restaurent l'état (dispos / employés temporaires) en `try/finally`
 
-1. **Migration SQL** : 4 tables (`training_folders`, `training_steps`, `training_resources`, `training_progress`) + index + RLS policies (lecture authenticated, écriture admin, progression scopée user).
-2. **Storage** : bucket `training-resources` (privé, lecture authenticated, upload admin via policies sur `storage.objects`).
-3. **Types** : `src/types/training.ts` (Folder, Step, Resource, Progress, ResourceType union).
-4. **Server functions** : `src/lib/training.functions.ts` avec toutes les fonctions listées (lecture, CRUD admin, tracking employé), toutes via `requireSupabaseAuth`.
-5. **Hooks TanStack Query** : `src/hooks/use-training.ts` (useFolders, useFolderDetail, useMyProgress, useAllProgress + mutations avec invalidation).
-
-## Sous-tour 2 — Admin UI
-
-6. **Page `/formation`** refonte complète : layout 2 colonnes (sidebar dossiers + zone principale), tabs Contenu/Progression.
-7. **Sidebar** : liste dossiers avec drag&drop (@dnd-kit), badge "Requis", menu kebab.
-8. **Modals** : 
-   - FolderModal (nom, desc, icône Lucide picker, palette 8 couleurs, multi-select rôles requis)
-   - StepModal (titre, description)
-   - ResourceModal (2 étapes : choix type → form selon type vidéo/PDF/note/lien, avec preview, upload Supabase Storage pour PDF, validation URL pour vidéo)
-9. **Zone Contenu** : header dossier + liste étapes avec drag&drop + ressources réordonnables.
-10. **Zone Progression** : filtres (studio/rôle/contrat), tableau employés × dossiers avec heatmap couleur, drawer détail, export CSV, stats globales.
-
-## Sous-tour 3 — Employé UI + polish
-
-11. **Page `/staff/formation`** : liste dossiers avec tri intelligent (obligatoires non commencés en premier), badges OBLIGATOIRE/Optionnel, barres de progression.
-12. **Vue détail `/staff/formation/$folderId`** : étapes + ressources avec status visuel.
-13. **Vue consommation `/staff/formation/$folderId/$resourceId`** : 
-    - Vidéo : embed YouTube/Vimeo/Drive
-    - PDF : viewer iframe + download
-    - Note : rendu markdown
-    - Lien : bouton ouvrir
-    - Bouton "Marquer terminé" sticky bottom mobile
-    - Navigation Précédent/Suivant
-14. **Tracking** : mutation `markResourceCompleted`, animation checkmark, auto-nav vers ressource suivante, modal félicitations à 100%.
-15. **Responsive mobile** : sidebar admin → drawer, vue employé optimisée tactile.
+2. **`src/routes/admin.qa-test-suite.tsx`** — route TanStack wrappée dans `<DevOnly label="La QA Test Suite">`
+   - **Section 1 — Setup** : 3 boutons (Préparer / Nettoyer avec confirm / Reset) avec `useMutation` + toast + affichage du résultat
+   - **Section 2 — Suite de tests** : liste 8 cartes (nom, description, bouton "Lancer", badge statut) + gros bouton "Lancer TOUS les tests" (séquentiel)
+   - **Section 3 — Résultats** : tableau récap avec ✅/❌, durée par test, total, bouton "Voir détails" → Sheet avec inputs/output/diff/stack, bouton "Exporter le rapport" (download JSON + Markdown)
+   - État local React + persistance `localStorage` du dernier run pour comparaison cross-session
 
 ## Détails techniques
 
-- **Pas de hardcoding** : icônes/couleurs définies dans un constant `src/lib/training-presets.ts` (palette 8 couleurs cohérente design system, ~20 icônes Lucide), mais tout contenu vient de la DB.
-- **Permissions** : route admin gardée par `has_role('admin')`, route employé accessible à tout user authentifié.
-- **Cascade DB** : ON DELETE CASCADE sur folder→steps→resources, progression conservée.
-- **Soft delete** dossiers via `deleted_at`.
-- **QueryKeys** : `['training','folders']`, `['training','folder',id]`, `['training','progress','me']`, `['training','progress','all']`.
-- **Rich text note** : utilisera un éditeur léger (textarea + preview markdown via `react-markdown` déjà compatible, sans ajouter Tiptap pour rester léger). Si tu veux du WYSIWYG complet je peux ajouter Tiptap au sous-tour 2.
-- **Coexistence avec l'existant** : les tables actuelles `training_paths`/`formations`/`formation_completions` restent en place (utilisées par `/staff-app` FormationPanel). Je les laisse intactes pour ne rien casser, et je construis le nouveau système en parallèle. À terme tu pourras supprimer l'ancien.
+**Dataset déterministe** (seed RNG fixe pour reproductibilité) :
+- Studios : "Test Studio Alpha" (has_kitchen=true), "Test Studio Beta" (has_kitchen=false)
+- Business roles : vérifie/crée Accueil, Barista, Host, Cuisine
+- Templates : 40 sur Alpha (incl. 5 cuisine Lun-Ven CDI), 12 sur Beta
+- Employés : pools de prénoms/noms fournis, distribution exacte (8 CDI / 15 Étudiants / 7 Flexis), dispos générées 4-6/sem sur 4 semaines
 
-## Question avant de démarrer
+**Cleanup safe** : double check `is_test=true` ET `name LIKE 'Test Studio %'` ; jamais d'admin supprimé ; supprime aussi `availabilities`, `shifts`, `staffing_templates`, `planning_runs`, `studio_business_roles`, `user_studios`, `user_contracts`, `user_business_roles`, `user_roles` liés via `user_id IN (...)` ou `studio_id IN (...)`.
 
-Une seule clarif rapide : **rich text des notes** → tu veux un vrai WYSIWYG (Tiptap, ~80kb) ou markdown simple avec preview (zéro deps) ? Par défaut je pars sur **markdown simple** pour rester léger, sauf si tu préfères Tiptap.
+**Tests** :
+- Période de test = lundi prochain (déterministe)
+- T1 : genère sur Alpha, assert `coverage_rate >= 0.90`
+- T2 : 2 semaines, scan shifts par user, vérifie plafonds par contrat
+- T3 : scan tous shifts par user, détecte chevauchements + paires consécutives < 11h
+- T4 : filtre shifts cuisine Lun-Ven, vérifie assignation = CDI cuisine
+- T5 : variance heures par contrat-type
+- T6 : delete 80% des dispos, génère, restore — assert no throw + couverture < 50% + alerts non vide
+- T7 : crée 70 employés temp `is_test=true` flag spécial, génère sur Beta, mesure durée, supprime
+- T8 : 2 runs consécutifs, compare assignations (≥ 95% identiques)
 
-Si tu valides ce plan, je démarre par le **sous-tour 1** (migration + data layer) et je reviens te montrer avant de continuer.
+**Sécurité / contraintes** :
+- Route DevOnly (cachée en prod)
+- Toutes les server fns vérifient role admin
+- Cleanup avec double filtre `is_test=true` + `name LIKE 'Test%'`
+- Tests séquentiels, jamais en parallèle
+- Aucune modification du moteur (`generate-planning.functions.ts` non touché)
+
+## Hors scope
+
+- Pas de migration SQL (`is_test` existe déjà sur `profiles`)
+- Pas de modification du moteur même si tests fail (rapport seulement, l'utilisateur décide ensuite)
+- Pas de modification des autres routes admin
+
+## Livrables finaux
+
+Liste des fichiers créés, confirmation DevOnly, description UI, et — après ton "go" — une première run pour le verdict X/8 tests.
