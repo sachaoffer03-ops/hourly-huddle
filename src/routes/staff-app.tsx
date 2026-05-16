@@ -37,6 +37,7 @@ interface ProfileRow {
 interface ShiftRow {
   id: string; shift_date: string; start_time: string; end_time: string;
   business_role: string; studio_id: string | null; notes?: string | null;
+  clocked_in_at?: string | null; clocked_out_at?: string | null; minutes_late?: number | null;
 }
 
 function fmtTime(t: string) { return t.slice(0, 5).replace(":", "h"); }
