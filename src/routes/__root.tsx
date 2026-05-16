@@ -79,7 +79,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         </p>
         <div className="mt-6 flex justify-center gap-2">
           <button
-            onClick={() => { router.invalidate(); reset(); }}
+            onClick={() => {
+              if (typeof window !== "undefined") window.location.reload();
+              else { router.invalidate(); reset(); }
+            }}
             className="inline-flex items-center justify-center rounded-md px-4 py-2"
             style={{ fontSize: 13, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)" }}
           >
