@@ -78,10 +78,21 @@ function FeedbacksPage() {
   const submitReply = async (id: string) => {
     const v = draft.trim();
     if (!v) { toast.error("Réponse vide"); return; }
+    const { data: fbRow } = await supabase.from("feedbacks")
+      .select("author_id").eq("id", id).maybeSingle();
     const { error } = await supabase.from("feedbacks").update({
       admin_reply: v, read_at: new Date().toISOString(),
     }).eq("id", id);
     if (error) { toast.error("Erreur"); return; }
+    if (fbRow?.author_id) {
+      await supabase.from("notifications").insert({
+        user_id: fbRow.author_id,
+        type: "feedback_reply",
+        title: "Réponse à ton feedback",
+        body: v.length > 120 ? v.slice(0, 117) + "…" : v,
+        link: "/staff-app",
+      });
+    }
     setReplyingId(null); setDraft("");
     toast.success("Réponse envoyée");
   };
