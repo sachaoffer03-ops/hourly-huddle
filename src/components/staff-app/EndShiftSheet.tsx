@@ -36,12 +36,16 @@ export function EndShiftSheet({ open, onClose, shift, userId, onCompleted }: Pro
 
   useEffect(() => {
     if (!open || !shift) return;
-    // Phase 1 refonte checklists : étape checklist temporairement désactivée
-    // (sera réintroduite en Phase 3 avec la nouvelle structure)
+    if (shift.clocked_out_at) {
+      // Déjà clôturé : on ferme la sheet et on prévient
+      toast.info("Ce shift est déjà clôturé");
+      onClose();
+      return;
+    }
     setStep("feedback");
     setRating(0); setFeedbackMsg(""); setReportMsg(""); setHandoffMsg("");
     setItems([]);
-  }, [open, shift]);
+  }, [open, shift, onClose]);
 
   const toggleItem = async (_id: string, _current: string | null) => {
     // Désactivé temporairement (Phase 1 refonte)
