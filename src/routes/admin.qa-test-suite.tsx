@@ -19,6 +19,25 @@ export const Route = createFileRoute("/admin/qa-test-suite")({
 type Status = "idle" | "running" | "done" | "error";
 type RunState = { status: Status; result?: TestResult; error?: string };
 
+function AdminGate() {
+  const { appRole, loading } = useAuth();
+  if (loading) return <div className="p-8 text-sm" style={{ color: "var(--muted-foreground)" }}>Chargement…</div>;
+  if (appRole !== "admin") {
+    return (
+      <div className="p-8 max-w-xl mx-auto">
+        <div className="rounded-xl border p-6" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
+          <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 8 }}>Accès réservé</div>
+          <p style={{ fontSize: 13, color: "var(--muted-foreground)", lineHeight: 1.6 }}>
+            Cette page est réservée aux administrateurs.
+          </p>
+          <Link to="/dashboard" className="inline-block mt-5" style={{ fontSize: 12, color: "var(--primary)" }}>← Retour au tableau de bord</Link>
+        </div>
+      </div>
+    );
+  }
+  return <QAPage />;
+}
+
 function QAPage() {
   const prepare = useServerFn(prepareTestDataset);
   const cleanup = useServerFn(cleanupTestDataset);
