@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type {
   ChecklistTemplate, ChecklistTemplateItem, ChecklistTemplatePhoto,
@@ -26,9 +26,10 @@ export function useChecklistTemplates() {
     setLoading(false);
   }, []);
 
+  const cid = useRef(`ct-${Math.random().toString(36).slice(2)}`);
   useEffect(() => {
     reload();
-    const ch = supabase.channel("checklist-templates")
+    const ch = supabase.channel(cid.current)
       .on("postgres_changes", { event: "*", schema: "public", table: T }, () => reload())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -57,7 +58,8 @@ export function useTemplateWithContent(templateId: string | null) {
   useEffect(() => {
     reload();
     if (!templateId) return;
-    const ch = supabase.channel(`checklist-tpl-${templateId}`)
+    const cid = `ctpl-${templateId}-${Math.random().toString(36).slice(2)}`;
+    const ch = supabase.channel(cid)
       .on("postgres_changes", { event: "*", schema: "public", table: TI }, () => reload())
       .on("postgres_changes", { event: "*", schema: "public", table: TP }, () => reload())
       .on("postgres_changes", { event: "*", schema: "public", table: T, filter: `id=eq.${templateId}` }, () => reload())
@@ -220,9 +222,10 @@ export function useChecklistSubmissions() {
     setLoading(false);
   }, []);
 
+  const cid = useRef(`csub-${Math.random().toString(36).slice(2)}`);
   useEffect(() => {
     reload();
-    const ch = supabase.channel("checklist-submissions")
+    const ch = supabase.channel(cid.current)
       .on("postgres_changes", { event: "*", schema: "public", table: S }, () => reload())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
