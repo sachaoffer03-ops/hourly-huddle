@@ -42,6 +42,7 @@ function QAPage() {
   const prepare = useServerFn(prepareTestDataset);
   const cleanup = useServerFn(cleanupTestDataset);
   const reset = useServerFn(resetTestDataset);
+  const cleanTom = useServerFn(cleanTomShift);
   const list = useServerFn(listTests);
   const runOne = useServerFn(runQATest);
   const runAll = useServerFn(runAllQATests);
