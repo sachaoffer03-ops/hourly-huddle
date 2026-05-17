@@ -479,6 +479,7 @@ const TEST_DEFS = [
   { id: 29, name: "Score : toujours dans [0,10]", description: "Tous les scores des profils de test restent bornés entre 0 et 10." },
   { id: 30, name: "Studio supprimé : cascade complète", description: "La suppression d'un studio nettoie shifts, templates, staffing, user_studios." },
   { id: 31, name: "Employé désactivé : historique préservé", description: "Passer un profil en 'inactive' ne supprime ni shifts, ni feedbacks." },
+  { id: 32, name: "Flow complet : clock-out avec checklist", description: "Shift + template + items cochés + soumission completed + clock-out cohérent." },
 ];
 
 export const listTests = createServerFn({ method: "GET" })
@@ -2374,6 +2375,88 @@ async function test31(): Promise<TestResult> {
   }
 }
 
+async function test32(): Promise<TestResult> {
+  const t0 = Date.now();
+  const { alphaId } = await getTestStudioIds();
+  let emp: { id: string; email: string } | null = null;
+  const cleanup: { shiftId?: string; tplId?: string; subId?: string } = {};
+  try {
+    emp = await createE2EEmployee(alphaId, "clkChk");
+    const date = todayISO();
+    const nowIso = new Date().toISOString();
+
+    const { data: shift, error: sErr } = await supabaseAdmin.from("shifts").insert({
+      user_id: emp.id, studio_id: alphaId, business_role: "Accueil",
+      shift_date: date, start_time: "10:00:00", end_time: "16:00:00",
+      status: "scheduled", clocked_in_at: nowIso, is_manual: true,
+    }).select("id").single();
+    if (sErr || !shift) throw new Error(`Shift non créé : ${sErr?.message}`);
+    cleanup.shiftId = shift.id;
+
+    const { data: tpl, error: tErr } = await supabaseAdmin.from("checklist_templates").insert({
+      name: "QA Clock-out Test Template", is_blocking: true, is_active: true,
+    }).select("id").single();
+    if (tErr || !tpl) throw new Error(`Template non créé : ${tErr?.message}`);
+    cleanup.tplId = tpl.id;
+
+    const { data: item } = await supabaseAdmin.from("checklist_template_items").insert({
+      template_id: tpl.id, label: "Item QA", order_index: 0, is_required: true,
+    }).select("id").single();
+
+    const { data: sub, error: subErr } = await supabaseAdmin.from("checklist_submissions").insert({
+      shift_id: shift.id, user_id: emp.id, template_id: tpl.id, status: "in_progress",
+    }).select("id").single();
+    if (subErr || !sub) throw new Error(`Soumission non créée : ${subErr?.message}`);
+    cleanup.subId = sub.id;
+
+    if (item) {
+      await supabaseAdmin.from("checklist_submission_items").insert({
+        submission_id: sub.id, template_item_id: item.id,
+        is_checked: true, checked_at: new Date().toISOString(),
+      });
+    }
+
+    await supabaseAdmin.from("checklist_submissions").update({
+      status: "completed", submitted_at: new Date().toISOString(),
+    }).eq("id", sub.id);
+
+    await supabaseAdmin.from("shifts").update({
+      status: "completed", clocked_out_at: new Date().toISOString(),
+    }).eq("id", shift.id).not("clocked_in_at", "is", null);
+
+    const { data: finalShift } = await supabaseAdmin.from("shifts")
+      .select("status, clocked_out_at").eq("id", shift.id).single();
+    const { data: finalSub } = await supabaseAdmin.from("checklist_submissions")
+      .select("status").eq("id", sub.id).single();
+
+    const checks = {
+      shift_completed: finalShift?.status === "completed",
+      clock_out_recorded: !!finalShift?.clocked_out_at,
+      submission_completed: finalSub?.status === "completed",
+      flow_coherent: finalShift?.status === "completed" && finalSub?.status === "completed",
+    };
+    const passed = Object.values(checks).every(Boolean);
+    return {
+      testName: "32. Flow complet : clock-out avec checklist",
+      status: passed ? "passed" : "failed",
+      durationMs: Date.now() - t0,
+      message: passed ? "Shift et soumission complétés de manière cohérente." : `Échec : ${JSON.stringify(checks)}`,
+      details: { checks },
+    };
+  } finally {
+    if (cleanup.subId) {
+      await supabaseAdmin.from("checklist_submission_items").delete().eq("submission_id", cleanup.subId);
+      await supabaseAdmin.from("checklist_submissions").delete().eq("id", cleanup.subId);
+    }
+    if (cleanup.tplId) {
+      await supabaseAdmin.from("checklist_template_items").delete().eq("template_id", cleanup.tplId);
+      await supabaseAdmin.from("checklist_templates").delete().eq("id", cleanup.tplId);
+    }
+    if (cleanup.shiftId) await supabaseAdmin.from("shifts").delete().eq("id", cleanup.shiftId);
+    if (emp) await cleanupE2EEmployee(emp.id);
+  }
+}
+
 // ─── Dispatcher ─────────────────────────────────────────────────────────────
 async function runOne(id: number): Promise<TestResult> {
   try {
@@ -2409,6 +2492,7 @@ async function runOne(id: number): Promise<TestResult> {
       case 29: return await test29();
       case 30: return await test30();
       case 31: return await test31();
+      case 32: return await test32();
       default: throw new Error(`Test ${id} inconnu`);
     }
   } catch (e: any) {
@@ -2424,7 +2508,7 @@ async function runOne(id: number): Promise<TestResult> {
 
 export const runQATest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ test_id: z.number().int().min(1).max(31) }).parse(input))
+  .inputValidator((input) => z.object({ test_id: z.number().int().min(1).max(32) }).parse(input))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     return runOne(data.test_id);

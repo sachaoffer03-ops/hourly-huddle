@@ -36,7 +36,7 @@ export interface ChecklistSubmission {
   shift_id: string;
   template_id: string;
   user_id: string;
-  status: "pending" | "in_progress" | "submitted" | "reviewed";
+  status: "pending" | "in_progress" | "completed" | "incomplete_submitted";
   employee_note: string | null;
   submitted_at: string | null;
   reviewed_by_admin_at: string | null;

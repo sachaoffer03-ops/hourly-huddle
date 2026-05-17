@@ -643,11 +643,18 @@ function CreateTemplateModal({ onClose, onCreated }: { onClose: () => void; onCr
 function SubmissionsView() {
   const { submissions, loading } = useChecklistSubmissions();
   const [openId, setOpenId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"all" | "submitted" | "reviewed" | "in_progress">("all");
+  const [filter, setFilter] = useState<"all" | "to_review" | "reviewed" | "in_progress">("all");
 
   const filtered = useMemo(() => {
     if (filter === "all") return submissions;
-    return submissions.filter((s) => s.status === filter);
+    if (filter === "to_review") {
+      return submissions.filter((s) =>
+        (s.status === "completed" || s.status === "incomplete_submitted") && !s.reviewed_by_admin_at
+      );
+    }
+    if (filter === "reviewed") return submissions.filter((s) => !!s.reviewed_by_admin_at);
+    if (filter === "in_progress") return submissions.filter((s) => s.status === "in_progress");
+    return submissions;
   }, [submissions, filter]);
 
   if (loading) {
@@ -659,7 +666,7 @@ function SubmissionsView() {
       <div className="flex gap-1.5 mb-4">
         {([
           { v: "all", l: "Toutes" },
-          { v: "submitted", l: "À réviser" },
+          { v: "to_review", l: "À réviser" },
           { v: "in_progress", l: "En cours" },
           { v: "reviewed", l: "Révisées" },
         ] as const).map((f) => (
@@ -700,10 +707,12 @@ function SubmissionRow({ sub, onClick, isLast }: { sub: SubmissionWithRelated; o
   const statusColors: Record<string, { bg: string; fg: string; label: string }> = {
     pending: { bg: "rgba(0,0,0,0.06)", fg: "var(--muted-foreground)", label: "En attente" },
     in_progress: { bg: "#fef3c7", fg: "#92400e", label: "En cours" },
-    submitted: { bg: "var(--coral-light)", fg: "var(--coral-dark, var(--coral))", label: "À réviser" },
-    reviewed: { bg: "#dcfce7", fg: "#166534", label: "Révisée" },
+    completed: { bg: "var(--coral-light)", fg: "var(--coral-dark, var(--coral))", label: "À réviser" },
+    incomplete_submitted: { bg: "#fee2e2", fg: "#991b1b", label: "Incomplète" },
   };
-  const sc = statusColors[sub.status] ?? statusColors.pending;
+  const sc = sub.reviewed_by_admin_at
+    ? { bg: "#dcfce7", fg: "#166534", label: "Révisée" }
+    : (statusColors[sub.status] ?? statusColors.pending);
 
   return (
     <button onClick={onClick}
@@ -863,7 +872,7 @@ function SubmissionDrawer({ submissionId, onClose }: { submissionId: string; onC
                   <button onClick={handleReview} disabled={busy}
                     className="px-4 py-2 rounded-md disabled:opacity-40 flex items-center gap-1.5"
                     style={{ fontSize: 13, fontWeight: 500, backgroundColor: "var(--coral)", color: "var(--coral-text)" }}>
-                    <Check size={13} /> {sub.status === "reviewed" ? "Mettre à jour le retour" : "Marquer comme révisée"}
+                    <Check size={13} /> {sub.reviewed_by_admin_at ? "Mettre à jour le retour" : "Marquer comme révisée"}
                   </button>
                 </div>
                 {sub.reviewed_by_admin_at && (
