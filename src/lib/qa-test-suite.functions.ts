@@ -2312,7 +2312,7 @@ async function test31(): Promise<TestResult> {
       if (fb) feedbackIds.push(fb.id);
     }
 
-    await supabaseAdmin.from("profiles").update({ status: "inactive" }).eq("id", emp.id);
+    await supabaseAdmin.from("profiles").update({ status: "suspended" }).eq("id", emp.id);
 
     const [{ count: shiftCount }, { count: fbCount }, { data: profile }] = await Promise.all([
       supabaseAdmin.from("shifts").select("*", { count: "exact", head: true }).eq("user_id", emp.id).in("id", shiftIds),
@@ -2321,7 +2321,7 @@ async function test31(): Promise<TestResult> {
     ]);
 
     const checks = {
-      employee_deactivated: profile?.status === "inactive",
+      employee_deactivated: profile?.status === "suspended",
       shifts_preserved: (shiftCount ?? 0) === shiftIds.length,
       feedbacks_preserved: (fbCount ?? 0) === feedbackIds.length,
       history_intact: (shiftCount ?? 0) > 0 && (fbCount ?? 0) > 0,
