@@ -95,7 +95,7 @@ function StaffAppPage() {
         {tab === "pointage" && <PointageTab studios={studios} userId={user.id} />}
         {tab === "formation" && <FormationPanel userId={user.id} />}
         {tab === "chat" && <ChatPanel meId={user.id} peerId={adminId} peerName={adminName} />}
-        {tab === "profil" && <ProfilTab profile={profile} businessRoles={businessRoles} studios={studios} onNavigate={setTab} />}
+        {tab === "profil" && <ProfilTab profile={profile} businessRoles={businessRoles} studios={studios} userId={user.id} onProfileChange={(patch) => setProfile((p) => p ? { ...p, ...patch } : p)} onNavigate={setTab} />}
       </div>
 
       <NotificationsSheet open={notifOpen} onClose={() => setNotifOpen(false)} userId={user.id} />
