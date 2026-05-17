@@ -32,6 +32,7 @@ export interface TrainingResource {
   content: string;
   duration_seconds: number | null;
   order_index: number;
+  is_uploaded_video?: boolean;
   created_at: string;
   updated_at: string;
 }
