@@ -1546,21 +1546,25 @@ async function test17(): Promise<TestResult> {
       clocked_in_at: new Date(`${yDate}T10:00:00Z`).toISOString(),
       clocked_out_at: new Date(`${yDate}T16:00:00Z`).toISOString(),
     }).select("id").single();
-    shiftId = shift?.id ?? null;
+    if (!shift) throw new Error("Shift non créé");
+    shiftId = shift.id;
 
     const { data: tpl } = await supabaseAdmin.from("checklist_templates").insert({
       name: "QA Score Test", is_blocking: false, is_active: true,
     }).select("id").single();
-    tplId = tpl?.id ?? null;
+    if (!tpl) throw new Error("Template non créé");
+    tplId = tpl.id;
     const { data: item } = await supabaseAdmin.from("checklist_template_items").insert({
       template_id: tplId, label: "Item QA", order_index: 0, is_required: true,
     }).select("id").single();
+    if (!item) throw new Error("Item non créé");
     const { data: sub } = await supabaseAdmin.from("checklist_submissions").insert({
       shift_id: shiftId, user_id: emp.id, template_id: tplId,
       status: "completed", submitted_at: new Date().toISOString(),
     }).select("id").single();
+    if (!sub) throw new Error("Submission non créée");
     await supabaseAdmin.from("checklist_submission_items").insert({
-      submission_id: sub?.id, template_item_id: item?.id,
+      submission_id: sub.id, template_item_id: item.id,
       is_checked: true, checked_at: new Date().toISOString(),
     });
 
