@@ -14,9 +14,9 @@ interface Props {
   onCompleted?: () => void;
 }
 
-type Step = "checklist" | "feedback" | "report" | "handoff" | "done";
+// Flow simplifié — pas de fausse checklist (la vraie checklist vit dans /staff/checklist/$shiftId)
+type Step = "feedback" | "report" | "handoff" | "done";
 
-interface ChecklistItem { id: string; label: string; checked_at: string | null; }
 interface Draft {
   step?: Step;
   rating?: number;
@@ -26,10 +26,6 @@ interface Draft {
 }
 
 const DRAFT_PREFIX = "kadence:end-shift:";
-
-function makeDraft(step: Step, rating: number, feedbackMsg: string, reportMsg: string, handoffMsg: string) {
-  return { step, rating, feedbackMsg, reportMsg, handoffMsg };
-}
 
 function readDraft(shiftId: string): Draft | null {
   if (typeof window === "undefined") return null;
@@ -45,11 +41,12 @@ function clearDraft(shiftId: string) {
   if (typeof window !== "undefined") window.sessionStorage.removeItem(`${DRAFT_PREFIX}${shiftId}`);
 }
 
+const STEPS: Step[] = ["feedback", "report", "handoff"];
+
 export function EndShiftSheet({ open, onClose, shift, onCompleted }: Props) {
   const completeClockOut = useServerFn(completeShiftClockOutFn);
   const openedShiftRef = useRef<string | null>(null);
-  const [step, setStep] = useState<Step>("checklist");
-  const [items, setItems] = useState<ChecklistItem[]>([]);
+  const [step, setStep] = useState<Step>("feedback");
   const [rating, setRating] = useState(0);
   const [feedbackMsg, setFeedbackMsg] = useState("");
   const [reportMsg, setReportMsg] = useState("");
@@ -58,7 +55,7 @@ export function EndShiftSheet({ open, onClose, shift, onCompleted }: Props) {
 
   const saveDraft = (patch: Draft) => {
     if (!shift || typeof window === "undefined") return;
-    const next = { ...makeDraft(step, rating, feedbackMsg, reportMsg, handoffMsg), ...patch };
+    const next: Draft = { step, rating, feedbackMsg, reportMsg, handoffMsg, ...patch };
     window.sessionStorage.setItem(`${DRAFT_PREFIX}${shift.id}`, JSON.stringify(next));
   };
 
@@ -85,21 +82,14 @@ export function EndShiftSheet({ open, onClose, shift, onCompleted }: Props) {
       return;
     }
     const draft = readDraft(shift.id);
-    setStep(draft?.step && draft.step !== "checklist" && draft.step !== "done" ? draft.step : "feedback");
+    const draftStep = draft?.step;
+    setStep(draftStep && STEPS.includes(draftStep) ? draftStep : "feedback");
     setRating(typeof draft?.rating === "number" ? draft.rating : 0);
     setFeedbackMsg(typeof draft?.feedbackMsg === "string" ? draft.feedbackMsg : "");
     setReportMsg(typeof draft?.reportMsg === "string" ? draft.reportMsg : "");
     setHandoffMsg(typeof draft?.handoffMsg === "string" ? draft.handoffMsg : "");
-    setItems([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, shift?.id]);
-
-  const toggleItem = async (_id: string, _current: string | null) => {
-    // Désactivé temporairement (Phase 1 refonte)
-  };
-
-  const allChecked = true;
-  const checkedCount = 0;
 
   const handleFinish = async () => {
     if (!shift) return;
@@ -136,54 +126,20 @@ export function EndShiftSheet({ open, onClose, shift, onCompleted }: Props) {
   return (
     <Sheet open={open} onClose={onClose} title="Fin de shift">
       {/* Step indicator */}
-      <div className="flex items-center gap-1.5 mb-5">
-        {(["checklist","feedback","report","handoff"] as Step[]).map((s, i) => {
-          const idx = ["checklist","feedback","report","handoff"].indexOf(step);
-          const active = i === idx;
-          const done = i < idx;
-          return (
-            <div key={s} className="flex-1 rounded-full" style={{
-              height: 3,
-              backgroundColor: active || done ? "var(--coral)" : "var(--muted)",
-            }} />
-          );
-        })}
-      </div>
-
-      {step === "checklist" && (
-        <>
-          <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 4 }}>Checklist de fermeture</div>
-          <div style={{ fontSize: 12, color: "var(--muted-foreground)", marginBottom: 16 }}>
-            {checkedCount} / {items.length} effectués
-          </div>
-          <div className="flex flex-col gap-2">
-            {items.map((it) => {
-              const checked = !!it.checked_at;
-              return (
-                <button key={it.id} onClick={() => toggleItem(it.id, it.checked_at)}
-                  className="rounded-xl border px-3.5 py-3 flex items-center gap-3 text-left"
-                  style={{ backgroundColor: checked ? "var(--coral-light)" : "#fff", borderColor: checked ? "var(--coral)" : "rgba(0,0,0,0.08)" }}>
-                  <span className="rounded-md flex items-center justify-center shrink-0" style={{
-                    width: 22, height: 22,
-                    backgroundColor: checked ? "var(--coral)" : "transparent",
-                    border: checked ? "none" : "1.5px solid rgba(0,0,0,0.2)",
-                  }}>
-                    {checked && <Check size={14} color="#fff" strokeWidth={2.5} />}
-                  </span>
-                  <span style={{ fontSize: 13, fontWeight: checked ? 500 : 400, flex: 1, textDecoration: checked ? "line-through" : "none", opacity: checked ? 0.7 : 1 }}>
-                    {it.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <div className="mt-5 flex gap-2">
-            <SecondaryButton onClick={onClose}>Plus tard</SecondaryButton>
-            <PrimaryButton onClick={() => goToStep("feedback")} disabled={!allChecked}>
-              {allChecked ? "Continuer" : `${items.length - checkedCount} restant${items.length - checkedCount > 1 ? "s" : ""}`}
-            </PrimaryButton>
-          </div>
-        </>
+      {step !== "done" && (
+        <div className="flex items-center gap-1.5 mb-5">
+          {STEPS.map((s, i) => {
+            const idx = STEPS.indexOf(step);
+            const active = i === idx;
+            const done = i < idx;
+            return (
+              <div key={s} className="flex-1 rounded-full" style={{
+                height: 3,
+                backgroundColor: active || done ? "var(--coral)" : "var(--muted)",
+              }} />
+            );
+          })}
+        </div>
       )}
 
       {step === "feedback" && (
@@ -251,7 +207,7 @@ export function EndShiftSheet({ open, onClose, shift, onCompleted }: Props) {
           <div className="mt-3 flex gap-2">
             <SecondaryButton onClick={() => goToStep("report")}>Retour</SecondaryButton>
             <PrimaryButton onClick={handleFinish} disabled={submitting}>
-              {submitting ? "Envoi..." : "Clôturer le shift"}
+              {submitting ? "Envoi..." : "Finaliser et pointer ma sortie"}
             </PrimaryButton>
           </div>
         </>
