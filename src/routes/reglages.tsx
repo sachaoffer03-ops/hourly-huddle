@@ -90,12 +90,6 @@ function AISettings() {
         const r = data?.[0] as any;
         if (r) {
           setId(r.id);
-          setWeights({
-            performance: r.weight_performance,
-            equity: r.weight_equity,
-            preference: r.weight_preference,
-            random: r.weight_random,
-          });
           setRules({
             enforce_student_quota: r.enforce_student_quota,
             enforce_rest_11h: r.enforce_rest_11h,
