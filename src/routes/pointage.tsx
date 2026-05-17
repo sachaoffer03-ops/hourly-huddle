@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { Clock, Check, Calendar, Search, X, LogIn, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getRoleStyle, hhmm, fullName, computePunctuality, computePartialPunctuality, punctualityColor } from "@/lib/staff-helpers";
+import { completeShiftClockOutFn } from "@/lib/shift-clock.functions";
 
 export const Route = createFileRoute("/pointage")({
   component: PointagePage,
@@ -19,6 +21,7 @@ interface Shift {
 type StatusFilter = "tous" | "en-cours" | "terminé" | "à-venir";
 
 function PointagePage() {
+  const completeClockOut = useServerFn(completeShiftClockOutFn);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [profiles, setProfiles] = useState<Map<string, { first_name: string; last_name: string }>>(new Map());
   const [studios, setStudios] = useState<Map<string, string>>(new Map());
@@ -70,8 +73,12 @@ function PointagePage() {
     if (error) toast.error(error.message); else toast.success("Pointage IN forcé");
   };
   const clockOut = async (id: string) => {
-    const { error } = await supabase.from("shifts").update({ clocked_out_at: new Date().toISOString(), status: "completed" }).eq("id", id);
-    if (error) toast.error(error.message); else toast.success("Pointage OUT forcé");
+    try {
+      const result = await completeClockOut({ data: { shiftId: id } });
+      toast.success(result.alreadyCompleted ? "Shift déjà clôturé" : "Pointage OUT forcé");
+    } catch (error: any) {
+      toast.error(error?.message || "Impossible de pointer la sortie");
+    }
   };
 
   return (
