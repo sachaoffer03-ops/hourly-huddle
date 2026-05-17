@@ -32,6 +32,7 @@ interface ProfileRow {
   hire_date: string | null; niss: string | null; iban: string | null;
   emergency_contact_name: string | null; emergency_contact_phone: string | null;
   emergency_contact_relation: string | null; nationality: string | null;
+  avatar_url: string | null;
   quota_used: number | null; quota_max: number | null; score: number | null;
 }
 interface ShiftRow {
