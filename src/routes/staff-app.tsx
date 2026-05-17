@@ -721,9 +721,10 @@ function PlanningTab({ studios, userId }: { studios: Record<string, string>; use
 }
 
 /* ─── PROFIL ─── */
-function ProfilTab({ profile, businessRoles, studios, onNavigate }: { profile: ProfileRow | null; businessRoles: Role[]; studios: Record<string, string>; onNavigate: (t: Tab) => void }) {
+function ProfilTab({ profile, businessRoles, studios, userId, onProfileChange, onNavigate }: { profile: ProfileRow | null; businessRoles: Role[]; studios: Record<string, string>; userId: string; onProfileChange: (patch: Partial<ProfileRow>) => void; onNavigate: (t: Tab) => void }) {
   const { signOut } = useAuth();
   const [docsOpen, setDocsOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   if (!profile) return <div className="px-5 pt-6" style={{ fontSize: 13 }}>Chargement…</div>;
 
@@ -739,15 +740,24 @@ function ProfilTab({ profile, businessRoles, studios, onNavigate }: { profile: P
   return (
     <div className="px-5 pt-12">
       {/* Hero profil */}
-      <div className="rounded-2xl overflow-hidden mb-4" style={{ background: "linear-gradient(160deg, #1A1A1A 0%, #2A2A28 100%)", padding: 22 }}>
+      <div className="rounded-2xl overflow-hidden mb-4 relative" style={{ background: "linear-gradient(160deg, #1A1A1A 0%, #2A2A28 100%)", padding: 22 }}>
+        <button
+          onClick={() => setEditOpen(true)}
+          className="absolute rounded-full px-3 py-1.5"
+          style={{ top: 14, right: 14, fontSize: 11, fontWeight: 500, backgroundColor: "rgba(255,255,255,0.12)", color: "#fff", border: "0.5px solid rgba(255,255,255,0.18)" }}
+        >
+          Modifier
+        </button>
         <div className="flex flex-col items-center text-center">
-          <div className="rounded-full flex items-center justify-center mb-3" style={{
+          <div className="rounded-full overflow-hidden flex items-center justify-center mb-3" style={{
             width: 80, height: 80,
             background: `linear-gradient(135deg, var(--coral) 0%, var(--coral-dark) 100%)`,
             color: "#fff", fontSize: 26, fontWeight: 500,
             boxShadow: "0 8px 24px rgba(240,153,123,0.35)",
           }}>
-            {initials || "—"}
+            {profile.avatar_url
+              ? <img src={profile.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              : (initials || "—")}
           </div>
           <div style={{ fontSize: 20, fontWeight: 500, color: "#fff" }}>{profile.first_name} {profile.last_name}</div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 2 }}>{profile.email}</div>
