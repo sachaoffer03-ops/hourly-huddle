@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Beaker, Check, X, Loader2, Play, Trash2, Sparkles, RotateCw, Download, ChevronRight, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import {
-  prepareTestDataset, cleanupTestDataset, resetTestDataset,
+  prepareTestDataset, cleanupTestDataset, resetTestDataset, cleanTomShift,
   runQATest, runAllQATests, listTests, type TestResult,
 } from "@/lib/qa-test-suite.functions";
 
@@ -42,6 +42,7 @@ function QAPage() {
   const prepare = useServerFn(prepareTestDataset);
   const cleanup = useServerFn(cleanupTestDataset);
   const reset = useServerFn(resetTestDataset);
+  const cleanTom = useServerFn(cleanTomShift);
   const list = useServerFn(listTests);
   const runOne = useServerFn(runQATest);
   const runAll = useServerFn(runAllQATests);
@@ -108,6 +109,18 @@ function QAPage() {
       const r = await reset({});
       setSetupInfo(r); setSetupState("done");
       toast.success(`Reset effectué en ${(r.durationMs / 1000).toFixed(1)}s`);
+    } catch (e: any) {
+      setSetupErr(e?.message ?? "Erreur"); setSetupState("error");
+      toast.error(e?.message ?? "Erreur");
+    }
+  };
+  const handleCleanTom = async () => {
+    if (!confirm("Supprimer le shift du jour, le template test et les notifs récentes de Tom Cruise ?")) return;
+    setSetupState("running"); setSetupErr(""); setSetupInfo(null);
+    try {
+      const r = await cleanTom({});
+      setSetupInfo(r); setSetupState("done");
+      toast.success("✅ Données test Tom supprimées");
     } catch (e: any) {
       setSetupErr(e?.message ?? "Erreur"); setSetupState("error");
       toast.error(e?.message ?? "Erreur");
@@ -228,6 +241,13 @@ function QAPage() {
             icon={<RotateCw size={16} />} label="Reset complet"
             description="Cleanup + Préparer en une étape"
             onClick={handleReset} running={setupState === "running"} variant="secondary"
+          />
+        </div>
+        <div className="mt-3">
+          <ActionButton
+            icon={<Trash2 size={16} />} label="🗑️ Nettoyer shift Tom"
+            description="Supprime shift du jour, template test et notifs récentes de Tom Cruise"
+            onClick={handleCleanTom} running={setupState === "running"} variant="secondary"
           />
         </div>
         {setupInfo && (
