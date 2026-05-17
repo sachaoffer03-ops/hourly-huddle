@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Sheet, FormField, TextArea, PrimaryButton, SecondaryButton } from "./shared";
@@ -18,6 +18,27 @@ interface Props {
 type Step = "checklist" | "feedback" | "report" | "handoff" | "done";
 
 interface ChecklistItem { id: string; label: string; checked_at: string | null; }
+type Draft = Partial<Pick<ReturnType<typeof makeDraft>, "step" | "rating" | "feedbackMsg" | "reportMsg" | "handoffMsg">>;
+
+const DRAFT_PREFIX = "kadence:end-shift:";
+
+function makeDraft(step: Step, rating: number, feedbackMsg: string, reportMsg: string, handoffMsg: string) {
+  return { step, rating, feedbackMsg, reportMsg, handoffMsg };
+}
+
+function readDraft(shiftId: string): Draft | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(`${DRAFT_PREFIX}${shiftId}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearDraft(shiftId: string) {
+  if (typeof window !== "undefined") window.sessionStorage.removeItem(`${DRAFT_PREFIX}${shiftId}`);
+}
 
 const DEFAULT_CHECKLIST = [
   "Plan de travail propre et désinfecté",
@@ -29,6 +50,7 @@ const DEFAULT_CHECKLIST = [
 
 export function EndShiftSheet({ open, onClose, shift, userId, onCompleted }: Props) {
   const completeClockOut = useServerFn(completeShiftClockOutFn);
+  const openedShiftRef = useRef<string | null>(null);
   const [step, setStep] = useState<Step>("checklist");
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [rating, setRating] = useState(0);
@@ -37,8 +59,24 @@ export function EndShiftSheet({ open, onClose, shift, userId, onCompleted }: Pro
   const [handoffMsg, setHandoffMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  const saveDraft = (patch: Draft) => {
+    if (!shift || typeof window === "undefined") return;
+    const next = { ...makeDraft(step, rating, feedbackMsg, reportMsg, handoffMsg), ...patch };
+    window.sessionStorage.setItem(`${DRAFT_PREFIX}${shift.id}`, JSON.stringify(next));
+  };
+
+  const goToStep = (next: Step) => {
+    setStep(next);
+    saveDraft({ step: next });
+  };
+
   useEffect(() => {
-    if (!open || !shift) return;
+    if (!open || !shift) {
+      openedShiftRef.current = null;
+      return;
+    }
+    if (openedShiftRef.current === shift.id) return;
+    openedShiftRef.current = shift.id;
     if (shift.clocked_out_at) {
       toast.info("Ce shift est déjà clôturé");
       onClose();
@@ -49,8 +87,12 @@ export function EndShiftSheet({ open, onClose, shift, userId, onCompleted }: Pro
       onClose();
       return;
     }
-    setStep("feedback");
-    setRating(0); setFeedbackMsg(""); setReportMsg(""); setHandoffMsg("");
+    const draft = readDraft(shift.id);
+    setStep(draft?.step && draft.step !== "checklist" && draft.step !== "done" ? draft.step : "feedback");
+    setRating(typeof draft?.rating === "number" ? draft.rating : 0);
+    setFeedbackMsg(typeof draft?.feedbackMsg === "string" ? draft.feedbackMsg : "");
+    setReportMsg(typeof draft?.reportMsg === "string" ? draft.reportMsg : "");
+    setHandoffMsg(typeof draft?.handoffMsg === "string" ? draft.handoffMsg : "");
     setItems([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, shift?.id]);
@@ -81,6 +123,7 @@ export function EndShiftSheet({ open, onClose, shift, userId, onCompleted }: Pro
         toast.success("Shift terminé");
       }
 
+      clearDraft(shift.id);
       setStep("done");
       onCompleted?.();
     } catch (e: any) {
@@ -139,7 +182,7 @@ export function EndShiftSheet({ open, onClose, shift, userId, onCompleted }: Pro
           </div>
           <div className="mt-5 flex gap-2">
             <SecondaryButton onClick={onClose}>Plus tard</SecondaryButton>
-            <PrimaryButton onClick={() => setStep("feedback")} disabled={!allChecked}>
+            <PrimaryButton onClick={() => goToStep("feedback")} disabled={!allChecked}>
               {allChecked ? "Continuer" : `${items.length - checkedCount} restant${items.length - checkedCount > 1 ? "s" : ""}`}
             </PrimaryButton>
           </div>
@@ -154,7 +197,7 @@ export function EndShiftSheet({ open, onClose, shift, userId, onCompleted }: Pro
           </div>
           <div className="flex justify-center gap-2 mb-5 py-3">
             {[1,2,3,4,5].map((n) => (
-              <button key={n} onClick={() => setRating(n)} className="p-1">
+              <button key={n} type="button" onClick={() => { setRating(n); saveDraft({ rating: n }); }} className="p-1">
                 <Star size={32}
                   fill={n <= rating ? "var(--coral)" : "transparent"}
                   color={n <= rating ? "var(--coral)" : "rgba(0,0,0,0.2)"}
@@ -163,12 +206,12 @@ export function EndShiftSheet({ open, onClose, shift, userId, onCompleted }: Pro
             ))}
           </div>
           <FormField label="Un mot (optionnel)">
-            <TextArea value={feedbackMsg} onChange={setFeedbackMsg}
+            <TextArea value={feedbackMsg} onChange={(value) => { setFeedbackMsg(value); saveDraft({ feedbackMsg: value }); }}
               placeholder="Ce qui a été bien, ce qui a coincé..." rows={3} />
           </FormField>
           <div className="mt-3 flex gap-2">
-            <SecondaryButton onClick={() => setStep("checklist")}>Retour</SecondaryButton>
-            <PrimaryButton onClick={() => setStep("report")}>Continuer</PrimaryButton>
+            <SecondaryButton onClick={onClose}>Plus tard</SecondaryButton>
+            <PrimaryButton onClick={() => goToStep("report")}>Continuer</PrimaryButton>
           </div>
         </>
       )}
@@ -183,13 +226,13 @@ export function EndShiftSheet({ open, onClose, shift, userId, onCompleted }: Pro
             Quelque chose à signaler à Sacha ou à l'équipe encadrante ?
           </div>
           <FormField label="Ton message (optionnel)">
-            <TextArea value={reportMsg} onChange={setReportMsg}
+            <TextArea value={reportMsg} onChange={(value) => { setReportMsg(value); saveDraft({ reportMsg: value }); }}
               placeholder="Ex: Le client X était mécontent à cause de... / J'ai dû gérer seul un rush, prévoir un renfort..."
               rows={5} />
           </FormField>
           <div className="mt-3 flex gap-2">
-            <SecondaryButton onClick={() => setStep("feedback")}>Retour</SecondaryButton>
-            <PrimaryButton onClick={() => setStep("handoff")}>Continuer</PrimaryButton>
+            <SecondaryButton onClick={() => goToStep("feedback")}>Retour</SecondaryButton>
+            <PrimaryButton onClick={() => goToStep("handoff")}>Continuer</PrimaryButton>
           </div>
         </>
       )}
@@ -204,12 +247,12 @@ export function EndShiftSheet({ open, onClose, shift, userId, onCompleted }: Pro
             Une info à transmettre à l'employé qui prend ton poste après toi (même studio, même rôle)
           </div>
           <FormField label="Pour le prochain (optionnel)">
-            <TextArea value={handoffMsg} onChange={setHandoffMsg}
+            <TextArea value={handoffMsg} onChange={(value) => { setHandoffMsg(value); saveDraft({ handoffMsg: value }); }}
               placeholder="Ex: Attention, le moulin chauffe / Stock lait avoine bas / Client réservé à 14h..."
               rows={5} />
           </FormField>
           <div className="mt-3 flex gap-2">
-            <SecondaryButton onClick={() => setStep("report")}>Retour</SecondaryButton>
+            <SecondaryButton onClick={() => goToStep("report")}>Retour</SecondaryButton>
             <PrimaryButton onClick={handleFinish} disabled={submitting}>
               {submitting ? "Envoi..." : "Clôturer le shift"}
             </PrimaryButton>
