@@ -948,6 +948,103 @@ function Identity({
   );
 }
 
+function PhotoStep({
+  firstName,
+  lastName,
+  photoFile,
+  setPhotoFile,
+  photoPreview,
+  setPhotoPreview,
+}: {
+  firstName: string;
+  lastName: string;
+  photoFile: File | null;
+  setPhotoFile: (f: File | null) => void;
+  photoPreview: string | null;
+  setPhotoPreview: (v: string | null) => void;
+}) {
+  const handleFile = (file: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Sélectionnez une image");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image trop lourde (5 Mo max)");
+      return;
+    }
+    setPhotoFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => setPhotoPreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+  const initials = `${(firstName?.[0] || "").toUpperCase()}${(lastName?.[0] || "").toUpperCase()}`;
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-col items-center gap-4">
+        <div
+          className="rounded-full flex items-center justify-center overflow-hidden relative"
+          style={{
+            width: 128,
+            height: 128,
+            backgroundColor: "var(--coral-light)",
+            color: "var(--coral-dark)",
+            fontSize: 36,
+            fontWeight: 500,
+          }}
+        >
+          {photoPreview ? (
+            <img src={photoPreview} alt="Photo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            <span>{initials || <User size={40} strokeWidth={1.4} />}</span>
+          )}
+        </div>
+        {photoPreview && (
+          <button
+            onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}
+            className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1"
+            style={{ fontSize: 12, color: "var(--muted-foreground)", backgroundColor: "var(--secondary)" }}
+          >
+            <X size={12} /> Retirer la photo
+          </button>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <label
+          className="rounded-md border py-3 px-3 inline-flex items-center justify-center gap-2 cursor-pointer transition-colors hover:bg-[var(--secondary)]"
+          style={{ fontSize: 13, fontWeight: 500, borderColor: "var(--border)", color: "var(--foreground)" }}
+        >
+          <Camera size={15} strokeWidth={1.7} />
+          Prendre une photo
+          <input
+            type="file"
+            accept="image/*"
+            capture="user"
+            className="hidden"
+            onChange={(e) => handleFile(e.target.files?.[0] || null)}
+          />
+        </label>
+        <label
+          className="rounded-md border py-3 px-3 inline-flex items-center justify-center gap-2 cursor-pointer transition-colors hover:bg-[var(--secondary)]"
+          style={{ fontSize: 13, fontWeight: 500, borderColor: "var(--border)", color: "var(--foreground)" }}
+        >
+          <Upload size={15} strokeWidth={1.7} />
+          Importer
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => handleFile(e.target.files?.[0] || null)}
+          />
+        </label>
+      </div>
+      <p style={{ fontSize: 12, color: "var(--muted-foreground)", textAlign: "center", lineHeight: 1.6 }}>
+        Cette photo sera visible par votre équipe et vos managers. Format carré conseillé, 5 Mo maximum.
+      </p>
+    </div>
+  );
+}
+
 function Address({
   city,
   setCity,
