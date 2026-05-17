@@ -479,6 +479,7 @@ const TEST_DEFS = [
   { id: 29, name: "Score : toujours dans [0,10]", description: "Tous les scores des profils de test restent bornés entre 0 et 10." },
   { id: 30, name: "Studio supprimé : cascade complète", description: "La suppression d'un studio nettoie shifts, templates, staffing, user_studios." },
   { id: 31, name: "Employé désactivé : historique préservé", description: "Passer un profil en 'inactive' ne supprime ni shifts, ni feedbacks." },
+  { id: 32, name: "Flow complet : clock-out avec checklist", description: "Shift + template + items cochés + soumission completed + clock-out cohérent." },
 ];
 
 export const listTests = createServerFn({ method: "GET" })
