@@ -19,6 +19,7 @@ import { FormationPanel } from "@/components/staff-app/FormationPanel";
 import { ChatPanel } from "@/components/staff-app/ChatPanel";
 import { useStaffNotifications } from "@/hooks/use-staff-notifications";
 import { ProposalsSheet, useProposals } from "@/components/staff-app/ProposalsSheet";
+import { WorkedHoursEmployeeCard, EmployeeLastShifts } from "@/components/WorkedHoursCard";
 
 export const Route = createFileRoute("/staff-app")({
   component: StaffAppPage,
@@ -805,6 +806,9 @@ function ProfilTab({ profile, businessRoles, studios, userId, onProfileChange, o
         <InfoRow icon={<Hash size={14} />} label="NISS" value={profile.niss || "—"} />
         <InfoRow icon={<CreditCard size={14} />} label="IBAN" value={profile.iban || "—"} last />
       </Card>
+
+      <WorkedHoursEmployeeCard userId={userId} hourlyRate={profile.hourly_rate} />
+      <EmployeeLastShifts userId={userId} />
 
       {/* Liens utiles */}
       <div className="rounded-xl border overflow-hidden mt-4" style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)" }}>

@@ -9,6 +9,7 @@ import { computePunctuality, punctualityColor } from "@/lib/staff-helpers";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, ReferenceLine } from "recharts";
 import { useServerFn } from "@tanstack/react-start";
 import { getScoreBreakdown } from "@/lib/scoring.functions";
+import { WorkedHoursAdminCard, ClockedShiftsTable } from "@/components/WorkedHoursCard";
 
 export const Route = createFileRoute("/staff/$id")({
   component: EmployeeDetailPage,
@@ -231,6 +232,9 @@ function EmployeeDetailPage() {
               );
             })()}
           </div>
+
+          <WorkedHoursAdminCard userId={emp.id} hourlyRate={emp.hourly_rate} />
+          <ClockedShiftsTable userId={emp.id} />
 
 
           <div className="rounded-xl border p-5" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
