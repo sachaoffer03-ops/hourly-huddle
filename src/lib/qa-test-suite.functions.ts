@@ -470,6 +470,15 @@ const TEST_DEFS = [
   { id: 21, name: "Formation : progression trackée", description: "Folder + step + resource créés, progression employé enregistrée et lisible." },
   { id: 22, name: "RLS : isolation des soumissions", description: "Soumission checklist visible côté admin, RLS active sur la table." },
   { id: 23, name: "Signalement : création et résolution", description: "Signalement créé par un employé, résolu par l'admin avec date." },
+  // ─── Tests complémentaires : pointage, score, cycle de vie ────────────────
+  { id: 24, name: "Double clock-in : idempotence", description: "Un deuxième clock-in ne doit pas écraser le premier (guard IS NULL)." },
+  { id: 25, name: "Clock-out sans clock-in : bloqué", description: "Impossible de clore un shift sans clock-in préalable." },
+  { id: 26, name: "Score : 5 feedbacks 5★ → score > 8", description: "Plusieurs feedbacks 5★ récents remontent le score profil au-dessus de 8." },
+  { id: 27, name: "Score : 5 retards 20min → impact ponctualité", description: "Retards systématiques font baisser la composante ponctualité du score." },
+  { id: 28, name: "Score : decay exponentiel récent > ancien", description: "À feedbacks 5★ égaux, les récents (2j) pèsent plus que les anciens (100j)." },
+  { id: 29, name: "Score : toujours dans [0,10]", description: "Tous les scores des profils de test restent bornés entre 0 et 10." },
+  { id: 30, name: "Studio supprimé : cascade complète", description: "La suppression d'un studio nettoie shifts, templates, staffing, user_studios." },
+  { id: 31, name: "Employé désactivé : historique préservé", description: "Passer un profil en 'inactive' ne supprime ni shifts, ni feedbacks." },
 ];
 
 export const listTests = createServerFn({ method: "GET" })
