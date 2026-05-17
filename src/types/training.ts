@@ -69,4 +69,5 @@ export interface ResourceInput {
   title: string;
   content: string;
   duration_seconds?: number | null;
+  is_uploaded_video?: boolean;
 }
