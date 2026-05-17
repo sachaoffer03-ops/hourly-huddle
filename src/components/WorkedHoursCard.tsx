@@ -177,14 +177,8 @@ export function WorkedHoursAdminCard({ userId, hourlyRate }: { userId: string; h
         <div style={{ fontSize: 12, fontWeight: 500, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
           Activité & Rémunération
         </div>
-        <select value={periodKey} onChange={(e) => setPeriodKey(e.target.value as PeriodKey)}
-          className="rounded-md px-2 py-1"
-          style={{ fontSize: 11, border: "0.5px solid var(--border)", backgroundColor: "var(--background)" }}>
-          <option value="this_month">Ce mois</option>
-          <option value="last_month">Mois précédent</option>
-          <option value="last_3_months">3 derniers mois</option>
-          <option value="this_year">Cette année</option>
-        </select>
+        <PeriodPicker value={periodKey} onChange={setPeriodKey} />
+
       </div>
 
       {loading ? (
