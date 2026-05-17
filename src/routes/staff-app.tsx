@@ -19,6 +19,7 @@ import { FormationPanel } from "@/components/staff-app/FormationPanel";
 import { ChatPanel } from "@/components/staff-app/ChatPanel";
 import { useStaffNotifications } from "@/hooks/use-staff-notifications";
 import { ProposalsSheet, useProposals } from "@/components/staff-app/ProposalsSheet";
+import { WorkedHoursEmployeeCard, EmployeeLastShifts } from "@/components/WorkedHoursCard";
 
 export const Route = createFileRoute("/staff-app")({
   component: StaffAppPage,
