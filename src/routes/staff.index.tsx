@@ -16,6 +16,7 @@ interface ProfileRow {
   id: string; first_name: string; last_name: string; email: string; phone: string | null;
   contract: string | null; studio_id: string | null; status: string;
   score: number | null; quota_used: number | null; quota_max: number | null;
+  avatar_url: string | null;
 }
 interface StudioRow { id: string; name: string; }
 
