@@ -186,8 +186,10 @@ function EmployeeDetailPage() {
         <div className="col-span-2 flex flex-col gap-4">
           <div className="rounded-xl border p-5" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
             <div className="flex items-center gap-4 mb-4">
-              <div className="flex items-center justify-center rounded-full" style={{ width: 56, height: 56, backgroundColor: rc.bg, color: rc.text, fontSize: 18, fontWeight: 500 }}>
-                {initials(emp.first_name, emp.last_name)}
+              <div className="flex items-center justify-center rounded-full overflow-hidden" style={{ width: 56, height: 56, backgroundColor: rc.bg, color: rc.text, fontSize: 18, fontWeight: 500 }}>
+                {emp.avatar_url
+                  ? <img src={emp.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  : initials(emp.first_name, emp.last_name)}
               </div>
               <div>
                 <div style={{ fontSize: 18, fontWeight: 500 }}>{emp.first_name} {emp.last_name}</div>
