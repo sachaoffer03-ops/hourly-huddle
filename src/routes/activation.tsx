@@ -44,7 +44,7 @@ interface Invitation {
   expires_at: string;
 }
 
-const TOTAL_STEPS = 7; // 0 welcome, 1 password, 2 identity, 3 address, 4 rh, 5 emergency, 6 validation
+const TOTAL_STEPS = 8; // 0 welcome, 1 password, 2 identity, 3 photo, 4 address, 5 rh, 6 emergency, 7 validation
 
 function ActivationPage() {
   const { token, preview } = Route.useSearch();
