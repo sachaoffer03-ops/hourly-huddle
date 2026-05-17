@@ -528,6 +528,7 @@ function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: Profi
       <ShiftDetailSheet
         open={!!shiftDetail} onClose={() => setShiftDetail(null)}
         shift={shiftDetail} studios={studios}
+        onClockIn={() => { if (shiftDetail) { const s = shiftDetail; setShiftDetail(null); handleClockIn(s); } }}
         onEndShift={() => { if (shiftDetail) { const s = shiftDetail; setShiftDetail(null); handleEndShift(s); } }}
         onRequestModif={() => { if (shiftDetail) { setReqShiftId(shiftDetail.id); setShiftDetail(null); setReqOpen(true); } }}
       />
