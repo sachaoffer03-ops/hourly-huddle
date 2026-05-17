@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Beaker, Check, X, Loader2, Play, Trash2, Sparkles, RotateCw, Download, ChevronRight, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import {
-  prepareTestDataset, cleanupTestDataset, resetTestDataset,
+  prepareTestDataset, cleanupTestDataset, resetTestDataset, cleanTomShift,
   runQATest, runAllQATests, listTests, type TestResult,
 } from "@/lib/qa-test-suite.functions";
 
