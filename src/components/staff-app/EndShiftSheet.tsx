@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Sheet, FormField, TextArea, PrimaryButton, SecondaryButton } from "./shared";
 import type { ShiftRow } from "./shared";
-import { Star, MessageSquare, Send, ArrowRight, Check, Camera } from "lucide-react";
+import { Star, MessageSquare, ArrowRight, Check } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { completeShiftClockOutFn } from "@/lib/shift-clock.functions";
 
@@ -18,7 +17,13 @@ interface Props {
 type Step = "checklist" | "feedback" | "report" | "handoff" | "done";
 
 interface ChecklistItem { id: string; label: string; checked_at: string | null; }
-type Draft = Partial<Pick<ReturnType<typeof makeDraft>, "step" | "rating" | "feedbackMsg" | "reportMsg" | "handoffMsg">>;
+interface Draft {
+  step?: Step;
+  rating?: number;
+  feedbackMsg?: string;
+  reportMsg?: string;
+  handoffMsg?: string;
+}
 
 const DRAFT_PREFIX = "kadence:end-shift:";
 
@@ -40,15 +45,7 @@ function clearDraft(shiftId: string) {
   if (typeof window !== "undefined") window.sessionStorage.removeItem(`${DRAFT_PREFIX}${shiftId}`);
 }
 
-const DEFAULT_CHECKLIST = [
-  "Plan de travail propre et désinfecté",
-  "Machines éteintes / en mode veille",
-  "Stock vérifié pour le shift suivant",
-  "Poubelles vidées",
-  "Caisse fermée et comptée",
-];
-
-export function EndShiftSheet({ open, onClose, shift, userId, onCompleted }: Props) {
+export function EndShiftSheet({ open, onClose, shift, onCompleted }: Props) {
   const completeClockOut = useServerFn(completeShiftClockOutFn);
   const openedShiftRef = useRef<string | null>(null);
   const [step, setStep] = useState<Step>("checklist");
