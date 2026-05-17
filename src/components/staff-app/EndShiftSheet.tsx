@@ -52,7 +52,8 @@ export function EndShiftSheet({ open, onClose, shift, userId, onCompleted }: Pro
     setStep("feedback");
     setRating(0); setFeedbackMsg(""); setReportMsg(""); setHandoffMsg("");
     setItems([]);
-  }, [open, shift, onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, shift?.id]);
 
   const toggleItem = async (_id: string, _current: string | null) => {
     // Désactivé temporairement (Phase 1 refonte)
