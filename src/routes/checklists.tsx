@@ -643,11 +643,18 @@ function CreateTemplateModal({ onClose, onCreated }: { onClose: () => void; onCr
 function SubmissionsView() {
   const { submissions, loading } = useChecklistSubmissions();
   const [openId, setOpenId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"all" | "submitted" | "reviewed" | "in_progress">("all");
+  const [filter, setFilter] = useState<"all" | "to_review" | "reviewed" | "in_progress">("all");
 
   const filtered = useMemo(() => {
     if (filter === "all") return submissions;
-    return submissions.filter((s) => s.status === filter);
+    if (filter === "to_review") {
+      return submissions.filter((s) =>
+        (s.status === "completed" || s.status === "incomplete_submitted") && !s.reviewed_by_admin_at
+      );
+    }
+    if (filter === "reviewed") return submissions.filter((s) => !!s.reviewed_by_admin_at);
+    if (filter === "in_progress") return submissions.filter((s) => s.status === "in_progress");
+    return submissions;
   }, [submissions, filter]);
 
   if (loading) {
