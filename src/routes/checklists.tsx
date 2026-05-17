@@ -666,7 +666,7 @@ function SubmissionsView() {
       <div className="flex gap-1.5 mb-4">
         {([
           { v: "all", l: "Toutes" },
-          { v: "submitted", l: "À réviser" },
+          { v: "to_review", l: "À réviser" },
           { v: "in_progress", l: "En cours" },
           { v: "reviewed", l: "Révisées" },
         ] as const).map((f) => (
