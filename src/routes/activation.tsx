@@ -144,12 +144,15 @@ function ActivationPage() {
       if (!phone || !birthDate || !nationality) return toast.error("Tous les champs sont requis");
     }
     if (step === 3) {
-      if (!city || !address) return toast.error("Tous les champs sont requis");
+      if (!photoFile && !isPreview) return toast.error("Ajoutez une photo de profil");
     }
     if (step === 4) {
-      if (!niss || !iban) return toast.error("NISS et IBAN sont requis");
+      if (!city || !address) return toast.error("Tous les champs sont requis");
     }
     if (step === 5) {
+      if (!niss || !iban) return toast.error("NISS et IBAN sont requis");
+    }
+    if (step === 6) {
       if (!emName || !emPhone || !emRel) return toast.error("Tous les champs sont requis");
     }
     goNext();
