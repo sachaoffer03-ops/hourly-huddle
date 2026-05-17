@@ -507,9 +507,9 @@ function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: Profi
               <div style={{ fontSize: 13, fontWeight: 500 }}>{dateLabel} · {fmtTime(s.start_time)} — {fmtTime(s.end_time)}</div>
               <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{role} · {studioName.replace("Skult ", "")}{done ? " · terminé" : ""}</div>
             </div>
-            {active && (
-              <span onClick={(e) => { e.stopPropagation(); handleEndShift(s); }} className="rounded-md px-3 py-1.5 flex items-center gap-1 cursor-pointer" style={{ fontSize: 11, fontWeight: 500, backgroundColor: "var(--foreground)", color: "#fff" }}>
-                <CheckSquare size={12} /> Fin de shift
+            {active && !done && (
+              <span className="rounded-md px-2 py-1" style={{ fontSize: 10, fontWeight: 500, backgroundColor: "var(--coral-light)", color: "var(--coral-dark)" }}>
+                {s.clocked_in_at ? "En cours" : "Aujourd'hui"}
               </span>
             )}
             <ChevronRight size={16} style={{ color: "var(--muted-foreground)" }} />
