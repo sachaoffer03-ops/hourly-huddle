@@ -807,6 +807,9 @@ function ProfilTab({ profile, businessRoles, studios, userId, onProfileChange, o
         <InfoRow icon={<CreditCard size={14} />} label="IBAN" value={profile.iban || "—"} last />
       </Card>
 
+      <WorkedHoursEmployeeCard userId={userId} hourlyRate={profile.hourly_rate} />
+      <EmployeeLastShifts userId={userId} />
+
       {/* Liens utiles */}
       <div className="rounded-xl border overflow-hidden mt-4" style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)" }}>
         {[
