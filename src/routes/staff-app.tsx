@@ -482,8 +482,8 @@ function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: Profi
           <div style={{ fontSize: 13, fontWeight: 500 }}>
               {disposValidated ? "Dispos envoyées" : "Indique tes dispos"}
           </div>
-          <div style={{ fontSize: 11, color: "var(--muted-foreground)", textTransform: "capitalize" }}>
-              {disposValidated ? `En attente du planning généré par l'admin` : `Pour ${nextMonthLabel} — une seule fois`}
+          <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
+              {disposValidated ? `En attente du planning généré par l'admin` : <>Pour <span style={{ textTransform: "capitalize" }}>{nextMonthLabel}</span> — une seule fois</>}
           </div>
         </div>
         {!disposValidated && <ChevronRight size={16} style={{ color: "var(--muted-foreground)" }} />}
