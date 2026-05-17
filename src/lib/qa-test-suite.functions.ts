@@ -2455,7 +2455,6 @@ async function test32(): Promise<TestResult> {
     if (emp) await cleanupE2EEmployee(emp.id);
   }
 }
-}
 
 // ─── Dispatcher ─────────────────────────────────────────────────────────────
 async function runOne(id: number): Promise<TestResult> {
