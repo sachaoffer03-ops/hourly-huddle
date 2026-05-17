@@ -1771,11 +1771,11 @@ async function test21(): Promise<TestResult> {
     if (!step) throw new Error("Step non créé");
     stepId = step.id;
 
-    const { data: resource } = await supabaseAdmin.from("training_resources").insert({
-      step_id: stepId, title: "Ressource QA", type: "text",
+    const { data: resource, error: rErr } = await supabaseAdmin.from("training_resources").insert({
+      step_id: stepId, title: "Ressource QA", type: "note",
       content: "Contenu de test", order_index: 0,
     }).select("id").single();
-    if (!resource) throw new Error("Resource non créée");
+    if (rErr || !resource) throw new Error(`Resource non créée : ${rErr?.message}`);
     resourceId = resource.id;
 
     const { data: progress, error } = await supabaseAdmin.from("training_progress").insert({
