@@ -969,7 +969,7 @@ function PointageTab({ studios, userId }: { studios: Record<string, string>; use
   const fmtHHMM = (iso: string) => new Date(iso).toTimeString().slice(0, 5).replace(":", "h");
   const checklistBadge = (status: string | null | undefined) => {
     if (!status) return <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>—</span>;
-    if (status === "submitted" || status === "reviewed")
+    if (status === "completed" || status === "submitted" || status === "reviewed" || status === "incomplete_submitted")
       return <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, fontWeight: 500, backgroundColor: "var(--success-bg)", color: "var(--success-text)" }}>✓</span>;
     return <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, fontWeight: 500, backgroundColor: "var(--warning-bg)", color: "var(--warning-text)" }}>!</span>;
   };
