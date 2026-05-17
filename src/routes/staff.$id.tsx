@@ -449,6 +449,60 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
+function HourlyRateRow({ profileId, value, canEdit, onSaved }: { profileId: string; value: number | null; canEdit: boolean; onSaved: (v: number | null) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [raw, setRaw] = useState(value !== null ? String(value).replace(".", ",") : "");
+  const [saving, setSaving] = useState(false);
+
+  const display = value !== null ? `${value.toFixed(2).replace(".", ",")} €/h` : "—";
+
+  const save = async () => {
+    const normalized = raw.trim().replace(",", ".");
+    const parsed = normalized === "" ? null : Number(normalized);
+    if (parsed !== null && (Number.isNaN(parsed) || parsed < 0)) {
+      toast.error("Montant invalide");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.from("profiles").update({ hourly_rate: parsed }).eq("id", profileId);
+    setSaving(false);
+    if (error) { toast.error("Erreur"); return; }
+    toast.success("Taux horaire mis à jour");
+    onSaved(parsed);
+    setEditing(false);
+  };
+
+  if (!canEdit || !editing) {
+    return (
+      <div className="flex items-center justify-between py-1" style={{ fontSize: 12 }}>
+        <span style={{ color: "var(--muted-foreground)" }}>Taux horaire</span>
+        <span className="flex items-center gap-2">
+          <span style={{ fontWeight: 500 }}>{display}</span>
+          {canEdit && (
+            <button onClick={() => { setRaw(value !== null ? String(value).replace(".", ",") : ""); setEditing(true); }}
+              style={{ fontSize: 10, color: "var(--coral)" }}>Éditer</button>
+          )}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-between py-1 gap-2" style={{ fontSize: 12 }}>
+      <span style={{ color: "var(--muted-foreground)" }}>Taux horaire</span>
+      <span className="flex items-center gap-1">
+        <input value={raw} onChange={(e) => setRaw(e.target.value)} placeholder="Ex: 12,50" inputMode="decimal"
+          style={{ fontSize: 12, padding: "2px 6px", border: "0.5px solid var(--border)", borderRadius: 4, width: 80, textAlign: "right" }} />
+        <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>€/h</span>
+        <button onClick={save} disabled={saving} style={{ fontSize: 10, fontWeight: 500, color: "var(--coral)" }}>
+          {saving ? "..." : "OK"}
+        </button>
+        <button onClick={() => setEditing(false)} disabled={saving} style={{ fontSize: 10, color: "var(--muted-foreground)" }}>×</button>
+      </span>
+    </div>
+  );
+}
+
 function PunctualityCard({ shifts }: { shifts: ShiftRow[] }) {
   // Du plus ancien au plus récent, uniquement les shifts pointés (in + out)
   const data = shifts
