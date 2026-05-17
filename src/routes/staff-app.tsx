@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { EndShiftSheet } from "@/components/staff-app/EndShiftSheet";
 import { SignalementSheet, RequestModificationSheet, MyRequestsSheet } from "@/components/staff-app/StaffActionsSheets";
 import { ShiftDetailSheet, DocumentsSheet, NotificationsSheet } from "@/components/staff-app/ProfileSheets";
+import { EditProfileSheet, type EditableProfile } from "@/components/staff-app/EditProfileSheet";
 import { DisposSheet, disposKey } from "@/components/staff-app/DisposSheet";
 import { FormationPanel } from "@/components/staff-app/FormationPanel";
 import { ChatPanel } from "@/components/staff-app/ChatPanel";
