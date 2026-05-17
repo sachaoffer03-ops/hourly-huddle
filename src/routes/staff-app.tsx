@@ -532,7 +532,17 @@ function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: Profi
         onEndShift={() => { if (shiftDetail) { const s = shiftDetail; setShiftDetail(null); handleEndShift(s); } }}
         onRequestModif={() => { if (shiftDetail) { setReqShiftId(shiftDetail.id); setShiftDetail(null); setReqOpen(true); } }}
       />
-      <EndShiftSheet open={!!endShift} onClose={() => setEndShift(null)} shift={endShift} userId={userId} />
+      <EndShiftSheet
+        open={!!endShift}
+        onClose={() => setEndShift(null)}
+        shift={endShift}
+        userId={userId}
+        onCompleted={() => {
+          if (!endShift) return;
+          const completedAt = new Date().toISOString();
+          setShifts((prev) => prev.map((s) => s.id === endShift.id ? { ...s, clocked_out_at: completedAt } : s));
+        }}
+      />
       <SignalementSheet open={signalOpen} onClose={() => setSignalOpen(false)} userId={userId} studioId={profile?.studio_id ?? null} />
       <RequestModificationSheet open={reqOpen} onClose={() => { setReqOpen(false); setReqShiftId(null); }} userId={userId} shiftId={reqShiftId} />
       <MyRequestsSheet open={myReqOpen} onClose={() => setMyReqOpen(false)} userId={userId} />
@@ -694,7 +704,17 @@ function PlanningTab({ studios, userId }: { studios: Record<string, string>; use
         onEndShift={() => { if (shiftDetail) { const s = shiftDetail; setShiftDetail(null); handleEndShift(s); } }}
         onRequestModif={() => { if (shiftDetail) { setReqShiftId(shiftDetail.id); setShiftDetail(null); setReqOpen(true); } }}
       />
-      <EndShiftSheet open={!!endShift} onClose={() => setEndShift(null)} shift={endShift} userId={userId} />
+      <EndShiftSheet
+        open={!!endShift}
+        onClose={() => setEndShift(null)}
+        shift={endShift}
+        userId={userId}
+        onCompleted={() => {
+          if (!endShift) return;
+          const completedAt = new Date().toISOString();
+          setShifts((prev) => prev.map((s) => s.id === endShift.id ? { ...s, clocked_out_at: completedAt } : s));
+        }}
+      />
       <RequestModificationSheet open={reqOpen} onClose={() => { setReqOpen(false); setReqShiftId(null); }} userId={userId} shiftId={reqShiftId} />
     </div>
   );
@@ -1029,7 +1049,17 @@ function PointageTab({ studios, userId }: { studios: Record<string, string>; use
         </div>
       )}
 
-      <EndShiftSheet open={!!endShift} onClose={() => setEndShift(null)} shift={endShift} userId={userId} />
+      <EndShiftSheet
+        open={!!endShift}
+        onClose={() => setEndShift(null)}
+        shift={endShift}
+        userId={userId}
+        onCompleted={() => {
+          if (!endShift) return;
+          const completedAt = new Date().toISOString();
+          setTodayShift((prev) => prev?.id === endShift.id ? { ...prev, clocked_out_at: completedAt } : prev);
+        }}
+      />
     </div>
   );
 }
