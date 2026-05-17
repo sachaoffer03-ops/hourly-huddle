@@ -37,8 +37,12 @@ export function EndShiftSheet({ open, onClose, shift, userId, onCompleted }: Pro
   useEffect(() => {
     if (!open || !shift) return;
     if (shift.clocked_out_at) {
-      // Déjà clôturé : on ferme la sheet et on prévient
       toast.info("Ce shift est déjà clôturé");
+      onClose();
+      return;
+    }
+    if (!shift.clocked_in_at) {
+      toast.error("Tu dois d'abord pointer ton arrivée");
       onClose();
       return;
     }
