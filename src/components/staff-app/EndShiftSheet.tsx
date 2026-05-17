@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { Sheet, FormField, TextArea, PrimaryButton, SecondaryButton } from "./shared";
 import type { ShiftRow } from "./shared";
 import { Star, MessageSquare, Send, ArrowRight, Check, Camera } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { completeShiftClockOutFn } from "@/lib/shift-clock.functions";
 
 interface Props {
   open: boolean;
@@ -26,6 +28,7 @@ const DEFAULT_CHECKLIST = [
 ];
 
 export function EndShiftSheet({ open, onClose, shift, userId, onCompleted }: Props) {
+  const completeClockOut = useServerFn(completeShiftClockOutFn);
   const [step, setStep] = useState<Step>("checklist");
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [rating, setRating] = useState(0);
@@ -62,35 +65,16 @@ export function EndShiftSheet({ open, onClose, shift, userId, onCompleted }: Pro
     if (!shift) return;
     setSubmitting(true);
     try {
-      if (rating > 0 || feedbackMsg.trim()) {
-        const { error: fbErr } = await supabase.from("feedbacks").insert({
-          shift_id: shift.id, author_id: userId,
-          rating: rating || 3,
-          message: feedbackMsg.trim() || null,
-        });
-        if (fbErr) throw fbErr;
-      }
-      if (reportMsg.trim()) {
-        const { error: rErr } = await supabase.from("shift_reports").insert({
-          shift_id: shift.id, author_id: userId, message: reportMsg.trim(),
-        });
-        if (rErr) throw rErr;
-      }
-      if (handoffMsg.trim()) {
-        const { error: hErr } = await supabase.from("shift_handoffs").insert({
-          shift_id: shift.id, author_id: userId, message: handoffMsg.trim(),
-        });
-        if (hErr) throw hErr;
-      }
-      // Mark shift completed + clock-out — vérifier qu'au moins 1 ligne est mise à jour
-      const { data: upd, error: uErr } = await supabase
-        .from("shifts")
-        .update({ status: "completed", clocked_out_at: new Date().toISOString() })
-        .eq("id", shift.id)
-        .is("clocked_out_at", null)
-        .select("id");
-      if (uErr) throw uErr;
-      if (!upd || upd.length === 0) {
+      const result = await completeClockOut({
+        data: {
+          shiftId: shift.id,
+          rating,
+          feedbackMsg,
+          reportMsg,
+          handoffMsg,
+        },
+      });
+      if (result.alreadyCompleted) {
         toast.info("Shift déjà clôturé");
       } else {
         toast.success("Shift terminé");
