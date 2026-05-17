@@ -1759,13 +1759,15 @@ async function test21(): Promise<TestResult> {
     const { data: step } = await supabaseAdmin.from("training_steps").insert({
       folder_id: folderId, title: "Étape QA test", order_index: 0,
     }).select("id").single();
-    stepId = step?.id ?? null;
+    if (!step) throw new Error("Step non créé");
+    stepId = step.id;
 
     const { data: resource } = await supabaseAdmin.from("training_resources").insert({
       step_id: stepId, title: "Ressource QA", type: "text",
       content: "Contenu de test", order_index: 0,
     }).select("id").single();
-    resourceId = resource?.id ?? null;
+    if (!resource) throw new Error("Resource non créée");
+    resourceId = resource.id;
 
     const { data: progress, error } = await supabaseAdmin.from("training_progress").insert({
       user_id: userId, resource_id: resourceId,
