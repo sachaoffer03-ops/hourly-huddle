@@ -300,6 +300,7 @@ export type Database = {
           is_required: boolean
           label: string
           order_index: number
+          photo_zone_id: string | null
           template_id: string
         }
         Insert: {
@@ -309,6 +310,7 @@ export type Database = {
           is_required?: boolean
           label: string
           order_index?: number
+          photo_zone_id?: string | null
           template_id: string
         }
         Update: {
@@ -318,9 +320,17 @@ export type Database = {
           is_required?: boolean
           label?: string
           order_index?: number
+          photo_zone_id?: string | null
           template_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "checklist_template_items_photo_zone_id_fkey"
+            columns: ["photo_zone_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_template_photos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "checklist_template_items_template_id_fkey"
             columns: ["template_id"]
@@ -373,34 +383,46 @@ export type Database = {
       }
       checklist_templates: {
         Row: {
+          ai_detection_hint: string | null
+          ai_validation_threshold: number
+          analyze_with_ai: boolean
           business_role_id: string | null
           created_at: string
           description: string | null
           id: string
           is_active: boolean
           is_blocking: boolean
+          min_photos_required: number
           name: string
           studio_id: string | null
           updated_at: string
         }
         Insert: {
+          ai_detection_hint?: string | null
+          ai_validation_threshold?: number
+          analyze_with_ai?: boolean
           business_role_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
           is_active?: boolean
           is_blocking?: boolean
+          min_photos_required?: number
           name: string
           studio_id?: string | null
           updated_at?: string
         }
         Update: {
+          ai_detection_hint?: string | null
+          ai_validation_threshold?: number
+          analyze_with_ai?: boolean
           business_role_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
           is_active?: boolean
           is_blocking?: boolean
+          min_photos_required?: number
           name?: string
           studio_id?: string | null
           updated_at?: string
@@ -415,6 +437,92 @@ export type Database = {
           },
           {
             foreignKeyName: "checklist_templates_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      closure_question_responses: {
+        Row: {
+          created_at: string
+          id: string
+          question_id: string
+          stars_value: number | null
+          submission_id: string
+          text_value: string | null
+          yesno_value: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          question_id: string
+          stars_value?: number | null
+          submission_id: string
+          text_value?: string | null
+          yesno_value?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          question_id?: string
+          stars_value?: number | null
+          submission_id?: string
+          text_value?: string | null
+          yesno_value?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "closure_question_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "closure_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "closure_question_responses_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      closure_questions: {
+        Row: {
+          created_at: string
+          id: string
+          is_required: boolean
+          order_index: number
+          question_text: string
+          response_type: string
+          studio_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          order_index?: number
+          question_text: string
+          response_type?: string
+          studio_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          order_index?: number
+          question_text?: string
+          response_type?: string
+          studio_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "closure_questions_studio_id_fkey"
             columns: ["studio_id"]
             isOneToOne: false
             referencedRelation: "studios"
@@ -1329,11 +1437,17 @@ export type Database = {
           address: string | null
           capacity: number | null
           city: string | null
+          clock_out_button_appears_before_min: number
+          clock_out_grace_period_min: number
+          clock_out_overdue_action: string
           color: string | null
           created_at: string
+          current_qr_code: string | null
           deleted_at: string | null
           description: string | null
           email: string | null
+          geofencing_enabled: boolean
+          geofencing_radius_m: number
           has_kitchen: boolean
           id: string
           internal_notes: string | null
@@ -1344,6 +1458,8 @@ export type Database = {
           opening_hours: string | null
           phone: string | null
           postal_code: string | null
+          qr_display_support: string
+          qr_renewal_seconds: number
           role_hours: Json
           short_name: string | null
           surface_m2: number | null
@@ -1352,11 +1468,17 @@ export type Database = {
           address?: string | null
           capacity?: number | null
           city?: string | null
+          clock_out_button_appears_before_min?: number
+          clock_out_grace_period_min?: number
+          clock_out_overdue_action?: string
           color?: string | null
           created_at?: string
+          current_qr_code?: string | null
           deleted_at?: string | null
           description?: string | null
           email?: string | null
+          geofencing_enabled?: boolean
+          geofencing_radius_m?: number
           has_kitchen?: boolean
           id?: string
           internal_notes?: string | null
@@ -1367,6 +1489,8 @@ export type Database = {
           opening_hours?: string | null
           phone?: string | null
           postal_code?: string | null
+          qr_display_support?: string
+          qr_renewal_seconds?: number
           role_hours?: Json
           short_name?: string | null
           surface_m2?: number | null
@@ -1375,11 +1499,17 @@ export type Database = {
           address?: string | null
           capacity?: number | null
           city?: string | null
+          clock_out_button_appears_before_min?: number
+          clock_out_grace_period_min?: number
+          clock_out_overdue_action?: string
           color?: string | null
           created_at?: string
+          current_qr_code?: string | null
           deleted_at?: string | null
           description?: string | null
           email?: string | null
+          geofencing_enabled?: boolean
+          geofencing_radius_m?: number
           has_kitchen?: boolean
           id?: string
           internal_notes?: string | null
@@ -1390,6 +1520,8 @@ export type Database = {
           opening_hours?: string | null
           phone?: string | null
           postal_code?: string | null
+          qr_display_support?: string
+          qr_renewal_seconds?: number
           role_hours?: Json
           short_name?: string | null
           surface_m2?: number | null
