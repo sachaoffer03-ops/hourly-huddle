@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { findApplicableTemplate } from "@/lib/checklists.helpers";
+
 import { toast } from "sonner";
 import {
   Home, Calendar, User, ChevronRight, Clock, GraduationCap, ArrowLeft, CheckSquare,
@@ -10,7 +10,7 @@ import {
 import { roleColors, getQuotaStatus, type Role } from "@/lib/role-colors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { EndShiftSheet } from "@/components/staff-app/EndShiftSheet";
+import { ClosureFlow } from "@/components/staff-app/ClosureFlow";
 import { SignalementSheet, RequestModificationSheet, MyRequestsSheet } from "@/components/staff-app/StaffActionsSheets";
 import { ShiftDetailSheet, DocumentsSheet, NotificationsSheet } from "@/components/staff-app/ProfileSheets";
 import { EditProfileSheet, type EditableProfile } from "@/components/staff-app/EditProfileSheet";
@@ -157,13 +157,6 @@ function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: Profi
   async function handleEndShift(s: ShiftRow) {
     if (s.clocked_out_at) { toast.info("Ce shift est déjà clôturé"); return; }
     if (!s.clocked_in_at) { toast.error("Tu dois d'abord pointer ton arrivée"); return; }
-    try {
-      const tpl = await findApplicableTemplate({ studioId: s.studio_id ?? null, businessRole: s.business_role });
-      if (tpl) {
-        navigate({ to: "/staff/checklist/$shiftId", params: { shiftId: s.id } });
-        return;
-      }
-    } catch {}
     setEndShift(s);
   }
 
@@ -535,11 +528,12 @@ function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: Profi
         onEndShift={() => { if (shiftDetail) { const s = shiftDetail; setShiftDetail(null); handleEndShift(s); } }}
         onRequestModif={() => { if (shiftDetail) { setReqShiftId(shiftDetail.id); setShiftDetail(null); setReqOpen(true); } }}
       />
-      <EndShiftSheet
+      <ClosureFlow
         open={!!endShift}
         onClose={() => setEndShift(null)}
         shift={endShift}
         userId={userId}
+        studios={studios}
         onCompleted={() => {
           if (!endShift) return;
           const completedAt = new Date().toISOString();
@@ -584,10 +578,6 @@ function PlanningTab({ studios, userId }: { studios: Record<string, string>; use
   async function handleEndShift(s: ShiftRow) {
     if (s.clocked_out_at) { toast.info("Ce shift est déjà clôturé"); return; }
     if (!s.clocked_in_at) { toast.error("Tu dois d'abord pointer ton arrivée"); return; }
-    try {
-      const tpl = await findApplicableTemplate({ studioId: s.studio_id ?? null, businessRole: s.business_role });
-      if (tpl) { navigate({ to: "/staff/checklist/$shiftId", params: { shiftId: s.id } }); return; }
-    } catch {}
     setEndShift(s);
   }
 
@@ -707,11 +697,12 @@ function PlanningTab({ studios, userId }: { studios: Record<string, string>; use
         onEndShift={() => { if (shiftDetail) { const s = shiftDetail; setShiftDetail(null); handleEndShift(s); } }}
         onRequestModif={() => { if (shiftDetail) { setReqShiftId(shiftDetail.id); setShiftDetail(null); setReqOpen(true); } }}
       />
-      <EndShiftSheet
+      <ClosureFlow
         open={!!endShift}
         onClose={() => setEndShift(null)}
         shift={endShift}
         userId={userId}
+        studios={studios}
         onCompleted={() => {
           if (!endShift) return;
           const completedAt = new Date().toISOString();
@@ -970,10 +961,6 @@ function PointageTab({ studios, userId }: { studios: Record<string, string>; use
   async function clockOut(s: ShiftRow) {
     if (s.clocked_out_at) { toast.info("Ce shift est déjà clôturé"); return; }
     if (!s.clocked_in_at) { toast.error("Tu dois d'abord pointer ton arrivée"); return; }
-    try {
-      const tpl = await findApplicableTemplate({ studioId: s.studio_id ?? null, businessRole: s.business_role });
-      if (tpl) { navigate({ to: "/staff/checklist/$shiftId", params: { shiftId: s.id } }); return; }
-    } catch {}
     setEndShift(s);
   }
 
@@ -1091,11 +1078,12 @@ function PointageTab({ studios, userId }: { studios: Record<string, string>; use
         </div>
       )}
 
-      <EndShiftSheet
+      <ClosureFlow
         open={!!endShift}
         onClose={() => setEndShift(null)}
         shift={endShift}
         userId={userId}
+        studios={studios}
         onCompleted={() => {
           if (!endShift) return;
           const completedAt = new Date().toISOString();
