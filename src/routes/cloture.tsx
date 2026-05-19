@@ -811,35 +811,83 @@ function PhotoCard({ photo, onEdit }: { photo: any; onEdit: () => void }) {
   );
 }
 
-function PhotoEditModal({ photo, onClose }: { photo: any; onClose: () => void }) {
+function PhotoEditModal({ photo, isNew, onClose, onSaved, onDeleted }: {
+  photo: any; isNew: boolean; onClose: () => void;
+  onSaved: (saved: any) => void; onDeleted: (id: string) => void;
+}) {
   const [label, setLabel] = useState(photo.label);
   const [desc, setDesc] = useState(photo.description ?? "");
   const [required, setRequired] = useState(!!photo.is_required);
   const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const save = async () => {
+  const uploadReference = async (photoId: string, file: File) => {
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+    const path = `references/${photo.template_id}/${photoId}.${ext}`;
+    const { error: upErr } = await supabase.storage.from("checklist-photos")
+      .upload(path, file, { contentType: file.type || "image/jpeg", upsert: true });
+    if (upErr) throw upErr;
     const { error } = await supabase.from("checklist_template_photos")
-      .update({ label, description: desc || null, is_required: required } as any)
-      .eq("id", photo.id);
-    if (error) toast.error(error.message); else { flashSaved(); onClose(); }
+      .update({ reference_photo_url: path } as any).eq("id", photoId);
+    if (error) throw error;
+    return path;
   };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      if (isNew) {
+        const { data, error } = await supabase.from("checklist_template_photos").insert({
+          template_id: photo.template_id,
+          label, description: desc || null, is_required: required, order_index: photo.order_index,
+        } as any).select("*").single();
+        if (error) throw error;
+        let final = data as any;
+        if (pendingFile) {
+          const path = await uploadReference(final.id, pendingFile);
+          final = { ...final, reference_photo_url: path };
+        }
+        onSaved(final);
+      } else {
+        const { error } = await supabase.from("checklist_template_photos")
+          .update({ label, description: desc || null, is_required: required } as any)
+          .eq("id", photo.id);
+        if (error) throw error;
+        let final = { ...photo, label, description: desc || null, is_required: required };
+        if (pendingFile) {
+          const path = await uploadReference(photo.id, pendingFile);
+          final = { ...final, reference_photo_url: path };
+        }
+        onSaved(final);
+      }
+      flashSaved();
+      onClose();
+    } catch (e: any) {
+      toast.error(e.message ?? "Erreur");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const remove = async () => {
+    if (isNew) { onClose(); return; }
     if (!confirm("Supprimer cette zone ?")) return;
     const { error } = await supabase.from("checklist_template_photos").delete().eq("id", photo.id);
-    if (error) toast.error(error.message); else { flashSaved(); onClose(); }
+    if (error) { toast.error(error.message); return; }
+    onDeleted(photo.id);
+    flashSaved();
+    onClose();
   };
-  const upload = async (file: File) => {
+
+  const chooseFile = async (file: File) => {
+    setPendingFile(file);
+    if (isNew) return; // upload différé jusqu'au save (besoin de l'id)
     setUploading(true);
     try {
-      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-      const path = `references/${photo.template_id}/${photo.id}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("checklist-photos")
-        .upload(path, file, { contentType: file.type || "image/jpeg", upsert: true });
-      if (upErr) throw upErr;
-      const { error } = await supabase.from("checklist_template_photos")
-        .update({ reference_photo_url: path } as any).eq("id", photo.id);
-      if (error) throw error;
+      await uploadReference(photo.id, file);
+      onSaved({ ...photo, label, description: desc || null, is_required: required, reference_photo_url: `references/${photo.template_id}/${photo.id}.${(file.name.split(".").pop() || "jpg").toLowerCase()}` });
       toast.success("Photo de référence mise à jour");
       flashSaved();
     } catch (e: any) {
@@ -850,9 +898,9 @@ function PhotoEditModal({ photo, onClose }: { photo: any; onClose: () => void })
   };
 
   return (
-    <Dialog open onOpenChange={onClose}>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Modifier la zone</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{isNew ? "Nouvelle zone photo" : "Modifier la zone"}</DialogTitle></DialogHeader>
         <div className="flex flex-col gap-3">
           <div>
             <label style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Nom</label>
@@ -881,10 +929,14 @@ function PhotoEditModal({ photo, onClose }: { photo: any; onClose: () => void })
               >
                 <Upload size={13} /> {uploading ? "Upload…" : "Choisir une image"}
               </button>
-              {photo.reference_photo_url && <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>✓ déjà uploadée</span>}
+              {(photo.reference_photo_url || pendingFile) && (
+                <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
+                  ✓ {pendingFile ? pendingFile.name : "déjà uploadée"}
+                </span>
+              )}
             </div>
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => {
-              const f = e.target.files?.[0]; if (f) upload(f);
+              const f = e.target.files?.[0]; if (f) chooseFile(f);
             }} />
           </div>
         </div>
@@ -894,7 +946,9 @@ function PhotoEditModal({ photo, onClose }: { photo: any; onClose: () => void })
           </button>
           <div className="flex gap-2">
             <button onClick={onClose} className="px-3 py-1.5 rounded-md border" style={{ fontSize: 12, borderColor: "var(--border)" }}>Annuler</button>
-            <button onClick={save} className="px-3 py-1.5 rounded-md" style={{ fontSize: 12, backgroundColor: "var(--coral)", color: "var(--coral-text)" }}>Enregistrer</button>
+            <button onClick={save} disabled={saving} className="px-3 py-1.5 rounded-md" style={{ fontSize: 12, backgroundColor: "var(--coral)", color: "var(--coral-text)" }}>
+              {saving ? "…" : "Enregistrer"}
+            </button>
           </div>
         </DialogFooter>
       </DialogContent>
