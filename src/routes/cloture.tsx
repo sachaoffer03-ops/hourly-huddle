@@ -587,64 +587,78 @@ function DuplicateButton({ items, currentRoleId, studioId }: { items: any[]; cur
   const { roles } = useBusinessRoles({ onlyActive: true });
   const [open, setOpen] = useState(false);
   const [target, setTarget] = useState<string>("");
+  const [busy, setBusy] = useState(false);
 
   const dup = async () => {
-    if (!target) return;
-    // Ensure target template exists
-    let { data: tpl } = await supabase
-      .from("checklist_templates")
-      .select("id")
-      .eq("studio_id", studioId)
-      .eq("business_role_id", target)
-      .maybeSingle();
-    if (!tpl) {
-      const { data: created } = await supabase.from("checklist_templates").insert({
-        studio_id: studioId, business_role_id: target, name: "Clôture", is_active: true, is_blocking: true,
-      } as any).select("id").single();
-      tpl = created as any;
+    if (!target || busy) return;
+    setBusy(true);
+    try {
+      let { data: tpl } = await supabase
+        .from("checklist_templates")
+        .select("id")
+        .eq("studio_id", studioId)
+        .eq("business_role_id", target)
+        .maybeSingle();
+      if (!tpl) {
+        const { data: created, error: cErr } = await supabase.from("checklist_templates").insert({
+          studio_id: studioId, business_role_id: target, name: "Clôture", is_active: true, is_blocking: true,
+        } as any).select("id").single();
+        if (cErr) { toast.error(cErr.message); return; }
+        tpl = created as any;
+      }
+      if (!tpl) return;
+      const rows = items.map((it, idx) => ({
+        template_id: (tpl as any).id, label: it.label, description: it.description, is_required: it.is_required, order_index: idx,
+      }));
+      if (rows.length > 0) {
+        const { error } = await supabase.from("checklist_template_items").insert(rows as any);
+        if (error) { toast.error(error.message); return; }
+      }
+      toast.success("Checklist dupliquée");
+      setOpen(false);
+      setTarget("");
+      flashSaved();
+    } finally {
+      setBusy(false);
     }
-    if (!tpl) return;
-    const rows = items.map((it, idx) => ({
-      template_id: (tpl as any).id, label: it.label, description: it.description, is_required: it.is_required, order_index: idx,
-    }));
-    if (rows.length > 0) {
-      const { error } = await supabase.from("checklist_template_items").insert(rows as any);
-      if (error) { toast.error(error.message); return; }
-    }
-    toast.success("Checklist dupliquée");
-    setOpen(false);
-    flashSaved();
   };
 
   const targets = roles.filter((r) => r.id !== currentRoleId);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <button
-        onClick={() => setOpen(true)}
-        className="rounded-md px-3 py-1.5 border"
-        style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--background)", borderColor: "var(--border)" }}
-      >
-        Dupliquer vers un autre poste
-      </button>
-      <DialogContent>
-        <DialogHeader><DialogTitle>Dupliquer la checklist</DialogTitle></DialogHeader>
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setTarget(""); }}>
+      <PopoverTrigger asChild>
+        <button
+          className="rounded-md px-3 py-1.5 border"
+          style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--background)", borderColor: "var(--border)" }}
+        >
+          Dupliquer vers un autre poste
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[300px]" align="start">
         <div className="flex flex-col gap-2">
+          <div style={{ fontSize: 13, fontWeight: 500 }}>Dupliquer la checklist</div>
           <label style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Poste de destination</label>
-          <Select value={target} onValueChange={setTarget}>
-            <SelectTrigger><SelectValue placeholder="Choisir un poste" /></SelectTrigger>
-            <SelectContent>
-              {targets.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          {targets.length === 0 ? (
+            <p style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Aucun autre poste actif disponible.</p>
+          ) : (
+            <Select value={target} onValueChange={setTarget}>
+              <SelectTrigger><SelectValue placeholder="Choisir un poste" /></SelectTrigger>
+              <SelectContent>
+                {targets.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
           <p style={{ fontSize: 11, color: "var(--muted-foreground)" }}>Les items sont ajoutés à la fin de la checklist existante.</p>
+          <div className="flex justify-end gap-2 mt-1">
+            <button onClick={() => setOpen(false)} className="px-3 py-1.5 rounded-md border" style={{ fontSize: 12, borderColor: "var(--border)" }}>Annuler</button>
+            <button onClick={dup} disabled={!target || busy} className="px-3 py-1.5 rounded-md disabled:opacity-50" style={{ fontSize: 12, backgroundColor: "var(--coral)", color: "var(--coral-text)" }}>
+              {busy ? "…" : "Dupliquer"}
+            </button>
+          </div>
         </div>
-        <DialogFooter>
-          <button onClick={() => setOpen(false)} className="px-3 py-1.5 rounded-md border" style={{ fontSize: 12, borderColor: "var(--border)" }}>Annuler</button>
-          <button onClick={dup} disabled={!target} className="px-3 py-1.5 rounded-md" style={{ fontSize: 12, backgroundColor: "var(--coral)", color: "var(--coral-text)" }}>Dupliquer</button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -686,9 +700,10 @@ function PhotosSection({ studioId }: { studioId: string }) {
 }
 
 function PhotosEditor({ studioId, roleId, roleName }: { studioId: string; roleId: string; roleName: string }) {
-  const { template, loading } = useTemplate(studioId, roleId);
+  const { template, loading, setTemplate } = useTemplate(studioId, roleId);
   const [photos, setPhotos] = useState<any[]>([]);
   const [editing, setEditing] = useState<any | null>(null);
+  const [editingIsNew, setEditingIsNew] = useState(false);
 
   const reload = useCallback(async () => {
     if (!template?.id) return;
@@ -706,24 +721,29 @@ function PhotosEditor({ studioId, roleId, roleName }: { studioId: string; roleId
 
   const update = useCallback(async (patch: any) => {
     if (!template?.id) return;
+    // Optimistic local update — sinon les boutons (Souple/Standard/Strict, switch IA) ne réagissent pas instantanément
+    setTemplate((prev: any) => prev ? { ...prev, ...patch } : prev);
     const { error } = await supabase.from("checklist_templates").update(patch).eq("id", template.id);
     if (error) toast.error(error.message); else flashSaved();
-  }, [template?.id]);
-  const updateDebounced = useDebouncedCallback(update, 500);
+  }, [template?.id, setTemplate]);
 
   if (loading || !template) return <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Chargement…</div>;
 
-
-  const addZone = async () => {
+  // Mode "brouillon" : pas d'insert DB tant que l'utilisateur n'a pas cliqué Enregistrer
+  const addZone = () => {
     const next = (photos[photos.length - 1]?.order_index ?? -1) + 1;
-    const { data, error } = await supabase.from("checklist_template_photos").insert({
-      template_id: template.id, label: "Nouvelle zone", is_required: false, order_index: next,
-    } as any).select("*").single();
-    if (error) { toast.error(error.message); return; }
-    setPhotos((prev) => [...prev, data as any]);
-    setEditing(data as any);
-    flashSaved();
+    setEditing({
+      template_id: template.id,
+      label: "Nouvelle zone",
+      description: "",
+      is_required: false,
+      order_index: next,
+      reference_photo_url: null,
+    });
+    setEditingIsNew(true);
   };
+
+  const closeEditor = () => { setEditing(null); setEditingIsNew(false); };
 
   return (
     <div>
@@ -746,7 +766,7 @@ function PhotosEditor({ studioId, roleId, roleName }: { studioId: string; roleId
 
       <div className="grid gap-3 grid-cols-1 md:grid-cols-3">
         {photos.map((p) => (
-          <PhotoCard key={p.id} photo={p} onEdit={() => setEditing(p)} />
+          <PhotoCard key={p.id} photo={p} onEdit={() => { setEditing(p); setEditingIsNew(false); }} />
         ))}
         <button
           onClick={addZone}
@@ -760,7 +780,18 @@ function PhotosEditor({ studioId, roleId, roleName }: { studioId: string; roleId
 
       <AiHintCard template={template} />
 
-      {editing && <PhotoEditModal photo={editing} onClose={() => setEditing(null)} />}
+      {editing && (
+        <PhotoEditModal
+          photo={editing}
+          isNew={editingIsNew}
+          onClose={closeEditor}
+          onSaved={(saved) => {
+            if (editingIsNew) setPhotos((prev) => [...prev, saved]);
+            else setPhotos((prev) => prev.map((p) => p.id === saved.id ? { ...p, ...saved } : p));
+          }}
+          onDeleted={(id) => setPhotos((prev) => prev.filter((p) => p.id !== id))}
+        />
+      )}
     </div>
   );
 }
@@ -794,35 +825,83 @@ function PhotoCard({ photo, onEdit }: { photo: any; onEdit: () => void }) {
   );
 }
 
-function PhotoEditModal({ photo, onClose }: { photo: any; onClose: () => void }) {
+function PhotoEditModal({ photo, isNew, onClose, onSaved, onDeleted }: {
+  photo: any; isNew: boolean; onClose: () => void;
+  onSaved: (saved: any) => void; onDeleted: (id: string) => void;
+}) {
   const [label, setLabel] = useState(photo.label);
   const [desc, setDesc] = useState(photo.description ?? "");
   const [required, setRequired] = useState(!!photo.is_required);
   const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const save = async () => {
+  const uploadReference = async (photoId: string, file: File) => {
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+    const path = `references/${photo.template_id}/${photoId}.${ext}`;
+    const { error: upErr } = await supabase.storage.from("checklist-photos")
+      .upload(path, file, { contentType: file.type || "image/jpeg", upsert: true });
+    if (upErr) throw upErr;
     const { error } = await supabase.from("checklist_template_photos")
-      .update({ label, description: desc || null, is_required: required } as any)
-      .eq("id", photo.id);
-    if (error) toast.error(error.message); else { flashSaved(); onClose(); }
+      .update({ reference_photo_url: path } as any).eq("id", photoId);
+    if (error) throw error;
+    return path;
   };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      if (isNew) {
+        const { data, error } = await supabase.from("checklist_template_photos").insert({
+          template_id: photo.template_id,
+          label, description: desc || null, is_required: required, order_index: photo.order_index,
+        } as any).select("*").single();
+        if (error) throw error;
+        let final = data as any;
+        if (pendingFile) {
+          const path = await uploadReference(final.id, pendingFile);
+          final = { ...final, reference_photo_url: path };
+        }
+        onSaved(final);
+      } else {
+        const { error } = await supabase.from("checklist_template_photos")
+          .update({ label, description: desc || null, is_required: required } as any)
+          .eq("id", photo.id);
+        if (error) throw error;
+        let final = { ...photo, label, description: desc || null, is_required: required };
+        if (pendingFile) {
+          const path = await uploadReference(photo.id, pendingFile);
+          final = { ...final, reference_photo_url: path };
+        }
+        onSaved(final);
+      }
+      flashSaved();
+      onClose();
+    } catch (e: any) {
+      toast.error(e.message ?? "Erreur");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const remove = async () => {
+    if (isNew) { onClose(); return; }
     if (!confirm("Supprimer cette zone ?")) return;
     const { error } = await supabase.from("checklist_template_photos").delete().eq("id", photo.id);
-    if (error) toast.error(error.message); else { flashSaved(); onClose(); }
+    if (error) { toast.error(error.message); return; }
+    onDeleted(photo.id);
+    flashSaved();
+    onClose();
   };
-  const upload = async (file: File) => {
+
+  const chooseFile = async (file: File) => {
+    setPendingFile(file);
+    if (isNew) return; // upload différé jusqu'au save (besoin de l'id)
     setUploading(true);
     try {
-      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-      const path = `references/${photo.template_id}/${photo.id}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("checklist-photos")
-        .upload(path, file, { contentType: file.type || "image/jpeg", upsert: true });
-      if (upErr) throw upErr;
-      const { error } = await supabase.from("checklist_template_photos")
-        .update({ reference_photo_url: path } as any).eq("id", photo.id);
-      if (error) throw error;
+      await uploadReference(photo.id, file);
+      onSaved({ ...photo, label, description: desc || null, is_required: required, reference_photo_url: `references/${photo.template_id}/${photo.id}.${(file.name.split(".").pop() || "jpg").toLowerCase()}` });
       toast.success("Photo de référence mise à jour");
       flashSaved();
     } catch (e: any) {
@@ -833,9 +912,9 @@ function PhotoEditModal({ photo, onClose }: { photo: any; onClose: () => void })
   };
 
   return (
-    <Dialog open onOpenChange={onClose}>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Modifier la zone</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{isNew ? "Nouvelle zone photo" : "Modifier la zone"}</DialogTitle></DialogHeader>
         <div className="flex flex-col gap-3">
           <div>
             <label style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Nom</label>
@@ -864,10 +943,14 @@ function PhotoEditModal({ photo, onClose }: { photo: any; onClose: () => void })
               >
                 <Upload size={13} /> {uploading ? "Upload…" : "Choisir une image"}
               </button>
-              {photo.reference_photo_url && <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>✓ déjà uploadée</span>}
+              {(photo.reference_photo_url || pendingFile) && (
+                <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
+                  ✓ {pendingFile ? pendingFile.name : "déjà uploadée"}
+                </span>
+              )}
             </div>
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => {
-              const f = e.target.files?.[0]; if (f) upload(f);
+              const f = e.target.files?.[0]; if (f) chooseFile(f);
             }} />
           </div>
         </div>
@@ -877,7 +960,9 @@ function PhotoEditModal({ photo, onClose }: { photo: any; onClose: () => void })
           </button>
           <div className="flex gap-2">
             <button onClick={onClose} className="px-3 py-1.5 rounded-md border" style={{ fontSize: 12, borderColor: "var(--border)" }}>Annuler</button>
-            <button onClick={save} className="px-3 py-1.5 rounded-md" style={{ fontSize: 12, backgroundColor: "var(--coral)", color: "var(--coral-text)" }}>Enregistrer</button>
+            <button onClick={save} disabled={saving} className="px-3 py-1.5 rounded-md" style={{ fontSize: 12, backgroundColor: "var(--coral)", color: "var(--coral-text)" }}>
+              {saving ? "…" : "Enregistrer"}
+            </button>
           </div>
         </DialogFooter>
       </DialogContent>
