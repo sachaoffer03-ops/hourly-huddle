@@ -255,10 +255,10 @@ export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted
 
         setPhotoStates((prev) => ({
           ...prev,
-          [zoneId]: { ...prev[zoneId], submissionPhotoId, photoUrl, status: template?.analyze_with_ai ? "analyzing" : "validated" },
+          [zoneId]: { ...prev[zoneId], submissionPhotoId, photoUrl, status: (template as any)?.analyze_with_ai ? "analyzing" : "validated" },
         }));
 
-        if (template?.analyze_with_ai) {
+        if ((template as any)?.analyze_with_ai) {
           // TODO: brancher une vraie IA Vision (OpenAI / Claude) qui renverra un score 0-100
           // et comparera à template.ai_validation_threshold pour valider/refuser.
           // Pour l'instant, simulation: 2s + validation auto à 100%
@@ -544,12 +544,12 @@ function Step3({ photos, states, onUpload, template, hasTemplate }: {
   return (
     <div className="px-5 py-5">
       <span className="inline-block rounded-full px-2.5 py-1 mb-3" style={{ fontSize: 10, fontWeight: 500, backgroundColor: "var(--coral-light)", color: "var(--coral-dark)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-        {template?.analyze_with_ai ? "Validation IA" : "Photos"}
+        {(template as any)?.analyze_with_ai ? "Validation IA" : "Photos"}
       </span>
       <div style={{ fontSize: 20, fontWeight: 500 }}>Photos de clôture</div>
       <div style={{ fontSize: 13, color: "var(--muted-foreground)", marginTop: 4 }}>
         {hasTemplate
-          ? (template?.analyze_with_ai ? "Tes photos sont analysées automatiquement" : "Prends une photo de chaque zone")
+          ? ((template as any)?.analyze_with_ai ? "Tes photos sont analysées automatiquement" : "Prends une photo de chaque zone")
           : "Aucune photo demandée"}
       </div>
 
