@@ -5,6 +5,8 @@ import {
   Pencil, Check, X, Sparkles, Lock, RefreshCw, Upload,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { notifyOverdueClockOutsFn } from "@/lib/closure-flow.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useStudios } from "@/hooks/use-studios";
@@ -104,6 +106,13 @@ function ClotureePage() {
   }, [loading, appRole]);
 
   const flash = useSavedFlash();
+
+  // Notify admin of overdue clock-outs on page load (silent fire-and-forget)
+  const notifyOverdue = useServerFn(notifyOverdueClockOutsFn);
+  useEffect(() => {
+    if (loading || !appRole || (appRole !== "admin" && appRole !== "manager")) return;
+    notifyOverdue().catch((e) => console.warn("[cloture] notifyOverdue failed", e));
+  }, [loading, appRole, notifyOverdue]);
 
   if (loading || studiosLoading) {
     return <div className="p-6" style={{ fontSize: 13, color: "var(--muted-foreground)" }}>Chargement…</div>;

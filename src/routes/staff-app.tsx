@@ -54,6 +54,7 @@ function StaffAppPage() {
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [businessRoles, setBusinessRoles] = useState<Role[]>([]);
   const [studios, setStudios] = useState<Record<string, string>>({});
+  const [studioClockOut, setStudioClockOut] = useState<Record<string, { before: number; grace: number }>>({});
   const [adminId, setAdminId] = useState<string | null>(null);
   const [adminName, setAdminName] = useState<string>("Administrateur");
   const [notifOpen, setNotifOpen] = useState(false);
@@ -66,12 +67,18 @@ function StaffAppPage() {
           "first_name,last_name,email,phone,birth_date,address,city,contract,studio_id,hire_date,niss,iban,emergency_contact_name,emergency_contact_phone,emergency_contact_relation,nationality,avatar_url,quota_used,quota_max,score,hourly_rate"
         ).eq("id", user.id).maybeSingle(),
         supabase.from("user_business_roles").select("role").eq("user_id", user.id),
-        supabase.from("studios").select("id,name"),
+        supabase.from("studios").select("id,name,clock_out_button_appears_before_min,clock_out_grace_period_min"),
         supabase.rpc("get_default_admin").maybeSingle(),
       ]);
       if (p) setProfile(p as ProfileRow);
       if (br) setBusinessRoles(br.map((r) => r.role as Role));
-      if (st) setStudios(Object.fromEntries(st.map((s) => [s.id, s.name])));
+      if (st) {
+        setStudios(Object.fromEntries(st.map((s: any) => [s.id, s.name])));
+        setStudioClockOut(Object.fromEntries(st.map((s: any) => [s.id, {
+          before: s.clock_out_button_appears_before_min ?? 15,
+          grace: s.clock_out_grace_period_min ?? 20,
+        }])));
+      }
       const a = admin as { user_id?: string; first_name?: string | null; last_name?: string | null } | null;
       if (a?.user_id) {
         setAdminId(a.user_id);
@@ -93,7 +100,7 @@ function StaffAppPage() {
       {tab !== "accueil" && <BellButton userId={user.id} onOpen={() => setNotifOpen(true)} />}
 
       <div className="flex-1 overflow-y-auto pb-20">
-        {tab === "accueil" && <AccueilTab profile={profile} studios={studios} userId={user.id} onOpenNotifs={() => setNotifOpen(true)} />}
+        {tab === "accueil" && <AccueilTab profile={profile} studios={studios} studioClockOut={studioClockOut} userId={user.id} onOpenNotifs={() => setNotifOpen(true)} />}
         {tab === "planning" && <PlanningTab studios={studios} userId={user.id} />}
         {tab === "pointage" && <PointageTab studios={studios} userId={user.id} />}
         {tab === "formation" && <FormationPanel userId={user.id} />}
@@ -124,7 +131,7 @@ function StaffAppPage() {
 }
 
 /* ─── ACCUEIL ─── */
-function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: ProfileRow | null; studios: Record<string, string>; userId: string; onOpenNotifs: () => void }) {
+function AccueilTab({ profile, studios, studioClockOut, userId, onOpenNotifs }: { profile: ProfileRow | null; studios: Record<string, string>; studioClockOut: Record<string, { before: number; grace: number }>; userId: string; onOpenNotifs: () => void }) {
   const [shifts, setShifts] = useState<ShiftRow[]>([]);
   const [weekStats, setWeekStats] = useState({ hours: 0, count: 0 });
   const [endShift, setEndShift] = useState<ShiftRow | null>(null);
@@ -390,15 +397,36 @@ function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: Profi
                   <Clock size={13} /> {liveLateMin > 0 ? `Pointer mon arrivée — en retard de ${liveLateMin} min` : "Pointer mon arrivée"}
                 </button>
               )}
-              {state === "in_service" && next && (
-                <button
-                  onClick={() => handleEndShift(next)}
-                  className="mt-4 inline-flex items-center gap-1.5 rounded-md px-3 py-2"
-                  style={{ fontSize: 12, fontWeight: 500, backgroundColor: "#E04E3E", color: "#fff" }}
-                >
-                  <CheckSquare size={13} /> Pointer ma sortie
-                </button>
-              )}
+              {state === "in_service" && next && (() => {
+                const cfg = next.studio_id ? studioClockOut[next.studio_id] : undefined;
+                const beforeMin = cfg?.before ?? 15;
+                const graceMin = cfg?.grace ?? 20;
+                const endDt = new Date(next.shift_date + "T" + next.end_time);
+                const openAt = endDt.getTime() - beforeMin * 60_000;
+                const overdueAt = endDt.getTime() + graceMin * 60_000;
+                const canClockOut = nowTs >= openAt;
+                const isOverdue = nowTs >= overdueAt;
+                if (!canClockOut) {
+                  const minsLeft = Math.max(1, Math.ceil((openAt - nowTs) / 60_000));
+                  return (
+                    <div
+                      className="mt-4 inline-flex items-center gap-1.5 rounded-md px-3 py-2"
+                      style={{ fontSize: 12, fontWeight: 500, backgroundColor: "rgba(255,255,255,0.08)", color: "rgba(250,248,244,0.65)", border: "1px solid rgba(255,255,255,0.1)" }}
+                    >
+                      <Clock size={13} /> Pointage de sortie dans {minsLeft} min
+                    </div>
+                  );
+                }
+                return (
+                  <button
+                    onClick={() => handleEndShift(next)}
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-md px-3 py-2"
+                    style={{ fontSize: 12, fontWeight: 500, backgroundColor: isOverdue ? "#B91C1C" : "#E04E3E", color: "#fff" }}
+                  >
+                    <CheckSquare size={13} /> {isOverdue ? "Pointer ma sortie (en retard)" : "Pointer ma sortie"}
+                  </button>
+                );
+              })()}
               {state === "future" && next && !isToday && (
                 <button
                   onClick={() => setShiftDetail(next)}
