@@ -101,6 +101,7 @@ export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted
 
   const validateClockOut = useServerFn(validateClockOutFn);
   const finalizeClosure = useServerFn(finalizeClosureFn);
+  const analyzeClosurePhoto = useServerFn(analyzeClosurePhotoFn);
 
   // ─── Load template + closure questions when shift opens ──────────────────
   useEffect(() => {
