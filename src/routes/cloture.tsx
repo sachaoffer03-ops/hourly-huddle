@@ -222,6 +222,42 @@ function NumInput({ value, onChange, suffix, min = 0, max = 999 }: {
   );
 }
 
+// 3 niveaux d'exigence pour la validation IA des photos
+const THRESHOLD_OPTIONS = [
+  { v: 50, label: "Souple", desc: "Accepte même si la photo n'est pas parfaite" },
+  { v: 75, label: "Standard", desc: "Recommandé — bon équilibre" },
+  { v: 90, label: "Strict", desc: "Refuse au moindre doute" },
+];
+function ThresholdButtons({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  // Snap to the nearest preset if a legacy custom value is stored
+  const active = THRESHOLD_OPTIONS.reduce((best, o) =>
+    Math.abs(o.v - value) < Math.abs(best.v - value) ? o : best, THRESHOLD_OPTIONS[1]);
+  return (
+    <div className="flex gap-1.5">
+      {THRESHOLD_OPTIONS.map((o) => {
+        const isActive = o.v === active.v;
+        return (
+          <button
+            key={o.v}
+            type="button"
+            onClick={() => onChange(o.v)}
+            title={o.desc}
+            className="rounded-md px-3 py-1.5 border transition-colors"
+            style={{
+              fontSize: 12, fontWeight: 500,
+              backgroundColor: isActive ? "var(--foreground)" : "var(--background)",
+              color: isActive ? "var(--background)" : "var(--foreground)",
+              borderColor: isActive ? "var(--foreground)" : "var(--border)",
+            }}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ============================================================
 // SECTION A — CLOCK OUT
 // ============================================================
@@ -430,10 +466,12 @@ function ChecklistEditor({ studioId, roleId, roleName }: { studioId: string; rol
 
   const addItem = async () => {
     const nextIdx = (items[items.length - 1]?.order_index ?? -1) + 1;
-    const { error } = await supabase.from("checklist_template_items").insert({
+    const { data, error } = await supabase.from("checklist_template_items").insert({
       template_id: template.id, label: "Nouveau point", order_index: nextIdx, is_required: true,
-    } as any);
-    if (error) toast.error(error.message); else flashSaved();
+    } as any).select("*").single();
+    if (error) { toast.error(error.message); return; }
+    setItems((prev) => [...prev, data as any]);
+    flashSaved();
   };
 
   const onDragEnd = async (e: DragEndEvent) => {
@@ -664,10 +702,12 @@ function PhotosEditor({ studioId, roleId, roleName }: { studioId: string; roleId
 
   const addZone = async () => {
     const next = (photos[photos.length - 1]?.order_index ?? -1) + 1;
-    const { error } = await supabase.from("checklist_template_photos").insert({
+    const { data, error } = await supabase.from("checklist_template_photos").insert({
       template_id: template.id, label: "Nouvelle zone", is_required: false, order_index: next,
-    } as any);
-    if (error) toast.error(error.message); else flashSaved();
+    } as any).select("*").single();
+    if (error) { toast.error(error.message); return; }
+    setPhotos((prev) => [...prev, data as any]);
+    flashSaved();
   };
 
   return (
@@ -677,8 +717,11 @@ function PhotosEditor({ studioId, roleId, roleName }: { studioId: string; roleId
           <Field label="Photos minimum requises">
             <NumInput value={template.min_photos_required ?? 0} onChange={(n) => updateDebounced({ min_photos_required: n })} />
           </Field>
-          <Field label="Seuil de validation IA">
-            <NumInput value={template.ai_validation_threshold ?? 75} onChange={(n) => updateDebounced({ ai_validation_threshold: n })} max={100} suffix="/ 100" />
+          <Field label="Exigence de l'analyse IA">
+            <ThresholdButtons
+              value={template.ai_validation_threshold ?? 75}
+              onChange={(n) => update({ ai_validation_threshold: n })}
+            />
           </Field>
         </div>
         <label className="flex items-center gap-2">
@@ -854,7 +897,8 @@ function AiHintCard({ template }: { template: any }) {
     >
       <Sparkles size={14} style={{ color: "var(--coral-dark)", marginTop: 2 }} />
       <div className="flex-1">
-        <b>L'IA détecte :</b> {display}. Score &lt; seuil → photo refusée et message à l'employé. Tu reçois une notif au 2e refus consécutif.
+        <b>L'IA compare</b> chaque photo à la photo de référence et à l'indice ci-dessous (« {display} »).
+        Selon l'exigence choisie (Souple / Standard / Strict), elle valide ou refuse la photo et explique pourquoi à l'employé.
       </div>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
@@ -885,17 +929,6 @@ const QR_RENEWAL_OPTIONS = [
   { v: 120, l: "Toutes les 2 minutes" },
   { v: 300, l: "Toutes les 5 minutes" },
 ];
-const QR_SUPPORT_OPTIONS: Record<string, string> = {
-  tablet: "Tablette à l'accueil du studio",
-  printed: "Impression au comptoir",
-  manager_phone: "Téléphone du manager",
-};
-const GEO_OPTIONS = [
-  { key: "off", label: "Désactivé", enabled: false, radius: 50 },
-  { key: "25", label: "Activé (rayon 25m)", enabled: true, radius: 25 },
-  { key: "50", label: "Activé (rayon 50m)", enabled: true, radius: 50 },
-  { key: "100", label: "Activé (rayon 100m)", enabled: true, radius: 100 },
-];
 
 function QrSection({ studio }: { studio: any }) {
   const update = async (patch: any) => {
@@ -903,15 +936,17 @@ function QrSection({ studio }: { studio: any }) {
     if (error) toast.error(error.message); else flashSaved();
   };
 
-  const geoKey = !studio.geofencing_enabled ? "off" : String(studio.geofencing_radius_m ?? 50);
-
   const regenerate = async () => {
     await update({ current_qr_code: randomCode(5) });
     toast.success("Code régénéré");
   };
 
   return (
-    <SectionCard icon={QrCode} title="QR code de clôture">
+    <SectionCard
+      icon={QrCode}
+      title="QR code de clôture"
+      subtitle="Un QR code unique s'affiche sur la tablette posée à l'accueil du studio. Il change automatiquement à l'intervalle ci-dessous pour empêcher qu'un employé pointe à distance."
+    >
       <div className="flex flex-wrap gap-5">
         <Field label="Renouvellement du code">
           <Select value={String(studio.qr_renewal_seconds ?? 60)} onValueChange={(v) => update({ qr_renewal_seconds: parseInt(v, 10) })}>
@@ -922,38 +957,35 @@ function QrSection({ studio }: { studio: any }) {
           </Select>
         </Field>
         <Field label="Support d'affichage">
-          <Select value={studio.qr_display_support ?? "tablet"} onValueChange={(v) => update({ qr_display_support: v })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {Object.entries(QR_SUPPORT_OPTIONS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </Field>
-        <Field label="Géofencing complémentaire">
-          <Select value={geoKey} onValueChange={(v) => {
-            const o = GEO_OPTIONS.find((x) => x.key === v)!;
-            update({ geofencing_enabled: o.enabled, geofencing_radius_m: o.radius });
-          }}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {GEO_OPTIONS.map((o) => <SelectItem key={o.key} value={o.key}>{o.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <div
+            className="rounded-md border px-3 py-2 flex items-center"
+            style={{ fontSize: 13, borderColor: "var(--border)", backgroundColor: "var(--muted)", color: "var(--muted-foreground)" }}
+          >
+            Tablette à l'accueil du studio
+          </div>
         </Field>
       </div>
 
-      <div className="mt-5 flex items-center justify-end gap-3 flex-wrap">
-        <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
-          Code actuel · <b style={{ color: "var(--foreground)" }}>{studio.name}</b> :
-          <span className="ml-2 px-2 py-1 rounded" style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 13, backgroundColor: "var(--muted)", color: "var(--foreground)" }}>
+      <div
+        className="mt-5 rounded-md px-4 py-3 flex items-start justify-between gap-4 flex-wrap"
+        style={{ backgroundColor: "var(--muted)", fontSize: 12, lineHeight: 1.6 }}
+      >
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <div style={{ fontWeight: 500, marginBottom: 2 }}>Code actuellement affiché sur la tablette de <b>{studio.name}</b></div>
+          <div style={{ color: "var(--muted-foreground)" }}>
+            C'est le code que l'employé scanne (ou tape) à la fin de son shift. Il se renouvelle automatiquement toutes les {studio.qr_renewal_seconds ?? 60} secondes.
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="px-2.5 py-1.5 rounded" style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 14, backgroundColor: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)" }}>
             {studio.current_qr_code ?? "—"}
           </span>
+          <button onClick={regenerate}
+            className="rounded-md border px-3 py-1.5 flex items-center gap-1.5"
+            style={{ fontSize: 12, borderColor: "var(--border)", backgroundColor: "var(--background)" }}>
+            <RefreshCw size={13} /> Régénérer maintenant
+          </button>
         </div>
-        <button onClick={regenerate}
-          className="rounded-md border px-3 py-1.5 flex items-center gap-1.5"
-          style={{ fontSize: 12, borderColor: "var(--border)" }}>
-          <RefreshCw size={13} /> Régénérer
-        </button>
       </div>
     </SectionCard>
   );
@@ -968,15 +1000,6 @@ const RESPONSE_TYPES: Record<string, string> = {
   yes_no: "✓/✗ Oui-Non",
   free_text: "📝 Texte libre",
 };
-
-const SUGGESTED_QUESTIONS = [
-  { question_text: "Comment s'est passé ton shift ?", response_type: "stars_1_5" },
-  { question_text: "Ambiance générale dans l'équipe", response_type: "stars_1_5" },
-  { question_text: "Propreté & organisation du studio", response_type: "stars_1_5" },
-  { question_text: "As-tu remarqué quelque chose d'inhabituel ?", response_type: "yes_no" },
-  { question_text: "Y a-t-il une personne dont tu voudrais nous parler ?", response_type: "free_text" },
-  { question_text: "Quelque chose à nous dire en plus ?", response_type: "free_text" },
-];
 
 function QuestionsSection({ studioId }: { studioId: string }) {
   const [questions, setQuestions] = useState<any[]>([]);
@@ -1002,17 +1025,13 @@ function QuestionsSection({ studioId }: { studioId: string }) {
 
   const add = async () => {
     const nextIdx = (questions[questions.length - 1]?.order_index ?? -1) + 1;
-    const { error } = await supabase.from("closure_questions" as any).insert({
+    const { data, error } = await supabase.from("closure_questions" as any).insert({
       studio_id: studioId, question_text: "Nouvelle question", response_type: "stars_1_5", order_index: nextIdx,
-    } as any);
-    if (error) toast.error(error.message); else flashSaved();
-  };
-
-  const addSuggested = async () => {
-    const start = (questions[questions.length - 1]?.order_index ?? -1) + 1;
-    const rows = SUGGESTED_QUESTIONS.map((q, i) => ({ ...q, studio_id: studioId, order_index: start + i }));
-    const { error } = await supabase.from("closure_questions" as any).insert(rows as any);
-    if (error) toast.error(error.message); else { toast.success("Modèle ajouté"); flashSaved(); }
+    } as any).select("*").single();
+    if (error) { toast.error(error.message); return; }
+    // Optimistic refresh (don't rely on realtime publication)
+    setQuestions((prev) => [...prev, data]);
+    flashSaved();
   };
 
   const onDragEnd = async (e: DragEndEvent) => {
@@ -1031,11 +1050,12 @@ function QuestionsSection({ studioId }: { studioId: string }) {
   return (
     <SectionCard
       icon={MessageSquare}
-      title="Questions post-shift (review étoilée)"
+      title="Questions post-shift"
+      subtitle="Les réponses alimentent le cerveau du SaaS : elles peuvent ajuster la note de l'employé et nourrissent tes rapports. Visible uniquement par toi et tes managers."
       right={
         <span className="rounded-full px-2.5 py-1 flex items-center gap-1.5"
           style={{ fontSize: 11, fontWeight: 500, backgroundColor: "color-mix(in oklab, #a78bfa 18%, white)", color: "#4c1d95" }}>
-          <Lock size={11} /> Visible uniquement par admin & managers
+          <Lock size={11} /> Admin & managers
         </span>
       }
     >
@@ -1048,24 +1068,15 @@ function QuestionsSection({ studioId }: { studioId: string }) {
       </DndContext>
       {questions.length === 0 && (
         <div className="rounded-md border border-dashed px-4 py-6 text-center" style={{ fontSize: 12, color: "var(--muted-foreground)", borderColor: "var(--border)" }}>
-          Aucune question. Ajoute-en une ou démarre depuis le modèle suggéré.
+          Aucune question pour ce studio. Ajoute-en une ci-dessous.
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3">
         <button onClick={add} className="rounded-md px-3 py-1.5 flex items-center gap-1.5"
           style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--coral)", color: "var(--coral-text)" }}>
           <Plus size={13} /> Ajouter une question
         </button>
-        <button onClick={addSuggested} className="rounded-md border px-3 py-1.5 flex items-center gap-1.5"
-          style={{ fontSize: 12, fontWeight: 500, borderColor: "var(--border)" }}>
-          <Sparkles size={13} /> Modèle suggéré
-        </button>
-      </div>
-
-      <div className="mt-4 rounded-md px-4 py-3"
-        style={{ backgroundColor: "color-mix(in oklab, #ef4444 6%, white)", fontSize: 11, lineHeight: 1.6, color: "var(--foreground)" }}>
-        🔐 Les réponses sont stockées chiffrées, accessibles uniquement par admin & managers, et ne sont jamais nominatives quand on les agrège.
       </div>
     </SectionCard>
   );

@@ -1,95 +1,82 @@
-# Page Rapports — Plan d'implémentation
+# Refonte page Clôture
 
-## 1. Sidebar + routing
+Objectif : transformer /cloture en outil de configuration réel (vs maquette), branché de bout en bout au parcours employé, aux notifications et au scoring existant.
 
-- `src/components/AppSidebar.tsx` : ajouter entrée **Rapports** (icône `BarChart3`) dans la section PILOTAGE, entre Dashboard et Planning, visible admin/manager seulement (même règle que les autres entrées de pilotage).
-- `src/routes/rapports.tsx` : nouvelle route. Garde admin/manager via `useAuth` ; sinon `navigate({ to: "/staff-app" })`.
+## 1. Câbler les boutons cassés (priorité absolue)
 
-## 2. Filtres globaux (mémorisés en URL via `validateSearch`)
+**Checklist par poste — "Ajouter un point"**
+- Lire `cloture.tsx` pour trouver le handler de l'ajout d'item (`checklist_template_items`).
+- Diagnostiquer pourquoi le bouton ne déclenche rien (probable handler manquant / state non lié).
+- Brancher un insert réel + invalidation de la liste.
 
-Search params : `from`, `to`, `preset` (today|yesterday|week|month|30d|custom), `studios` (csv uuids), `roles` (csv uuids), `view` (overview|employees|shifts).
+**Photos de clôture — "Ajouter une zone"**
+- Même traitement sur `checklist_template_photos`.
 
-Barre haut : preset Dropdown + DateRangePicker (Popover + 2 Calendar shadcn) + multi-select Studios + multi-select Rôles + bouton **Exporter CSV** à droite. Tabs shadcn pour basculer entre les 3 vues (synchronisées avec `view`).
+**Questions post-shift — "Ajouter une question"**
+- Même traitement sur `closure_questions` (déjà en base).
 
-## 3. Server functions — `src/lib/reports.functions.ts`
+**Modèles suggérés**
+- Suppression complète de la section (jamais demandée).
 
-Toutes avec `requireSupabaseAuth` + helper `assertAdminOrManager(supabase, userId)`. Input Zod : `{ from, to, studioIds?, roleIds? }`.
+Toutes ces actions doivent persister en base via les tables existantes, sans toucher au schéma.
 
-- `getOverviewKpis` — counts completed vs scheduled, score moyen équipe (avec sparkline 30j en sous-requête `date_trunc('day')`), payroll (sum hours * hourly_rate, exclut hourly_rate NULL et renvoie `employeesWithoutRate`), checklist completion % (avg done/total par submission).
-- `getTopAndBottomPerformers` — top 5 et bottom 5 (≥3 shifts sur période), avec score période actuelle vs période précédente (delta).
-- `getRecentActivity` — 20 derniers shifts `status=completed`, joints sur profiles + studios.
-- `getEmployeesReport` — agrégation par user : nb shifts, heures, coût, score actuel, Δ vs période précédente, last clôture.
-- `getEmployeeDetail` — sparkline 90j, breakdown 3 sous-scores (réutilise logique de `calculate_profile_score` simplifiée côté SQL), 10 derniers shifts, gains total, quota étudiant si contract='student'.
-- `getShiftsReport` — tous shifts completed, retard, % checklist, photos validées count.
-- `getShiftDetail` — items checklist, photos avec validation, **réponses `closure_question_responses`** (RLS bloque déjà les autres rôles), breakdown score du shift, gain €.
+## 2. Connecter la config pointage au parcours employé réel
 
-Toutes mappées en DTO sérialisables.
+Actuellement les champs `clock_out_button_appears_before_min` / `clock_out_grace_period_min` / `clock_out_overdue_action` sont stockés sur `studios` mais ne sont **pas** lus côté employé.
 
-## 4. Migration — indexes manquants
+**Côté employé (`ClosureFlow.tsx` + `staff-app/`)**
+- Le bouton "Pointer ma sortie" n'apparaît qu'à partir de `end_time − clock_out_button_appears_before_min`.
+- Si l'employé n'a pas pointé à `end_time + clock_out_grace_period_min` → déclencher l'action configurée (`notify_manager` → insert dans `notifications` pour tous admins/managers du studio).
 
-Une migration légère `add_reports_indexes` :
+**Côté serveur**
+- Nouveau server fn `notifyOverdueClockOuts` (peut être appelé à la demande au chargement de la page admin, ou via trigger frontend simple sans cron pour rester simple).
 
-```sql
-CREATE INDEX IF NOT EXISTS idx_shifts_status_date ON public.shifts (status, shift_date);
-CREATE INDEX IF NOT EXISTS idx_shifts_user_date ON public.shifts (user_id, shift_date);
-CREATE INDEX IF NOT EXISTS idx_shifts_studio_date ON public.shifts (studio_id, shift_date);
-CREATE INDEX IF NOT EXISTS idx_checklist_subs_user ON public.checklist_submissions (user_id, status);
-CREATE INDEX IF NOT EXISTS idx_closure_resp_sub ON public.closure_question_responses (submission_id);
-```
+## 3. QR code — un seul mode "tablette"
 
-Pas de schema change métier ; juste perf.
+- Suppression des options "impression comptoir" / "téléphone manager".
+- Suppression de la section "géolocalisation complémentaire".
+- Ajout d'un encart explicatif court : "Le code actuel est le QR affiché sur la tablette du studio. Il se renouvelle automatiquement toutes les N secondes pour empêcher la triche."
+- Bouton "Régénérer maintenant" déjà existant — vérifier qu'il fonctionne.
 
-## 5. UI — `src/routes/rapports.tsx`
+## 4. Seuil IA — Faible / Moyen / Élevé
 
-Une seule route, 3 sous-composants : `OverviewView`, `EmployeesView`, `ShiftsView`. Chacune utilise `useQuery` (staleTime 5 min, pas de refetchOnWindowFocus) via `useServerFn`.
+Remplacer le slider 0-100 par 3 boutons :
+- **Souple** (équivalent 50/100) — accepte les photos même imparfaites
+- **Standard** (75/100) — recommandé
+- **Strict** (90/100) — refuse au moindre doute
 
-### Overview
-- Grille 4 KPI cards (`grid-cols-2 md:grid-cols-4`) : Shifts clôturés, Score moyen équipe (couleur conditionnelle vert/orange/rouge + sparkline recharts `LineChart` 80×24), Coût payroll (+ avertissement employés sans tarif), Taux complétion checklists (+ sparkline).
-- Sous : 2 colonnes (`md:grid-cols-2`) Top 5 / À surveiller. Avatar + nom + score + delta coloré + raison.
-- En bas : Activité récente, 20 lignes timeline ; clic → `setView("shifts")` + ouvre detail sheet sur le shiftId.
+Stocké sur la même colonne `ai_validation_threshold` (50/75/90).
 
-### Employees
-- Table shadcn desktop, cards stack `md:hidden` sur mobile.
-- Tri client sur les colonnes (useState `{ key, dir }`).
-- Bouton "Voir détail" → `Sheet` (side=right, w-full sm:max-w-xl) qui appelle `getEmployeeDetail`. Contient sparkline 90j (recharts), 3 BarChart horizontales pour sous-scores, table 10 derniers shifts, carte Gains, badge quota étudiant si applicable, lien `/staff/$id`.
+## 5. Analyse IA des photos — branchement Lovable AI
 
-### Shifts
-- Table tous shifts. Mobile = cards.
-- Clic ligne → `Sheet` qui appelle `getShiftDetail`. Sections : Pointages, Checklist (items + photo si liée, click photo = lightbox simple `Dialog`), Photos (grille), **Réponses post-shift** avec bandeau coral `🔒 Confidentiel`, Score gagné (breakdown), Gains. Boutons "Voir l'employé" et "Voir dans planning" (Link to `/planning` avec query `?shift={id}` — pas besoin de modifier planning pour ce prompt, le param sera juste là).
+**Nouveau server fn `analyzeClosurePhoto`**
+- Reçoit `submission_photo_id`.
+- Récupère l'URL de la photo + la photo de référence + le hint du template.
+- Appelle Lovable AI (`google/gemini-3-flash-preview` en multimodal) avec prompt : "Compare cette photo à la référence. Le poste a-t-il été correctement nettoyé/rangé ? Réponds en JSON `{verdict: 'pass'|'fail', confidence: 0-100, reason: string}`."
+- Compare `confidence` au seuil du template → écrit `ai_validation_status` (`validated` / `rejected`) + `ai_validation_message` + `ai_validated_at`.
 
-## 6. Export CSV
+**Côté employé (`ClosureFlow.tsx`)**
+- Après upload d'une photo, appeler ce server fn.
+- Afficher Faible/Moyen/Élevé en français + raison.
 
-`src/lib/csv.ts` helper `toCsv(rows, columns) → string` + `downloadCsv(filename, csv)`. Le bouton "Exporter CSV" appelle la même server function que la vue courante (`getOverviewKpis` → flatten en KV, `getEmployeesReport` direct, `getShiftsReport` SANS les réponses confidentielles), génère CSV et déclenche download. Nom : `kadence-rapport-{view}-{from}-{to}.csv`.
+**Côté admin (rapports)**
+- Les photos rejetées remontent déjà (table existe), juste vérifier l'affichage.
 
-## 7. Design
+## 6. Connexion au scoring (vérification, pas réécriture)
 
-- Tokens existants uniquement (`var(--card)`, `var(--border)`, `var(--coral)`, `var(--success-text)` etc.).
-- Pas d'emoji décoratif ; l'icône cadenas vient de lucide (`Lock`).
-- Skeletons shadcn pendant chargement.
-- Couleurs sémantiques pour les deltas score (vert ↑, rouge ↓, gris =).
+Le user a confirmé que le scoring est déjà câblé via `calculate_profile_score` (trigger sur `checklist_submissions` / `checklist_submission_items`). Je vérifie seulement que :
+- Les réponses aux questions de clôture (`closure_question_responses`) sont bien sauvegardées (déjà fait dans `finalizeClosure`).
+- Aucune régression sur le trigger existant.
 
-## 8. À NE PAS toucher
+## Fichiers touchés
 
-`/cloture`, `ClosureFlow`, `scoring.functions.ts`, page Feedbacks. Pas de nouvelle page "Règles de scoring".
+- `src/routes/cloture.tsx` — refonte UI (boutons, suppression modèles suggérés, QR simplifié, seuil 3 niveaux)
+- `src/components/staff-app/ClosureFlow.tsx` — apparition conditionnelle du bouton clock-out + appel analyse IA
+- `src/lib/closure-flow.functions.ts` + `.server.ts` — nouveau `analyzeClosurePhoto`, nouveau `notifyOverdueClockOuts`
+- `src/lib/ai-gateway.ts` (nouveau si absent) — helper provider Lovable AI
 
-## Récap fichiers
+## Hors scope (à faire dans un prompt séparé si tu veux)
 
-Création :
-- `src/routes/rapports.tsx`
-- `src/lib/reports.functions.ts`
-- `src/lib/reports.server.ts` (helpers SQL + types DTO partagés)
-- `src/components/reports/OverviewView.tsx`
-- `src/components/reports/EmployeesView.tsx`
-- `src/components/reports/ShiftsView.tsx`
-- `src/components/reports/EmployeeDetailSheet.tsx`
-- `src/components/reports/ShiftDetailSheet.tsx`
-- `src/components/reports/FiltersBar.tsx`
-- `src/components/reports/KpiCard.tsx`
-- `src/components/reports/Sparkline.tsx`
-- `src/lib/csv.ts`
-- 1 migration `add_reports_indexes`
-
-Modifs :
-- `src/components/AppSidebar.tsx` (1 entrée)
-
-Volume estimé ~1400 lignes. Pas de nouvelles deps (recharts, shadcn Sheet/Tabs déjà là).
+- Modes QR "impression" et "téléphone manager"
+- Page dédiée "Règles de scoring"
+- Cron job serveur pour les overdue clock-outs (pour l'instant déclenché au load admin)

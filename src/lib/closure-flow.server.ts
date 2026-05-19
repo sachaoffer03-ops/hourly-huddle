@@ -237,3 +237,214 @@ export async function finalizeClosure(input: FinalizeClosureInput) {
     nextShift: nextShift ?? null,
   };
 }
+
+// --- 3. analyzeClosurePhoto (Lovable AI Vision) ---------------------------
+
+export type AnalyzeClosurePhotoInput = {
+  submissionPhotoId: string;
+  actorId: string;
+};
+
+const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
+async function toSignedUrl(path: string | null): Promise<string | null> {
+  if (!path) return null;
+  // Already an absolute URL? use as-is
+  if (/^https?:\/\//.test(path)) return path;
+  const { data, error } = await supabaseAdmin.storage
+    .from("checklist-photos")
+    .createSignedUrl(path, 600);
+  if (error) return null;
+  return data?.signedUrl ?? null;
+}
+
+export async function analyzeClosurePhoto(input: AnalyzeClosurePhotoInput) {
+  // Load submission photo + template config
+  const { data: subPhoto, error: spErr } = await supabaseAdmin
+    .from("checklist_submission_photos")
+    .select("id, photo_url, template_photo_id, submission_id")
+    .eq("id", input.submissionPhotoId)
+    .maybeSingle();
+  if (spErr) throw new Error(spErr.message);
+  if (!subPhoto) throw new Error("Photo introuvable");
+
+  const { data: zone } = await supabaseAdmin
+    .from("checklist_template_photos")
+    .select("id, label, description, reference_photo_url, template_id")
+    .eq("id", (subPhoto as any).template_photo_id)
+    .maybeSingle();
+  const { data: tpl } = zone
+    ? await supabaseAdmin
+        .from("checklist_templates")
+        .select("ai_detection_hint, ai_validation_threshold, analyze_with_ai")
+        .eq("id", (zone as any).template_id)
+        .maybeSingle()
+    : { data: null };
+
+  const threshold = Number((tpl as any)?.ai_validation_threshold ?? 75);
+  const hint = (tpl as any)?.ai_detection_hint
+    ?? "présence de saleté visible, ustensiles non rangés, déchets au sol, écrans non éteints";
+  const zoneLabel = (zone as any)?.label ?? "Zone";
+  const zoneDesc = (zone as any)?.description ?? "";
+
+  const photoUrl = await toSignedUrl((subPhoto as any).photo_url);
+  const refUrl = await toSignedUrl((zone as any)?.reference_photo_url ?? null);
+  if (!photoUrl) throw new Error("Photo employé inaccessible");
+
+  // Build the prompt
+  const systemPrompt = `Tu es un inspecteur qualité pour un coffee shop. Tu compares la photo prise par un employé en fin de shift à une photo de référence (si disponible) et tu vérifies qu'aucun problème n'est visible.
+
+Points à vérifier (priorité): ${hint}
+
+Tu réponds STRICTEMENT en JSON sur une seule ligne, sans texte autour, au format:
+{"confidence": <entier 0-100>, "verdict": "pass" | "fail", "reason": "<une phrase courte en français, max 140 caractères>"}
+
+confidence = à quel point la zone est propre/conforme (0=très sale, 100=parfait).
+verdict = "pass" si confidence >= ${threshold}, sinon "fail".`;
+
+  const userContent: any[] = [
+    { type: "text", text: `Zone: ${zoneLabel}${zoneDesc ? ` — ${zoneDesc}` : ""}.` },
+  ];
+  if (refUrl) {
+    userContent.push({ type: "text", text: "Photo de référence (état attendu) :" });
+    userContent.push({ type: "image_url", image_url: { url: refUrl } });
+  }
+  userContent.push({ type: "text", text: "Photo prise par l'employé maintenant :" });
+  userContent.push({ type: "image_url", image_url: { url: photoUrl } });
+
+  const apiKey = process.env.LOVABLE_API_KEY;
+  if (!apiKey) throw new Error("LOVABLE_API_KEY manquant");
+
+  const res = await fetch(LOVABLE_AI_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userContent },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    // Save soft failure on the photo so admin can see it
+    await supabaseAdmin
+      .from("checklist_submission_photos")
+      .update({
+        ai_validation_status: "validated", // fail-open: don't block clôture if AI down
+        ai_validation_message: `Analyse IA indisponible (${res.status}). Photo acceptée par défaut.`,
+        ai_validated_at: new Date().toISOString(),
+      })
+      .eq("id", input.submissionPhotoId);
+    return { status: "validated", confidence: null, message: "Analyse IA indisponible", soft: true, upstreamStatus: res.status, upstreamBody: text.slice(0, 200) };
+  }
+
+  const json = await res.json();
+  const raw: string = json?.choices?.[0]?.message?.content ?? "{}";
+  // Extract first {...} block defensively
+  const m = raw.match(/\{[\s\S]*?\}/);
+  let parsed: { confidence?: number; verdict?: string; reason?: string } = {};
+  try {
+    parsed = m ? JSON.parse(m[0]) : {};
+  } catch {
+    parsed = {};
+  }
+  const confidence = Math.max(0, Math.min(100, Math.round(Number(parsed.confidence ?? 0))));
+  const verdict = parsed.verdict === "fail" ? "fail" : (confidence >= threshold ? "pass" : "fail");
+  const reason = String(parsed.reason ?? "").slice(0, 280) || (verdict === "pass" ? "Conforme" : "Photo refusée");
+
+  const status = verdict === "pass" ? "validated" : "rejected";
+  const levelLabel = confidence >= 80 ? "Élevé" : confidence >= 50 ? "Moyen" : "Faible";
+  const message = `${levelLabel} (${confidence}/100) — ${reason}`;
+
+  await supabaseAdmin
+    .from("checklist_submission_photos")
+    .update({
+      ai_validation_status: status,
+      ai_validation_message: message,
+      ai_validated_at: new Date().toISOString(),
+    })
+    .eq("id", input.submissionPhotoId);
+
+  return { status, confidence, message, level: levelLabel.toLowerCase(), threshold };
+}
+
+// --- 4. notifyOverdueClockOuts -------------------------------------------
+// Notifies managers/admins for shifts that exceeded `end_time + grace`
+// without clocking out. Idempotent: only emits one notification per shift.
+
+export async function notifyOverdueClockOuts() {
+  // Find candidate shifts that started today (or yesterday late night),
+  // have clocked_in_at, no clocked_out_at, and a studio set.
+  const nowIso = new Date().toISOString();
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+
+  const { data: shifts } = await supabaseAdmin
+    .from("shifts")
+    .select("id,user_id,studio_id,shift_date,end_time,business_role,clocked_in_at,clocked_out_at")
+    .in("shift_date", [todayStr, yesterdayStr])
+    .is("clocked_out_at", null)
+    .not("clocked_in_at", "is", null);
+
+  if (!shifts || shifts.length === 0) return { processed: 0, notified: 0 };
+
+  // Load studios in one shot
+  const studioIds = Array.from(new Set(shifts.map((s: any) => s.studio_id).filter(Boolean)));
+  const { data: studios } = studioIds.length
+    ? await supabaseAdmin
+        .from("studios")
+        .select("id,name,clock_out_grace_period_min,clock_out_overdue_action")
+        .in("id", studioIds)
+    : { data: [] as any[] };
+  const studioMap = new Map<string, any>((studios ?? []).map((s: any) => [s.id, s]));
+
+  let notified = 0;
+  for (const sh of shifts as any[]) {
+    if (!sh.studio_id) continue;
+    const studio = studioMap.get(sh.studio_id);
+    if (!studio) continue;
+    if (studio.clock_out_overdue_action !== "notify_manager") continue;
+
+    const grace = Number(studio.clock_out_grace_period_min ?? 20);
+    const endIso = new Date(`${sh.shift_date}T${sh.end_time}`).getTime();
+    const dueIso = endIso + grace * 60_000;
+    if (Date.now() < dueIso) continue;
+
+    // Idempotency: have we already notified for this shift ?
+    const linkSig = `/staff/${sh.user_id}#shift-${sh.id}`;
+    const { data: existing } = await supabaseAdmin
+      .from("notifications")
+      .select("id")
+      .eq("type", "shift_overdue_clockout")
+      .eq("link", linkSig)
+      .limit(1);
+    if (existing && existing.length) continue;
+
+    // Profile name for body
+    const { data: prof } = await supabaseAdmin
+      .from("profiles").select("first_name,last_name").eq("id", sh.user_id).maybeSingle();
+    const name = `${(prof as any)?.first_name ?? ""} ${(prof as any)?.last_name ?? ""}`.trim() || "Un employé";
+
+    const { data: mgrs } = await supabaseAdmin
+      .from("user_roles").select("user_id,role").in("role", ["admin", "manager"]);
+
+    if (!mgrs || mgrs.length === 0) continue;
+    const overdueMin = Math.round((Date.now() - dueIso) / 60_000);
+    const rows = mgrs.map((m: any) => ({
+      user_id: m.user_id,
+      type: "shift_overdue_clockout",
+      title: `Pointage de sortie en retard — ${studio.name}`,
+      body: `${name} n'a pas pointé sa sortie (${sh.business_role}). En retard de ${overdueMin} min.`,
+      link: linkSig,
+    }));
+    await supabaseAdmin.from("notifications").insert(rows);
+    notified += 1;
+  }
+  return { processed: shifts.length, notified, at: nowIso };
+}

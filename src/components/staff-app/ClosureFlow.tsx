@@ -5,7 +5,7 @@ import { Scanner } from "@yudiel/react-qr-scanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { findApplicableTemplate, getOrCreateSubmission, uploadSubmissionPhoto } from "@/lib/checklists.helpers";
-import { validateClockOutFn, finalizeClosureFn } from "@/lib/closure-flow.functions";
+import { validateClockOutFn, finalizeClosureFn, analyzeClosurePhotoFn } from "@/lib/closure-flow.functions";
 import type { ChecklistTemplate, ChecklistTemplateItem, ChecklistTemplatePhoto } from "@/types/checklists";
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -101,6 +101,7 @@ export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted
 
   const validateClockOut = useServerFn(validateClockOutFn);
   const finalizeClosure = useServerFn(finalizeClosureFn);
+  const analyzeClosurePhoto = useServerFn(analyzeClosurePhotoFn);
 
   // ─── Load template + closure questions when shift opens ──────────────────
   useEffect(() => {
@@ -259,15 +260,26 @@ export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted
         }));
 
         if ((template as any)?.analyze_with_ai) {
-          // TODO: brancher une vraie IA Vision (OpenAI / Claude) qui renverra un score 0-100
-          // et comparera à template.ai_validation_threshold pour valider/refuser.
-          // Pour l'instant, simulation: 2s + validation auto à 100%
-          setTimeout(async () => {
-            await supabase.from("checklist_submission_photos")
-              .update({ ai_validation_status: "validated", ai_validated_at: new Date().toISOString(), ai_validation_message: "Validé automatiquement (IA placeholder — score 100/100)" })
-              .eq("id", submissionPhotoId);
-            setPhotoStates((prev) => ({ ...prev, [zoneId]: { ...prev[zoneId], status: "validated" } }));
-          }, 2000);
+          // Real AI vision analysis via Lovable AI Gateway
+          try {
+            const result: any = await analyzeClosurePhoto({ data: { submissionPhotoId } });
+            setPhotoStates((prev) => ({
+              ...prev,
+              [zoneId]: {
+                ...prev[zoneId],
+                status: result?.status === "rejected" ? "refused" : "validated",
+                message: result?.message ?? null,
+                failCount: result?.status === "rejected" ? (prev[zoneId]?.failCount ?? 0) + 1 : (prev[zoneId]?.failCount ?? 0),
+              },
+            }));
+          } catch (err: any) {
+            console.error("[closure] AI analyze error", err);
+            // fail-open: photo is uploaded, mark as validated so user is not blocked
+            setPhotoStates((prev) => ({
+              ...prev,
+              [zoneId]: { ...prev[zoneId], status: "validated", message: "Analyse IA indisponible" },
+            }));
+          }
         }
         return;
       } catch (e) {
