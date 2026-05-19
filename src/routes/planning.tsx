@@ -859,11 +859,12 @@ function PlanningCalendarPage() {
         {/* Studio toggle */}
         <div className="flex rounded-full p-1" style={{ backgroundColor: "var(--muted)" }}>
           {studios.map((s) => {
-            const active = selectedStudio === s;
+            const active = selectedStudios.has(s);
             return (
               <button
                 key={s}
-                onClick={() => setSelectedStudio(s)}
+                onClick={() => toggleStudio(s)}
+                title={active ? "Cliquer pour masquer ce studio" : "Cliquer pour afficher ce studio"}
                 className="rounded-full px-5 py-1.5 transition-colors"
                 style={{
                   fontSize: 12,
