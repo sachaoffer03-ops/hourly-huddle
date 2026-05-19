@@ -39,3 +39,20 @@ export const finalizeClosureFn = createServerFn({ method: "POST" })
       responses: data.responses,
     });
   });
+
+const analyzeSchema = z.object({
+  submissionPhotoId: z.string().uuid(),
+});
+
+export const analyzeClosurePhotoFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => analyzeSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    return analyzeClosurePhoto({ submissionPhotoId: data.submissionPhotoId, actorId: context.userId });
+  });
+
+export const notifyOverdueClockOutsFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    return notifyOverdueClockOuts();
+  });
