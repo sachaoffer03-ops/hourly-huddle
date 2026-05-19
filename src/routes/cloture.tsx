@@ -503,7 +503,7 @@ function ChecklistEditor({ studioId, roleId, roleName }: { studioId: string; rol
         <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
           <div className="flex flex-col gap-1.5">
             {items.map((it) => (
-              <SortableItem key={it.id} item={it} photos={photos} />
+              <SortableItem key={it.id} item={it} photos={photos} onDeleted={() => setItems((prev) => prev.filter((x) => x.id !== it.id))} />
             ))}
           </div>
         </SortableContext>
