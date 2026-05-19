@@ -677,8 +677,11 @@ function PhotosEditor({ studioId, roleId, roleName }: { studioId: string; roleId
           <Field label="Photos minimum requises">
             <NumInput value={template.min_photos_required ?? 0} onChange={(n) => updateDebounced({ min_photos_required: n })} />
           </Field>
-          <Field label="Seuil de validation IA">
-            <NumInput value={template.ai_validation_threshold ?? 75} onChange={(n) => updateDebounced({ ai_validation_threshold: n })} max={100} suffix="/ 100" />
+          <Field label="Exigence de l'analyse IA">
+            <ThresholdButtons
+              value={template.ai_validation_threshold ?? 75}
+              onChange={(n) => update({ ai_validation_threshold: n })}
+            />
           </Field>
         </div>
         <label className="flex items-center gap-2">
