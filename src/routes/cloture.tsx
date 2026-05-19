@@ -371,15 +371,16 @@ function ChecklistsSection({ studioId }: { studioId: string }) {
             <button
               key={r.id}
               onClick={() => setActiveRoleId(r.id)}
-              className="rounded-md px-3 py-1.5 flex items-center gap-2 transition-colors"
+              className="rounded-md px-3 py-1.5 flex items-center gap-2 transition-all"
               style={{
                 fontSize: 12, fontWeight: 500,
-                backgroundColor: isActive ? "var(--foreground)" : st.bg,
-                color: isActive ? "var(--background)" : st.text,
-                border: "1px solid transparent",
+                backgroundColor: isActive ? st.bg : "transparent",
+                color: isActive ? st.text : "var(--muted-foreground)",
+                border: `1px solid ${isActive ? st.dot : "var(--border)"}`,
+                boxShadow: isActive ? `inset 0 0 0 1px ${st.dot}` : "none",
               }}
             >
-              <span style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: isActive ? st.dot : st.dot }} />
+              <span style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: st.dot }} />
               {r.name}
             </button>
           );
@@ -566,13 +567,15 @@ function SortableItem({ item, photos }: { item: any; photos: any[] }) {
         className="flex-1 px-2 py-1 rounded"
         style={{ fontSize: 13, backgroundColor: "transparent", border: "none", outline: "none" }}
       />
-      <Select value={item.photo_zone_id ?? "__none__"} onValueChange={setPhoto}>
-        <SelectTrigger className="w-[180px] h-8"><SelectValue /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="__none__">Pas de photo liée</SelectItem>
-          {photos.map((p) => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}
-        </SelectContent>
-      </Select>
+      {photos.length > 0 && (
+        <Select value={item.photo_zone_id ?? "__none__"} onValueChange={setPhoto}>
+          <SelectTrigger className="w-[180px] h-8"><SelectValue placeholder="Lier une photo…" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">Aucune photo liée</SelectItem>
+            {photos.map((p) => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      )}
       <button onClick={remove} className="rounded p-1 hover:bg-muted" style={{ color: "var(--muted-foreground)" }}>
         <X size={14} />
       </button>
@@ -662,11 +665,13 @@ function PhotosSection({ studioId }: { studioId: string }) {
           const st = getRoleStyle(r.name);
           return (
             <button key={r.id} onClick={() => setRoleId(r.id)}
-              className="rounded-md px-3 py-1.5 flex items-center gap-2"
+              className="rounded-md px-3 py-1.5 flex items-center gap-2 transition-all"
               style={{
                 fontSize: 12, fontWeight: 500,
-                backgroundColor: active ? "var(--foreground)" : st.bg,
-                color: active ? "var(--background)" : st.text,
+                backgroundColor: active ? st.bg : "transparent",
+                color: active ? st.text : "var(--muted-foreground)",
+                border: `1px solid ${active ? st.dot : "var(--border)"}`,
+                boxShadow: active ? `inset 0 0 0 1px ${st.dot}` : "none",
               }}
             >
               <span style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: st.dot }} />
@@ -716,23 +721,19 @@ function PhotosEditor({ studioId, roleId, roleName }: { studioId: string; roleId
     } as any).select("*").single();
     if (error) { toast.error(error.message); return; }
     setPhotos((prev) => [...prev, data as any]);
+    setEditing(data as any);
     flashSaved();
   };
 
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <div className="flex flex-wrap gap-5 flex-1">
-          <Field label="Photos minimum requises">
-            <NumInput value={template.min_photos_required ?? 0} onChange={(n) => updateDebounced({ min_photos_required: n })} />
-          </Field>
-          <Field label="Exigence de l'analyse IA">
-            <ThresholdButtons
-              value={template.ai_validation_threshold ?? 75}
-              onChange={(n) => update({ ai_validation_threshold: n })}
-            />
-          </Field>
-        </div>
+        <Field label="Exigence de l'analyse IA">
+          <ThresholdButtons
+            value={template.ai_validation_threshold ?? 75}
+            onChange={(n) => update({ ai_validation_threshold: n })}
+          />
+        </Field>
         <label className="flex items-center gap-2">
           <Switch checked={!!template.analyze_with_ai} onCheckedChange={(v) => update({ analyze_with_ai: v })} />
           <span style={{ fontSize: 12, fontWeight: 500 }}>Analyse IA activée</span>
