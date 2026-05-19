@@ -1438,7 +1438,14 @@ function PlanningCalendar({
                   {/* Poignée de redimensionnement (style Excel) */}
                   <div
                     onMouseDown={(e) => startResize(dayIdx, e)}
-                    title="Glisser pour redimensionner"
+                    onDoubleClick={() => {
+                      setColumnWidths((prev) => {
+                        const next = { ...prev };
+                        delete next[dayIdx];
+                        return next;
+                      });
+                    }}
+                    title="Glisser pour redimensionner · Double-clic pour réinitialiser"
                     style={{
                       position: "absolute",
                       top: 0,
