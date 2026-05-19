@@ -1572,8 +1572,8 @@ function ShiftBlock({
   shift: PlanningShift;
   top: number;
   height: number;
-  left: number;
-  width: number;
+  left: number | string;
+  width: number | string;
   onEdit: (s: PlanningShift) => void;
   onReassign: (s: PlanningShift) => void;
   onDelete: (s: PlanningShift) => void;
