@@ -54,6 +54,7 @@ function StaffAppPage() {
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [businessRoles, setBusinessRoles] = useState<Role[]>([]);
   const [studios, setStudios] = useState<Record<string, string>>({});
+  const [studioClockOut, setStudioClockOut] = useState<Record<string, { before: number; grace: number }>>({});
   const [adminId, setAdminId] = useState<string | null>(null);
   const [adminName, setAdminName] = useState<string>("Administrateur");
   const [notifOpen, setNotifOpen] = useState(false);
