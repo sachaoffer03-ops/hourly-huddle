@@ -1390,6 +1390,7 @@ function PlanningCalendar({
                 <div
                   key={`h-${dayIdx}`}
                   style={{
+                    position: "relative",
                     borderBottom: "0.5px solid var(--border)",
                     borderRight: "0.5px solid var(--border)",
                     padding: "8px 10px",
@@ -1407,6 +1408,28 @@ function PlanningCalendar({
                       {dayShifts.length} · {totalH}h
                     </span>
                   </div>
+                  {/* Poignée de redimensionnement (style Excel) */}
+                  <div
+                    onMouseDown={(e) => startResize(dayIdx, e)}
+                    title="Glisser pour redimensionner"
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      bottom: 0,
+                      right: -3,
+                      width: 6,
+                      cursor: "col-resize",
+                      zIndex: 10,
+                      backgroundColor: "transparent",
+                      transition: "background-color 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLDivElement).style.backgroundColor = "var(--border)";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLDivElement).style.backgroundColor = "transparent";
+                    }}
+                  />
                 </div>
               );
             })}
