@@ -15,7 +15,6 @@ import { useEmployees, type EmployeeLite } from "@/hooks/use-employees";
 import { EditShiftModal } from "@/components/EditShiftModal";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Slider } from "@/components/ui/slider";
 import { getRoleStyle } from "@/lib/staff-helpers";
 
 export const Route = createFileRoute("/planning")({
@@ -1200,7 +1199,10 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 const HOUR_PX = 56;
 const TIME_COL_PX = 56;
-const ZOOM_KEY = "kadence_planning_zoom";
+const DEFAULT_COL_PX = 180;
+const MIN_COL_PX = 80;
+const MAX_COL_PX = 600;
+const COL_WIDTHS_KEY = "kadence_planning_column_widths";
 
 function minOf(t: string): number {
   const [h, m] = String(t).slice(0, 5).split(":").map(Number);
@@ -1274,15 +1276,60 @@ function PlanningCalendar({
   onReassign: (s: PlanningShift) => void;
   onDelete: (s: PlanningShift) => void;
 }) {
-  const [zoom, setZoom] = useState<number>(() => {
-    if (typeof window === "undefined") return 180;
-    const v = Number(window.localStorage.getItem(ZOOM_KEY));
-    return v >= 100 && v <= 400 ? v : 180;
+  // Largeurs personnalisées par colonne jour (clé = dayIdx 0-6), persistées en localStorage
+  const [columnWidths, setColumnWidths] = useState<Record<number, number>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const raw = window.localStorage.getItem(COL_WIDTHS_KEY);
+      return raw ? (JSON.parse(raw) as Record<number, number>) : {};
+    } catch {
+      return {};
+    }
   });
   useEffect(() => {
-    if (typeof window !== "undefined")
-      window.localStorage.setItem(ZOOM_KEY, String(zoom));
-  }, [zoom]);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(COL_WIDTHS_KEY, JSON.stringify(columnWidths));
+    }
+  }, [columnWidths]);
+
+  const resizingRef = useRef<{ dayIdx: number; startX: number; startW: number } | null>(null);
+  const [isResizing, setIsResizing] = useState(false);
+  const startResize = useCallback(
+    (dayIdx: number, e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const startW = columnWidths[dayIdx] ?? DEFAULT_COL_PX;
+      resizingRef.current = { dayIdx, startX: e.clientX, startW };
+      setIsResizing(true);
+      const prevCursor = document.body.style.cursor;
+      const prevUserSelect = document.body.style.userSelect;
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+      const onMove = (ev: MouseEvent) => {
+        const ctx = resizingRef.current;
+        if (!ctx) return;
+        const next = Math.max(MIN_COL_PX, Math.min(MAX_COL_PX, ctx.startW + (ev.clientX - ctx.startX)));
+        setColumnWidths((prev) => ({ ...prev, [ctx.dayIdx]: next }));
+      };
+      const onUp = () => {
+        resizingRef.current = null;
+        setIsResizing(false);
+        document.body.style.cursor = prevCursor;
+        document.body.style.userSelect = prevUserSelect;
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+      };
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    },
+    [columnWidths],
+  );
+
+  const widthOf = useCallback(
+    (dayIdx: number) => columnWidths[dayIdx] ?? DEFAULT_COL_PX,
+    [columnWidths],
+  );
+  void viewMode; // réservé pour adaptation mobile future
 
   // Plage horaire dynamique : extension si shifts hors 7h-23h
   const { startHour, endHour } = useMemo(() => {
@@ -1305,35 +1352,21 @@ function PlanningCalendar({
     return map;
   }, [studioShifts, visibleDayIndices]);
 
-  const dayWidth = zoom;
-  void viewMode; // réservé pour adaptation mobile future
+  const gridCols = `${TIME_COL_PX}px ${visibleDayIndices.map((idx) => `${widthOf(idx)}px`).join(" ")}`;
+  const totalWidth = TIME_COL_PX + visibleDayIndices.reduce((sum, idx) => sum + widthOf(idx), 0);
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Slider de zoom — caché en mobile */}
-      <div className="hidden md:flex items-center gap-3 px-1">
-        <span style={{ fontSize: 11, color: "var(--muted-foreground)", fontWeight: 500 }}>Zoom</span>
-        <Slider
-          value={[zoom]}
-          min={100}
-          max={400}
-          step={10}
-          onValueChange={(v) => setZoom(v[0] ?? 180)}
-          className="max-w-[260px]"
-        />
-        <span style={{ fontSize: 11, color: "var(--muted-foreground)", minWidth: 44 }}>{zoom}px</span>
-      </div>
-
       <div
         className="rounded-xl border overflow-hidden"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
       >
-        <div style={{ overflowX: "auto" }}>
+        <div style={{ overflowX: "auto", userSelect: isResizing ? "none" : undefined }}>
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: `${TIME_COL_PX}px repeat(${visibleDayIndices.length}, ${dayWidth}px)`,
-              minWidth: TIME_COL_PX + visibleDayIndices.length * dayWidth,
+              gridTemplateColumns: gridCols,
+              minWidth: totalWidth,
             }}
           >
             <div
@@ -1357,6 +1390,7 @@ function PlanningCalendar({
                 <div
                   key={`h-${dayIdx}`}
                   style={{
+                    position: "relative",
                     borderBottom: "0.5px solid var(--border)",
                     borderRight: "0.5px solid var(--border)",
                     padding: "8px 10px",
@@ -1374,6 +1408,28 @@ function PlanningCalendar({
                       {dayShifts.length} · {totalH}h
                     </span>
                   </div>
+                  {/* Poignée de redimensionnement (style Excel) */}
+                  <div
+                    onMouseDown={(e) => startResize(dayIdx, e)}
+                    title="Glisser pour redimensionner"
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      bottom: 0,
+                      right: -3,
+                      width: 6,
+                      cursor: "col-resize",
+                      zIndex: 10,
+                      backgroundColor: "transparent",
+                      transition: "background-color 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLDivElement).style.backgroundColor = "var(--border)";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLDivElement).style.backgroundColor = "transparent";
+                    }}
+                  />
                 </div>
               );
             })}
@@ -1438,7 +1494,7 @@ function PlanningCalendar({
                     const top = ((sM - startHour * 60) / 60) * HOUR_PX;
                     const height = Math.max(22, ((eM - sM) / 60) * HOUR_PX - 2);
                     const gap = 3;
-                    const colWidth = (dayWidth - gap * (clusterCols - 1) - 4) / clusterCols;
+                    const colWidth = (widthOf(dayIdx) - gap * (clusterCols - 1) - 4) / clusterCols;
                     const left = 2 + col * (colWidth + gap);
                     return (
                       <ShiftBlock
@@ -1498,9 +1554,10 @@ function ShiftBlock({
         .toUpperCase()
     : "··";
   const compact = height < 44;
+  const [open, setOpen] = useState(false);
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
           style={{
@@ -1605,8 +1662,10 @@ function ShiftBlock({
 
         <div className="flex gap-2 px-4 py-3" style={{ borderTop: "0.5px solid var(--border)" }}>
           {isHole ? (
-            <a
-              href={`/trous?shift=${shift.id}`}
+            <Link
+              to="/trous"
+              search={{ shift: shift.id } as never}
+              onClick={() => setOpen(false)}
               className="flex-1 rounded-md px-3 py-2 text-center"
               style={{
                 fontSize: 12,
@@ -1617,11 +1676,11 @@ function ShiftBlock({
               }}
             >
               Envoyer une proposition
-            </a>
+            </Link>
           ) : (
             <>
               <button
-                onClick={() => onDelete(shift)}
+                onClick={() => { setOpen(false); onDelete(shift); }}
                 className="rounded-md px-2.5 py-2"
                 style={{ fontSize: 12, border: "0.5px solid var(--border)", color: "var(--danger-text)" }}
                 aria-label="Supprimer"
@@ -1630,14 +1689,14 @@ function ShiftBlock({
                 <Trash2 size={13} />
               </button>
               <button
-                onClick={() => onReassign(shift)}
+                onClick={() => { setOpen(false); onReassign(shift); }}
                 className="flex-1 rounded-md px-3 py-2 flex items-center justify-center gap-1.5"
                 style={{ fontSize: 12, fontWeight: 500, border: "0.5px solid var(--border)" }}
               >
                 <UserPlus size={13} /> Réassigner
               </button>
               <button
-                onClick={() => onEdit(shift)}
+                onClick={() => { setOpen(false); onEdit(shift); }}
                 className="flex-1 rounded-md px-3 py-2 flex items-center justify-center gap-1.5"
                 style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)" }}
               >
