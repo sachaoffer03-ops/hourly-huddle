@@ -885,9 +885,33 @@ function PlanningCalendarPage() {
             <button onClick={goPrev} className="p-1.5" style={{ color: "var(--muted-foreground)" }}>
               <ChevronLeft size={14} />
             </button>
-            <button onClick={goToday} className="px-2 py-1.5" style={{ fontSize: 12, fontWeight: 500, borderLeft: "0.5px solid var(--border)", borderRight: "0.5px solid var(--border)" }}>
-              Sem. {weekNumber} · {monthNames[weekDays[3].getMonth()]} {weekDays[3].getFullYear()}
-            </button>
+            <Popover open={calOpen} onOpenChange={setCalOpen}>
+              <PopoverTrigger asChild>
+                <button className="px-2 py-1.5 hover:bg-[var(--muted)] transition-colors" style={{ fontSize: 12, fontWeight: 500, borderLeft: "0.5px solid var(--border)", borderRight: "0.5px solid var(--border)" }}>
+                  Sem. {weekNumber} · {monthNames[weekDays[3].getMonth()]} {weekDays[3].getFullYear()}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="center" className="w-auto p-2">
+                <div className="flex items-center justify-between px-2 pb-2">
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--muted-foreground)" }}>Choisir une semaine</span>
+                  <button
+                    onClick={() => { goToday(); setCalOpen(false); }}
+                    className="rounded-md px-2 py-1"
+                    style={{ fontSize: 11, fontWeight: 500, backgroundColor: "var(--coral)", color: "#fff" }}
+                  >
+                    Aujourd'hui
+                  </button>
+                </div>
+                <Calendar
+                  mode="single"
+                  weekStartsOn={1}
+                  showWeekNumber
+                  selected={weekStart}
+                  defaultMonth={weekStart}
+                  onSelect={(d) => { if (d) { setWeekStart(mondayOf(d)); setCalOpen(false); } }}
+                />
+              </PopoverContent>
+            </Popover>
             <button onClick={goNext} className="p-1.5" style={{ color: "var(--muted-foreground)" }}>
               <ChevronRight size={14} />
             </button>
