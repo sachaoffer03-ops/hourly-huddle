@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { findApplicableTemplate } from "@/lib/checklists.helpers";
+
 import { toast } from "sonner";
 import {
   Home, Calendar, User, ChevronRight, Clock, GraduationCap, ArrowLeft, CheckSquare,
