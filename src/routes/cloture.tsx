@@ -111,7 +111,7 @@ function ClotureePage() {
   const notifyOverdue = useServerFn(notifyOverdueClockOutsFn);
   useEffect(() => {
     if (loading || !appRole || (appRole !== "admin" && appRole !== "manager")) return;
-    notifyOverdue({ data: {} }).catch((e) => console.warn("[cloture] notifyOverdue failed", e));
+    notifyOverdue().catch((e) => console.warn("[cloture] notifyOverdue failed", e));
   }, [loading, appRole, notifyOverdue]);
 
   if (loading || studiosLoading) {
