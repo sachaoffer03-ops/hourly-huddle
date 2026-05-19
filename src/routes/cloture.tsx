@@ -665,11 +665,13 @@ function PhotosSection({ studioId }: { studioId: string }) {
           const st = getRoleStyle(r.name);
           return (
             <button key={r.id} onClick={() => setRoleId(r.id)}
-              className="rounded-md px-3 py-1.5 flex items-center gap-2"
+              className="rounded-md px-3 py-1.5 flex items-center gap-2 transition-all"
               style={{
                 fontSize: 12, fontWeight: 500,
-                backgroundColor: active ? "var(--foreground)" : st.bg,
-                color: active ? "var(--background)" : st.text,
+                backgroundColor: active ? st.bg : "transparent",
+                color: active ? st.text : "var(--muted-foreground)",
+                border: `1px solid ${active ? st.dot : "var(--border)"}`,
+                boxShadow: active ? `inset 0 0 0 1px ${st.dot}` : "none",
               }}
             >
               <span style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: st.dot }} />
