@@ -1376,8 +1376,10 @@ function PlanningCalendar({
     return map;
   }, [studioShifts, visibleDayIndices]);
 
-  const gridCols = `${TIME_COL_PX}px ${visibleDayIndices.map((idx) => `${widthOf(idx)}px`).join(" ")}`;
-  const totalWidth = TIME_COL_PX + visibleDayIndices.reduce((sum, idx) => sum + widthOf(idx), 0);
+  const colTrack = (idx: number) =>
+    columnWidths[idx] != null ? `${columnWidths[idx]}px` : `minmax(${DEFAULT_COL_PX}px, 1fr)`;
+  const gridCols = `${TIME_COL_PX}px ${visibleDayIndices.map(colTrack).join(" ")}`;
+  const minWidth = TIME_COL_PX + visibleDayIndices.reduce((sum, idx) => sum + widthOf(idx), 0);
 
   return (
     <div className="flex flex-col gap-3">
@@ -1390,7 +1392,7 @@ function PlanningCalendar({
             style={{
               display: "grid",
               gridTemplateColumns: gridCols,
-              minWidth: totalWidth,
+              minWidth,
             }}
           >
             <div
