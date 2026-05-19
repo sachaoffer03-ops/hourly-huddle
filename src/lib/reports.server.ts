@@ -380,7 +380,7 @@ export async function getEmployeeDetail(args: { userId: string; from: string; to
 
   // Student quota (week)
   let studentQuota: { used: number; max: number } | null = null;
-  if (prof.contract === "student") {
+  if (prof.contract === "Étudiant") {
     const today = new Date();
     const day = today.getDay(); // 0=sun
     const monday = addDays(today, day === 0 ? -6 : 1 - day);
