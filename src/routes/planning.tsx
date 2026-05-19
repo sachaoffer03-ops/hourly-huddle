@@ -1494,7 +1494,7 @@ function PlanningCalendar({
                     const top = ((sM - startHour * 60) / 60) * HOUR_PX;
                     const height = Math.max(22, ((eM - sM) / 60) * HOUR_PX - 2);
                     const gap = 3;
-                    const colWidth = (dayWidth - gap * (clusterCols - 1) - 4) / clusterCols;
+                    const colWidth = (widthOf(dayIdx) - gap * (clusterCols - 1) - 4) / clusterCols;
                     const left = 2 + col * (colWidth + gap);
                     return (
                       <ShiftBlock
