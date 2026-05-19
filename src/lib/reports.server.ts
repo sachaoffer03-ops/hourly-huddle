@@ -486,13 +486,18 @@ export async function getShiftDetail(args: { shiftId: string }) {
   let responses: any[] = [];
   let questions: any[] = [];
   if (sub) {
-    [{ data: templateItems = [] } as any, { data: itemRows = [] } as any, { data: templatePhotos = [] } as any, { data: photoRows = [] } as any, { data: responses = [] } as any] = await Promise.all([
+    const [r1, r2, r3, r4, r5] = await Promise.all([
       supabaseAdmin.from("checklist_template_items").select("id,label,order_index,photo_zone_id").eq("template_id", sub.template_id).order("order_index"),
       supabaseAdmin.from("checklist_submission_items").select("template_item_id,is_checked,checked_at").eq("submission_id", sub.id),
       supabaseAdmin.from("checklist_template_photos").select("id,label,order_index,reference_photo_url").eq("template_id", sub.template_id).order("order_index"),
       supabaseAdmin.from("checklist_submission_photos").select("template_photo_id,photo_url,ai_validation_status,ai_validation_message").eq("submission_id", sub.id),
       supabaseAdmin.from("closure_question_responses").select("question_id,stars_value,yesno_value,text_value").eq("submission_id", sub.id),
     ]);
+    templateItems = (r1.data ?? []) as any[];
+    itemRows = (r2.data ?? []) as any[];
+    templatePhotos = (r3.data ?? []) as any[];
+    photoRows = (r4.data ?? []) as any[];
+    responses = (r5.data ?? []) as any[];
   }
   if (shift.studio_id) {
     const { data: qs } = await supabaseAdmin
