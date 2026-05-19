@@ -1530,8 +1530,11 @@ function PlanningCalendar({
                     const top = ((sM - startHour * 60) / 60) * HOUR_PX;
                     const height = Math.max(22, ((eM - sM) / 60) * HOUR_PX - 2);
                     const gap = 3;
-                    const colWidth = (widthOf(dayIdx) - gap * (clusterCols - 1) - 4) / clusterCols;
-                    const left = 2 + col * (colWidth + gap);
+                    const trackPct = 100 / clusterCols;
+                    const leftPad = col === 0 ? 2 : gap / 2;
+                    const rightPad = col === clusterCols - 1 ? 2 : gap / 2;
+                    const left = `calc(${col * trackPct}% + ${leftPad}px)`;
+                    const width = `calc(${trackPct}% - ${leftPad + rightPad}px)`;
                     return (
                       <ShiftBlock
                         key={shift.id}
@@ -1539,7 +1542,7 @@ function PlanningCalendar({
                         top={top}
                         height={height}
                         left={left}
-                        width={colWidth}
+                        width={width}
                         onEdit={onEdit}
                         onReassign={onReassign}
                         onDelete={onDelete}
