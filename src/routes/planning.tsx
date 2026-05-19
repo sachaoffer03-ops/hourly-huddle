@@ -14,6 +14,7 @@ import { useBusinessRoles } from "@/hooks/use-business-roles";
 import { useEmployees, type EmployeeLite } from "@/hooks/use-employees";
 import { EditShiftModal } from "@/components/EditShiftModal";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Slider } from "@/components/ui/slider";
 import { getRoleStyle } from "@/lib/staff-helpers";
 
@@ -75,16 +76,19 @@ const timeSlotDefs = [
   { label: "17h", start: "17h00", end: "23h00", time: "17h — 23h" },
 ];
 
-function getWeekDays(year: number, month: number, weekOffset: number): Date[] {
-  // Get first Monday of the month, then offset by weeks
-  const first = new Date(year, month, 1);
-  const dayOfWeek = first.getDay();
-  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  const firstMonday = new Date(year, month, 1 + mondayOffset + weekOffset * 7);
+function mondayOf(date: Date): Date {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const dow = d.getDay();
+  const diff = dow === 0 ? -6 : 1 - dow;
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+
+function getWeekDaysFromStart(start: Date): Date[] {
   const days: Date[] = [];
   for (let i = 0; i < 7; i++) {
-    const d = new Date(firstMonday);
-    d.setDate(firstMonday.getDate() + i);
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
     days.push(d);
   }
   return days;
@@ -447,16 +451,15 @@ function PlanningCalendarPage() {
   const { names: roles } = useBusinessRoles({ onlyActive: true });
   const { employees } = useEmployees();
   const now = new Date();
-  const [month, setMonth] = useState(now.getMonth());
-  const [year, setYear] = useState(now.getFullYear());
-  const [weekOffset, setWeekOffset] = useState(0);
+  const [weekStart, setWeekStart] = useState<Date>(() => mondayOf(new Date()));
   const [selectedStudio, setSelectedStudio] = useState<Studio>("");
   const [selectedDayIdx, setSelectedDayIdx] = useState<number | null>(null);
   const [selectedShift, setSelectedShift] = useState<PlanningShift | null>(null);
   const [holeShift, setHoleShift] = useState<PlanningShift | null>(null);
   const [editShift, setEditShift] = useState<PlanningShift | null>(null);
+  const [calOpen, setCalOpen] = useState(false);
 
-  const weekDays = useMemo(() => getWeekDays(year, month, weekOffset), [year, month, weekOffset]);
+  const weekDays = useMemo(() => getWeekDaysFromStart(weekStart), [weekStart]);
   const [shifts, setShifts] = useState<PlanningShift[]>([]);
   const [studioMap, setStudioMap] = useState<Map<string, string>>(new Map());
   // Liste de noms de studios chargée depuis la DB (remplace l'ancien tableau hardcodé).
@@ -549,9 +552,8 @@ function PlanningCalendarPage() {
     return () => { cancelled = true; };
   }, [weekDays, studioMap, refreshKey]);
 
-  // weekKey ref kept for compatibility but no longer regenerates mock
-  const lastWeekKey = useRef(`${year}-${month}-${weekOffset}`);
-  const weekKey = `${year}-${month}-${weekOffset}`;
+  const weekKey = weekStart.toISOString().slice(0, 10);
+  const lastWeekKey = useRef(weekKey);
   if (weekKey !== lastWeekKey.current) {
     lastWeekKey.current = weekKey;
   }
@@ -578,9 +580,28 @@ function PlanningCalendarPage() {
 
   const visibleDayIndices = viewMode === "jour" ? [dayIdxJour] : [0, 1, 2, 3, 4, 5, 6];
 
-  const goToday = () => { setMonth(now.getMonth()); setYear(now.getFullYear()); setWeekOffset(0); };
-  const goPrev = () => setWeekOffset((w) => w - 1);
-  const goNext = () => setWeekOffset((w) => w + 1);
+  const shiftWeek = (delta: number) => setWeekStart((d) => { const n = new Date(d); n.setDate(d.getDate() + delta * 7); return n; });
+  const goToday = () => setWeekStart(mondayOf(new Date()));
+  const goPrev = () => shiftWeek(-1);
+  const goNext = () => shiftWeek(1);
+
+  // Auto-actualisation : si l'onglet redevient visible ou que minuit passe,
+  // on recentre sur la semaine réelle (utile quand l'app reste ouverte plusieurs jours).
+  const initialMondayRef = useRef(mondayOf(new Date()).getTime());
+  useEffect(() => {
+    const tick = () => {
+      const todayMonday = mondayOf(new Date()).getTime();
+      if (todayMonday !== initialMondayRef.current) {
+        initialMondayRef.current = todayMonday;
+        setWeekStart(new Date(todayMonday));
+        setRefreshKey((k) => k + 1);
+      }
+    };
+    const onVis = () => { if (document.visibilityState === "visible") tick(); };
+    document.addEventListener("visibilitychange", onVis);
+    const id = window.setInterval(tick, 60_000);
+    return () => { document.removeEventListener("visibilitychange", onVis); window.clearInterval(id); };
+  }, []);
 
   // Server functions
   const createShiftFn = useServerFn(createShift);
@@ -867,9 +888,33 @@ function PlanningCalendarPage() {
             <button onClick={goPrev} className="p-1.5" style={{ color: "var(--muted-foreground)" }}>
               <ChevronLeft size={14} />
             </button>
-            <button onClick={goToday} className="px-2 py-1.5" style={{ fontSize: 12, fontWeight: 500, borderLeft: "0.5px solid var(--border)", borderRight: "0.5px solid var(--border)" }}>
-              Sem. {weekNumber} · {monthNames[weekDays[3].getMonth()]} {weekDays[3].getFullYear()}
-            </button>
+            <Popover open={calOpen} onOpenChange={setCalOpen}>
+              <PopoverTrigger asChild>
+                <button className="px-2 py-1.5 hover:bg-[var(--muted)] transition-colors" style={{ fontSize: 12, fontWeight: 500, borderLeft: "0.5px solid var(--border)", borderRight: "0.5px solid var(--border)" }}>
+                  Sem. {weekNumber} · {monthNames[weekDays[3].getMonth()]} {weekDays[3].getFullYear()}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="center" className="w-auto p-2">
+                <div className="flex items-center justify-between px-2 pb-2">
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--muted-foreground)" }}>Choisir une semaine</span>
+                  <button
+                    onClick={() => { goToday(); setCalOpen(false); }}
+                    className="rounded-md px-2 py-1"
+                    style={{ fontSize: 11, fontWeight: 500, backgroundColor: "var(--coral)", color: "#fff" }}
+                  >
+                    Aujourd'hui
+                  </button>
+                </div>
+                <Calendar
+                  mode="single"
+                  weekStartsOn={1}
+                  showWeekNumber
+                  selected={weekStart}
+                  defaultMonth={weekStart}
+                  onSelect={(d) => { if (d) { setWeekStart(mondayOf(d)); setCalOpen(false); } }}
+                />
+              </PopoverContent>
+            </Popover>
             <button onClick={goNext} className="p-1.5" style={{ color: "var(--muted-foreground)" }}>
               <ChevronRight size={14} />
             </button>
