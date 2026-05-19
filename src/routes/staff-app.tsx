@@ -131,7 +131,7 @@ function StaffAppPage() {
 }
 
 /* ─── ACCUEIL ─── */
-function AccueilTab({ profile, studios, userId, onOpenNotifs }: { profile: ProfileRow | null; studios: Record<string, string>; userId: string; onOpenNotifs: () => void }) {
+function AccueilTab({ profile, studios, studioClockOut, userId, onOpenNotifs }: { profile: ProfileRow | null; studios: Record<string, string>; studioClockOut: Record<string, { before: number; grace: number }>; userId: string; onOpenNotifs: () => void }) {
   const [shifts, setShifts] = useState<ShiftRow[]>([]);
   const [weekStats, setWeekStats] = useState({ hours: 0, count: 0 });
   const [endShift, setEndShift] = useState<ShiftRow | null>(null);
