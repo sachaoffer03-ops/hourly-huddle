@@ -997,15 +997,6 @@ const RESPONSE_TYPES: Record<string, string> = {
   free_text: "📝 Texte libre",
 };
 
-const SUGGESTED_QUESTIONS = [
-  { question_text: "Comment s'est passé ton shift ?", response_type: "stars_1_5" },
-  { question_text: "Ambiance générale dans l'équipe", response_type: "stars_1_5" },
-  { question_text: "Propreté & organisation du studio", response_type: "stars_1_5" },
-  { question_text: "As-tu remarqué quelque chose d'inhabituel ?", response_type: "yes_no" },
-  { question_text: "Y a-t-il une personne dont tu voudrais nous parler ?", response_type: "free_text" },
-  { question_text: "Quelque chose à nous dire en plus ?", response_type: "free_text" },
-];
-
 function QuestionsSection({ studioId }: { studioId: string }) {
   const [questions, setQuestions] = useState<any[]>([]);
 
@@ -1030,17 +1021,13 @@ function QuestionsSection({ studioId }: { studioId: string }) {
 
   const add = async () => {
     const nextIdx = (questions[questions.length - 1]?.order_index ?? -1) + 1;
-    const { error } = await supabase.from("closure_questions" as any).insert({
+    const { data, error } = await supabase.from("closure_questions" as any).insert({
       studio_id: studioId, question_text: "Nouvelle question", response_type: "stars_1_5", order_index: nextIdx,
-    } as any);
-    if (error) toast.error(error.message); else flashSaved();
-  };
-
-  const addSuggested = async () => {
-    const start = (questions[questions.length - 1]?.order_index ?? -1) + 1;
-    const rows = SUGGESTED_QUESTIONS.map((q, i) => ({ ...q, studio_id: studioId, order_index: start + i }));
-    const { error } = await supabase.from("closure_questions" as any).insert(rows as any);
-    if (error) toast.error(error.message); else { toast.success("Modèle ajouté"); flashSaved(); }
+    } as any).select("*").single();
+    if (error) { toast.error(error.message); return; }
+    // Optimistic refresh (don't rely on realtime publication)
+    setQuestions((prev) => [...prev, data]);
+    flashSaved();
   };
 
   const onDragEnd = async (e: DragEndEvent) => {
@@ -1059,11 +1046,12 @@ function QuestionsSection({ studioId }: { studioId: string }) {
   return (
     <SectionCard
       icon={MessageSquare}
-      title="Questions post-shift (review étoilée)"
+      title="Questions post-shift"
+      subtitle="Les réponses alimentent le cerveau du SaaS : elles peuvent ajuster la note de l'employé et nourrissent tes rapports. Visible uniquement par toi et tes managers."
       right={
         <span className="rounded-full px-2.5 py-1 flex items-center gap-1.5"
           style={{ fontSize: 11, fontWeight: 500, backgroundColor: "color-mix(in oklab, #a78bfa 18%, white)", color: "#4c1d95" }}>
-          <Lock size={11} /> Visible uniquement par admin & managers
+          <Lock size={11} /> Admin & managers
         </span>
       }
     >
@@ -1076,24 +1064,15 @@ function QuestionsSection({ studioId }: { studioId: string }) {
       </DndContext>
       {questions.length === 0 && (
         <div className="rounded-md border border-dashed px-4 py-6 text-center" style={{ fontSize: 12, color: "var(--muted-foreground)", borderColor: "var(--border)" }}>
-          Aucune question. Ajoute-en une ou démarre depuis le modèle suggéré.
+          Aucune question pour ce studio. Ajoute-en une ci-dessous.
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3">
         <button onClick={add} className="rounded-md px-3 py-1.5 flex items-center gap-1.5"
           style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--coral)", color: "var(--coral-text)" }}>
           <Plus size={13} /> Ajouter une question
         </button>
-        <button onClick={addSuggested} className="rounded-md border px-3 py-1.5 flex items-center gap-1.5"
-          style={{ fontSize: 12, fontWeight: 500, borderColor: "var(--border)" }}>
-          <Sparkles size={13} /> Modèle suggéré
-        </button>
-      </div>
-
-      <div className="mt-4 rounded-md px-4 py-3"
-        style={{ backgroundColor: "color-mix(in oklab, #ef4444 6%, white)", fontSize: 11, lineHeight: 1.6, color: "var(--foreground)" }}>
-        🔐 Les réponses sont stockées chiffrées, accessibles uniquement par admin & managers, et ne sont jamais nominatives quand on les agrège.
       </div>
     </SectionCard>
   );
