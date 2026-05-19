@@ -893,7 +893,8 @@ function AiHintCard({ template }: { template: any }) {
     >
       <Sparkles size={14} style={{ color: "var(--coral-dark)", marginTop: 2 }} />
       <div className="flex-1">
-        <b>L'IA détecte :</b> {display}. Score &lt; seuil → photo refusée et message à l'employé. Tu reçois une notif au 2e refus consécutif.
+        <b>L'IA compare</b> chaque photo à la photo de référence et à l'indice ci-dessous (« {display} »).
+        Selon l'exigence choisie (Souple / Standard / Strict), elle valide ou refuse la photo et explique pourquoi à l'employé.
       </div>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
