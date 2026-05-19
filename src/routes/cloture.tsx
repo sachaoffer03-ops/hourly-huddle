@@ -587,64 +587,78 @@ function DuplicateButton({ items, currentRoleId, studioId }: { items: any[]; cur
   const { roles } = useBusinessRoles({ onlyActive: true });
   const [open, setOpen] = useState(false);
   const [target, setTarget] = useState<string>("");
+  const [busy, setBusy] = useState(false);
 
   const dup = async () => {
-    if (!target) return;
-    // Ensure target template exists
-    let { data: tpl } = await supabase
-      .from("checklist_templates")
-      .select("id")
-      .eq("studio_id", studioId)
-      .eq("business_role_id", target)
-      .maybeSingle();
-    if (!tpl) {
-      const { data: created } = await supabase.from("checklist_templates").insert({
-        studio_id: studioId, business_role_id: target, name: "Clôture", is_active: true, is_blocking: true,
-      } as any).select("id").single();
-      tpl = created as any;
+    if (!target || busy) return;
+    setBusy(true);
+    try {
+      let { data: tpl } = await supabase
+        .from("checklist_templates")
+        .select("id")
+        .eq("studio_id", studioId)
+        .eq("business_role_id", target)
+        .maybeSingle();
+      if (!tpl) {
+        const { data: created, error: cErr } = await supabase.from("checklist_templates").insert({
+          studio_id: studioId, business_role_id: target, name: "Clôture", is_active: true, is_blocking: true,
+        } as any).select("id").single();
+        if (cErr) { toast.error(cErr.message); return; }
+        tpl = created as any;
+      }
+      if (!tpl) return;
+      const rows = items.map((it, idx) => ({
+        template_id: (tpl as any).id, label: it.label, description: it.description, is_required: it.is_required, order_index: idx,
+      }));
+      if (rows.length > 0) {
+        const { error } = await supabase.from("checklist_template_items").insert(rows as any);
+        if (error) { toast.error(error.message); return; }
+      }
+      toast.success("Checklist dupliquée");
+      setOpen(false);
+      setTarget("");
+      flashSaved();
+    } finally {
+      setBusy(false);
     }
-    if (!tpl) return;
-    const rows = items.map((it, idx) => ({
-      template_id: (tpl as any).id, label: it.label, description: it.description, is_required: it.is_required, order_index: idx,
-    }));
-    if (rows.length > 0) {
-      const { error } = await supabase.from("checklist_template_items").insert(rows as any);
-      if (error) { toast.error(error.message); return; }
-    }
-    toast.success("Checklist dupliquée");
-    setOpen(false);
-    flashSaved();
   };
 
   const targets = roles.filter((r) => r.id !== currentRoleId);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <button
-        onClick={() => setOpen(true)}
-        className="rounded-md px-3 py-1.5 border"
-        style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--background)", borderColor: "var(--border)" }}
-      >
-        Dupliquer vers un autre poste
-      </button>
-      <DialogContent>
-        <DialogHeader><DialogTitle>Dupliquer la checklist</DialogTitle></DialogHeader>
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setTarget(""); }}>
+      <PopoverTrigger asChild>
+        <button
+          className="rounded-md px-3 py-1.5 border"
+          style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--background)", borderColor: "var(--border)" }}
+        >
+          Dupliquer vers un autre poste
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[300px]" align="start">
         <div className="flex flex-col gap-2">
+          <div style={{ fontSize: 13, fontWeight: 500 }}>Dupliquer la checklist</div>
           <label style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Poste de destination</label>
-          <Select value={target} onValueChange={setTarget}>
-            <SelectTrigger><SelectValue placeholder="Choisir un poste" /></SelectTrigger>
-            <SelectContent>
-              {targets.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          {targets.length === 0 ? (
+            <p style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Aucun autre poste actif disponible.</p>
+          ) : (
+            <Select value={target} onValueChange={setTarget}>
+              <SelectTrigger><SelectValue placeholder="Choisir un poste" /></SelectTrigger>
+              <SelectContent>
+                {targets.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
           <p style={{ fontSize: 11, color: "var(--muted-foreground)" }}>Les items sont ajoutés à la fin de la checklist existante.</p>
+          <div className="flex justify-end gap-2 mt-1">
+            <button onClick={() => setOpen(false)} className="px-3 py-1.5 rounded-md border" style={{ fontSize: 12, borderColor: "var(--border)" }}>Annuler</button>
+            <button onClick={dup} disabled={!target || busy} className="px-3 py-1.5 rounded-md disabled:opacity-50" style={{ fontSize: 12, backgroundColor: "var(--coral)", color: "var(--coral-text)" }}>
+              {busy ? "…" : "Dupliquer"}
+            </button>
+          </div>
         </div>
-        <DialogFooter>
-          <button onClick={() => setOpen(false)} className="px-3 py-1.5 rounded-md border" style={{ fontSize: 12, borderColor: "var(--border)" }}>Annuler</button>
-          <button onClick={dup} disabled={!target} className="px-3 py-1.5 rounded-md" style={{ fontSize: 12, backgroundColor: "var(--coral)", color: "var(--coral-text)" }}>Dupliquer</button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </PopoverContent>
+    </Popover>
   );
 }
 
