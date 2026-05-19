@@ -1554,9 +1554,10 @@ function ShiftBlock({
         .toUpperCase()
     : "··";
   const compact = height < 44;
+  const [open, setOpen] = useState(false);
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
           style={{
