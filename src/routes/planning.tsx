@@ -1376,8 +1376,10 @@ function PlanningCalendar({
     return map;
   }, [studioShifts, visibleDayIndices]);
 
-  const gridCols = `${TIME_COL_PX}px ${visibleDayIndices.map((idx) => `${widthOf(idx)}px`).join(" ")}`;
-  const totalWidth = TIME_COL_PX + visibleDayIndices.reduce((sum, idx) => sum + widthOf(idx), 0);
+  const colTrack = (idx: number) =>
+    columnWidths[idx] != null ? `${columnWidths[idx]}px` : `minmax(${DEFAULT_COL_PX}px, 1fr)`;
+  const gridCols = `${TIME_COL_PX}px ${visibleDayIndices.map(colTrack).join(" ")}`;
+  const minWidth = TIME_COL_PX + visibleDayIndices.reduce((sum, idx) => sum + widthOf(idx), 0);
 
   return (
     <div className="flex flex-col gap-3">
@@ -1390,7 +1392,7 @@ function PlanningCalendar({
             style={{
               display: "grid",
               gridTemplateColumns: gridCols,
-              minWidth: totalWidth,
+              minWidth,
             }}
           >
             <div
@@ -1528,8 +1530,11 @@ function PlanningCalendar({
                     const top = ((sM - startHour * 60) / 60) * HOUR_PX;
                     const height = Math.max(22, ((eM - sM) / 60) * HOUR_PX - 2);
                     const gap = 3;
-                    const colWidth = (widthOf(dayIdx) - gap * (clusterCols - 1) - 4) / clusterCols;
-                    const left = 2 + col * (colWidth + gap);
+                    const trackPct = 100 / clusterCols;
+                    const leftPad = col === 0 ? 2 : gap / 2;
+                    const rightPad = col === clusterCols - 1 ? 2 : gap / 2;
+                    const left = `calc(${col * trackPct}% + ${leftPad}px)`;
+                    const width = `calc(${trackPct}% - ${leftPad + rightPad}px)`;
                     return (
                       <ShiftBlock
                         key={shift.id}
@@ -1537,7 +1542,7 @@ function PlanningCalendar({
                         top={top}
                         height={height}
                         left={left}
-                        width={colWidth}
+                        width={width}
                         onEdit={onEdit}
                         onReassign={onReassign}
                         onDelete={onDelete}
@@ -1567,8 +1572,8 @@ function ShiftBlock({
   shift: PlanningShift;
   top: number;
   height: number;
-  left: number;
-  width: number;
+  left: number | string;
+  width: number | string;
   onEdit: (s: PlanningShift) => void;
   onReassign: (s: PlanningShift) => void;
   onDelete: (s: PlanningShift) => void;
