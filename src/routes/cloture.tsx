@@ -686,9 +686,10 @@ function PhotosSection({ studioId }: { studioId: string }) {
 }
 
 function PhotosEditor({ studioId, roleId, roleName }: { studioId: string; roleId: string; roleName: string }) {
-  const { template, loading } = useTemplate(studioId, roleId);
+  const { template, loading, setTemplate } = useTemplate(studioId, roleId);
   const [photos, setPhotos] = useState<any[]>([]);
   const [editing, setEditing] = useState<any | null>(null);
+  const [editingIsNew, setEditingIsNew] = useState(false);
 
   const reload = useCallback(async () => {
     if (!template?.id) return;
@@ -706,24 +707,29 @@ function PhotosEditor({ studioId, roleId, roleName }: { studioId: string; roleId
 
   const update = useCallback(async (patch: any) => {
     if (!template?.id) return;
+    // Optimistic local update — sinon les boutons (Souple/Standard/Strict, switch IA) ne réagissent pas instantanément
+    setTemplate((prev: any) => prev ? { ...prev, ...patch } : prev);
     const { error } = await supabase.from("checklist_templates").update(patch).eq("id", template.id);
     if (error) toast.error(error.message); else flashSaved();
-  }, [template?.id]);
-  const updateDebounced = useDebouncedCallback(update, 500);
+  }, [template?.id, setTemplate]);
 
   if (loading || !template) return <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Chargement…</div>;
 
-
-  const addZone = async () => {
+  // Mode "brouillon" : pas d'insert DB tant que l'utilisateur n'a pas cliqué Enregistrer
+  const addZone = () => {
     const next = (photos[photos.length - 1]?.order_index ?? -1) + 1;
-    const { data, error } = await supabase.from("checklist_template_photos").insert({
-      template_id: template.id, label: "Nouvelle zone", is_required: false, order_index: next,
-    } as any).select("*").single();
-    if (error) { toast.error(error.message); return; }
-    setPhotos((prev) => [...prev, data as any]);
-    setEditing(data as any);
-    flashSaved();
+    setEditing({
+      template_id: template.id,
+      label: "Nouvelle zone",
+      description: "",
+      is_required: false,
+      order_index: next,
+      reference_photo_url: null,
+    });
+    setEditingIsNew(true);
   };
+
+  const closeEditor = () => { setEditing(null); setEditingIsNew(false); };
 
   return (
     <div>
@@ -746,7 +752,7 @@ function PhotosEditor({ studioId, roleId, roleName }: { studioId: string; roleId
 
       <div className="grid gap-3 grid-cols-1 md:grid-cols-3">
         {photos.map((p) => (
-          <PhotoCard key={p.id} photo={p} onEdit={() => setEditing(p)} />
+          <PhotoCard key={p.id} photo={p} onEdit={() => { setEditing(p); setEditingIsNew(false); }} />
         ))}
         <button
           onClick={addZone}
@@ -760,7 +766,18 @@ function PhotosEditor({ studioId, roleId, roleName }: { studioId: string; roleId
 
       <AiHintCard template={template} />
 
-      {editing && <PhotoEditModal photo={editing} onClose={() => setEditing(null)} />}
+      {editing && (
+        <PhotoEditModal
+          photo={editing}
+          isNew={editingIsNew}
+          onClose={closeEditor}
+          onSaved={(saved) => {
+            if (editingIsNew) setPhotos((prev) => [...prev, saved]);
+            else setPhotos((prev) => prev.map((p) => p.id === saved.id ? { ...p, ...saved } : p));
+          }}
+          onDeleted={(id) => setPhotos((prev) => prev.filter((p) => p.id !== id))}
+        />
+      )}
     </div>
   );
 }
