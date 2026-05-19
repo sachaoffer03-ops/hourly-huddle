@@ -81,9 +81,10 @@ export async function getOverviewKpis(f: Filters) {
   }
 
   // Payroll = somme heures × hourly_rate (exclut hourly_rate NULL)
-  for (const s of completed) {
+  for (const s of completed as any[]) {
     const wh = workedHours(s);
     totalHours += wh;
+    if (!s.user_id) continue;
     const p = profilesMap.get(s.user_id);
     if (p?.hourly_rate != null) payrollTotal += wh * Number(p.hourly_rate);
   }
