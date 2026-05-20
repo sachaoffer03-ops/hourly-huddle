@@ -1,11 +1,28 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, Mail, UserPlus, Users } from "lucide-react";
+import { Search, Mail, UserPlus, Users, UserX, MoreHorizontal, UserCheck } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { roleColors, type Role } from "@/lib/role-colors";
 import { InviteEmployeeModal } from "@/components/InviteEmployeeModal";
 import { InvitationsList } from "@/components/InvitationsList";
 import { useBusinessRoles } from "@/hooks/use-business-roles";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/staff/")({
   component: StaffPage,
@@ -23,7 +40,7 @@ interface StudioRow { id: string; name: string; }
 const initials = (f: string, l: string) => `${(f?.[0] || "").toUpperCase()}${(l?.[0] || "").toUpperCase()}`;
 
 function StaffPage() {
-  const [tab, setTab] = useState<"employees" | "invitations">("employees");
+  const [tab, setTab] = useState<"employees" | "inactive" | "invitations">("employees");
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [rolesByUser, setRolesByUser] = useState<Record<string, Role[]>>({});
   const [shiftCountByUser, setShiftCountByUser] = useState<Record<string, number>>({});
@@ -34,6 +51,7 @@ function StaffPage() {
   const [roleFilters, setRoleFilters] = useState<Set<string>>(new Set());
   const [sortScore, setSortScore] = useState<"none" | "desc" | "asc">("none");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState<{ p: ProfileRow; action: "deactivate" | "reactivate" } | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -61,8 +79,14 @@ function StaffPage() {
 
   const studioName = (id: string | null) => studios.find(s => s.id === id)?.name || "—";
 
+  const activeCount = useMemo(() => profiles.filter(p => p.status !== "inactive").length, [profiles]);
+  const inactiveCount = useMemo(() => profiles.filter(p => p.status === "inactive").length, [profiles]);
+
   const filtered = useMemo(() => {
-    const list = profiles.filter(p => {
+    const byStatus = profiles.filter(p =>
+      tab === "inactive" ? p.status === "inactive" : p.status !== "inactive"
+    );
+    const list = byStatus.filter(p => {
       if (search) {
         const q = search.toLowerCase();
         if (!`${p.first_name} ${p.last_name}`.toLowerCase().includes(q) && !p.email.toLowerCase().includes(q)) return false;
@@ -82,7 +106,7 @@ function StaffPage() {
       });
     }
     return list;
-  }, [profiles, search, contractFilters, studioFilters, roleFilters, sortScore, rolesByUser]);
+  }, [profiles, tab, search, contractFilters, studioFilters, roleFilters, sortScore, rolesByUser]);
 
   const toggle = (set: Set<string>, fn: (s: Set<string>) => void, key: string) => {
     const next = new Set(set);
@@ -90,17 +114,37 @@ function StaffPage() {
     fn(next);
   };
 
+  const handleConfirm = async () => {
+    if (!confirmTarget) return;
+    const { p, action } = confirmTarget;
+    const newStatus = action === "deactivate" ? "inactive" : "active";
+    const { error } = await supabase.from("profiles").update({ status: newStatus }).eq("id", p.id);
+    if (error) {
+      toast.error("Erreur : " + error.message);
+    } else {
+      toast.success(
+        action === "deactivate"
+          ? `${p.first_name} ${p.last_name} désactivé·e`
+          : `${p.first_name} ${p.last_name} réactivé·e`
+      );
+      setProfiles(prev => prev.map(x => x.id === p.id ? { ...x, status: newStatus } : x));
+    }
+    setConfirmTarget(null);
+  };
+
   const contracts = ["etudiant", "flexi", "cdi", "cdd"];
   const contractLabels: Record<string, string> = { etudiant: "Étudiants", flexi: "Flexis", cdi: "CDI", cdd: "CDD" };
   const { names: businessRoleOptionsRaw } = useBusinessRoles({ onlyActive: true });
   const businessRoleOptions = businessRoleOptionsRaw as Role[];
 
+  const isInactiveTab = tab === "inactive";
 
   return (
     <div className="p-4 md:p-6">
       <div className="flex items-center gap-1 mb-5 border-b" style={{ borderColor: "var(--border)" }}>
         {[
-          { key: "employees" as const, label: "Employés", Icon: Users },
+          { key: "employees" as const, label: `Employés · ${activeCount}`, Icon: Users },
+          { key: "inactive" as const, label: `Désactivés · ${inactiveCount}`, Icon: UserX },
           { key: "invitations" as const, label: "Invitations", Icon: Mail },
         ].map(({ key, label, Icon }) => {
           const active = tab === key;
@@ -138,14 +182,14 @@ function StaffPage() {
                       backgroundColor: noFilter ? "var(--foreground)" : "transparent",
                       color: noFilter ? "var(--card)" : "var(--muted-foreground)",
                       border: noFilter ? "none" : "0.5px solid var(--border)" }}>
-                    Tous · {profiles.length}
+                    Tous · {isInactiveTab ? inactiveCount : activeCount}
                   </button>
                 );
               })()}
               <span className="mx-2" style={{ width: 1, height: 16, backgroundColor: "var(--border)", display: "inline-block" }} />
               {contracts.map(c => {
                 const a = contractFilters.has(c);
-                const count = profiles.filter(p => p.contract === c).length;
+                const count = profiles.filter(p => p.contract === c && (isInactiveTab ? p.status === "inactive" : p.status !== "inactive")).length;
                 if (count === 0) return null;
                 return (
                   <button key={c} onClick={() => toggle(contractFilters, setContractFilters, c)}
@@ -161,7 +205,7 @@ function StaffPage() {
               <span className="mx-2" style={{ width: 1, height: 16, backgroundColor: "var(--border)", display: "inline-block" }} />
               {studios.map(s => {
                 const a = studioFilters.has(s.id);
-                const count = profiles.filter(p => p.studio_id === s.id).length;
+                const count = profiles.filter(p => p.studio_id === s.id && (isInactiveTab ? p.status === "inactive" : p.status !== "inactive")).length;
                 return (
                   <button key={s.id} onClick={() => toggle(studioFilters, setStudioFilters, s.id)}
                     className="rounded-full px-2.5 py-1"
@@ -176,7 +220,7 @@ function StaffPage() {
               <span className="mx-2" style={{ width: 1, height: 16, backgroundColor: "var(--border)", display: "inline-block" }} />
               {businessRoleOptions.map(r => {
                 const a = roleFilters.has(r);
-                const count = profiles.filter(p => (rolesByUser[p.id] || []).includes(r)).length;
+                const count = profiles.filter(p => (rolesByUser[p.id] || []).includes(r) && (isInactiveTab ? p.status === "inactive" : p.status !== "inactive")).length;
                 if (count === 0) return null;
                 const rc = roleColors[r];
                 return (
@@ -202,10 +246,12 @@ function StaffPage() {
                 Score {sortScore === "desc" ? "↓" : sortScore === "asc" ? "↑" : ""}
               </button>
               <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>{filtered.length} employé{filtered.length > 1 ? "s" : ""}</span>
-              <button onClick={() => setInviteOpen(true)} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5"
-                style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)" }}>
-                <UserPlus size={13} /> Inviter
-              </button>
+              {!isInactiveTab && (
+                <button onClick={() => setInviteOpen(true)} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5"
+                  style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)" }}>
+                  <UserPlus size={13} /> Inviter
+                </button>
+              )}
             </div>
           </div>
 
@@ -221,8 +267,9 @@ function StaffPage() {
                     { h: "Score", cls: "hidden md:table-cell" },
                     { h: "Contingent", cls: "hidden md:table-cell" },
                     { h: "Shifts 30j", cls: "hidden md:table-cell" },
-                  ].map(({ h, cls }) => (
-                    <th key={h} className={`text-left px-4 py-2.5 ${cls}`} style={{ fontSize: 11, fontWeight: 500, color: "var(--muted-foreground)" }}>{h}</th>
+                    { h: "", cls: "" },
+                  ].map(({ h, cls }, i) => (
+                    <th key={h || `c${i}`} className={`text-left px-4 py-2.5 ${cls}`} style={{ fontSize: 11, fontWeight: 500, color: "var(--muted-foreground)" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -235,8 +282,9 @@ function StaffPage() {
                   const scoreColor = score >= 9 ? "var(--success-text)" : score >= 7 ? "var(--foreground)" : "var(--warning-text)";
                   const used = p.quota_used ?? null;
                   const max = p.quota_max ?? null;
+                  const isInactive = p.status === "inactive";
                   return (
-                    <tr key={p.id} style={{ borderBottom: "0.5px solid var(--border)", cursor: "pointer" }}
+                    <tr key={p.id} style={{ borderBottom: "0.5px solid var(--border)", cursor: "pointer", opacity: isInactive ? 0.65 : 1 }}
                       onClick={() => window.location.assign(`/staff/${p.id}`)}>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
@@ -277,17 +325,67 @@ function StaffPage() {
                         ) : <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>—</span>}
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell" style={{ fontWeight: 500 }}>{shiftCountByUser[p.id] || 0}</td>
+                      <td className="px-2 py-3" onClick={(e) => e.stopPropagation()} style={{ width: 40 }}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className="inline-flex items-center justify-center rounded-md hover:bg-[var(--muted)]"
+                              style={{ width: 28, height: 28, color: "var(--muted-foreground)" }}
+                              aria-label="Actions"
+                            >
+                              <MoreHorizontal size={15} />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {isInactive ? (
+                              <DropdownMenuItem onClick={() => setConfirmTarget({ p, action: "reactivate" })}>
+                                <UserCheck size={13} className="mr-2" /> Réactiver
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                onClick={() => setConfirmTarget({ p, action: "deactivate" })}
+                                style={{ color: "var(--danger-text)" }}
+                              >
+                                <UserX size={13} className="mr-2" /> Désactiver
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
                     </tr>
                   );
                 })}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={6} className="text-center py-10" style={{ fontSize: 13, color: "var(--muted-foreground)" }}>Aucun employé.</td></tr>
+                  <tr><td colSpan={7} className="text-center py-10" style={{ fontSize: 13, color: "var(--muted-foreground)" }}>
+                    {isInactiveTab ? "Aucun employé désactivé." : "Aucun employé."}
+                  </td></tr>
                 )}
               </tbody>
             </table>
           </div>
         </>
       )}
+
+      <AlertDialog open={!!confirmTarget} onOpenChange={(open) => !open && setConfirmTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmTarget?.action === "deactivate" ? "Désactiver cet employé ?" : "Réactiver cet employé ?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmTarget?.action === "deactivate"
+                ? `${confirmTarget?.p.first_name} ${confirmTarget?.p.last_name} n'apparaîtra plus dans le planning ni dans la liste active. Tu pourras le réactiver à tout moment depuis l'onglet "Désactivés".`
+                : `${confirmTarget?.p.first_name} ${confirmTarget?.p.last_name} reviendra dans la liste active et pourra être assigné à des shifts.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirm}>
+              {confirmTarget?.action === "deactivate" ? "Désactiver" : "Réactiver"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
