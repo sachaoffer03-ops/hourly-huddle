@@ -200,16 +200,25 @@ export async function finalizeClosure(input: FinalizeClosureInput) {
   const hourlyRate = Number((profRate as any)?.hourly_rate ?? 0);
   const earnings = +(workedHours * hourlyRate).toFixed(2);
 
-  // Score breakdown (TODO: rules configurable côté admin dans une future page "Règles de scoring")
+  // Score breakdown — règles configurables via /regles-scoring (table scoring_settings)
+  const { loadScoringSettings } = await import("./scoring-rules.server");
+  const { scorePunctuality, scoreChecklist, scorePhotos } = await import("./scoring-shared");
+  const rules = await loadScoringSettings(supabaseAdmin);
+
   const { data: shiftFresh } = await supabaseAdmin
     .from("shifts").select("minutes_late").eq("id", input.shiftId).maybeSingle();
   const late = (shiftFresh as any)?.minutes_late ?? 0;
-  const ponctualite = late <= 0 ? 5 : late <= 5 ? 4 : late <= 15 ? 2 : late <= 30 ? 1 : 0;
+
+  // Affichage step6 reste sur une échelle /5 → on convertit (rules sont /10)
+  const ponctualite = Math.round(scorePunctuality(rules, late) / 2);
   const checklistPct = itemsTotal > 0 ? itemsChecked / itemsTotal : 1;
-  const checklistPts = Math.round(checklistPct * 5);
+  const checklistMissed = Math.max(0, itemsTotal - itemsChecked);
+  const checklistPts = Math.round(scoreChecklist(rules, checklistPct, checklistMissed) / 2);
   const photosPct = photosTotal > 0 ? photosValidated / photosTotal : 1;
-  const photosPts = Math.round(photosPct * 5);
+  const photosRefused = Math.max(0, photosTotal - photosValidated);
+  const photosPts = Math.round(scorePhotos(rules, photosPct, photosRefused) / 2);
   const scoreDelta = ponctualite + checklistPts + photosPts;
+
 
   // Next scheduled shift
   const today = new Date().toISOString().slice(0, 10);
