@@ -102,6 +102,8 @@ function ClotureePage() {
   const { appRole, loading } = useAuth();
   const { studios, loading: studiosLoading } = useStudios();
   const [studioId, setStudioId] = useState<string | null>(null);
+  const { tab } = Route.useSearch();
+  const navigate = useNavigate({ from: "/cloture" });
 
   useEffect(() => {
     if (!studioId && studios.length > 0) setStudioId(studios[0].id);
@@ -133,13 +135,13 @@ function ClotureePage() {
   const studio = studios.find((s) => s.id === studioId) ?? null;
 
   return (
-    <div className="p-4 md:p-6 max-w-[1200px] mx-auto">
+    <div className="p-4 md:p-6 max-w-[1400px] mx-auto">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 500, marginBottom: 2 }}>Clôture · Configuration & parcours</h1>
-          <p style={{ fontSize: 13, color: "var(--muted-foreground)" }}>
-            Tout ce qu'un employé doit faire pour clôturer son shift correctement.
+          <h1 style={{ fontSize: 20, fontWeight: 500, marginBottom: 2 }}>Clôture</h1>
+          <p style={{ fontSize: 13, color: "var(--muted-foreground)", maxWidth: 720 }}>
+            Configure le parcours de clôture des shifts et comment ces actions impactent le score des employés.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -153,28 +155,53 @@ function ClotureePage() {
           >
             ✓ Enregistré
           </span>
-          <Select value={studioId ?? ""} onValueChange={(v) => setStudioId(v)}>
-            <SelectTrigger className="w-[200px]"><SelectValue placeholder="Studio" /></SelectTrigger>
-            <SelectContent>
-              {studios.map((s) => (
-                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {tab === "config" && (
+            <Select value={studioId ?? ""} onValueChange={(v) => setStudioId(v)}>
+              <SelectTrigger className="w-[200px]"><SelectValue placeholder="Studio" /></SelectTrigger>
+              <SelectContent>
+                {studios.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 
-      {!studio ? (
-        <EmptyCard text="Sélectionne un studio pour configurer la clôture." />
-      ) : (
-        <div className="flex flex-col gap-5">
-          <ClockOutSection studio={studio} />
-          <ChecklistsSection studioId={studio.id} />
-          <PhotosSection studioId={studio.id} />
-          <QrSection studio={studio} />
-          <QuestionsSection studioId={studio.id} />
-        </div>
-      )}
+      <Tabs
+        value={tab}
+        onValueChange={(v) => navigate({ search: (prev) => ({ ...prev, tab: v as "config" | "notation" }) })}
+        className="w-full"
+      >
+        <TabsList className="mb-5">
+          <TabsTrigger value="config" className="gap-2">
+            <SettingsIcon size={14} strokeWidth={1.8} />
+            Configuration
+          </TabsTrigger>
+          <TabsTrigger value="notation" className="gap-2">
+            <BarChart3 size={14} strokeWidth={1.8} />
+            Notation
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="config" className="mt-0">
+          {!studio ? (
+            <EmptyCard text="Sélectionne un studio pour configurer la clôture." />
+          ) : (
+            <div className="flex flex-col gap-5">
+              <ClockOutSection studio={studio} />
+              <ChecklistsSection studioId={studio.id} />
+              <PhotosSection studioId={studio.id} />
+              <QrSection studio={studio} />
+              <QuestionsSection studioId={studio.id} />
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="notation" className="mt-0">
+          <NotationTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
