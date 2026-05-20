@@ -156,11 +156,21 @@ export async function computeAdminExtras(supabase: AnySupabase, userId: string) 
   const retards30d = lateShifts?.length ?? 0;
 
   // Submissions des 30 derniers jours avec au moins un item non coché
-  const { data: subs } = await supabase
-    .from("checklist_submissions")
-    .select("id, shift:shifts!inner(shift_date)")
+  const { data: recentShifts } = await supabase
+    .from("shifts")
+    .select("id")
     .eq("user_id", userId)
-    .gte("shift.shift_date", since);
+    .gte("shift_date", since);
+  const recentShiftIds = (recentShifts ?? []).map((s: any) => s.id);
+  let subs: any[] = [];
+  if (recentShiftIds.length > 0) {
+    const { data } = await supabase
+      .from("checklist_submissions")
+      .select("id")
+      .eq("user_id", userId)
+      .in("shift_id", recentShiftIds);
+    subs = data ?? [];
+  }
   const subIds = (subs ?? []).map((s: any) => s.id);
   let checklistsIncomplete30d = 0;
   if (subIds.length > 0) {
