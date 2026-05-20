@@ -1070,6 +1070,81 @@ export type Database = {
           },
         ]
       }
+      scoring_settings: {
+        Row: {
+          checklist_bonus_per_photo_item: number
+          checklist_complete: number
+          checklist_penalty_per_missed: number
+          checklist_strictness: string
+          expert_mode_unlocked: boolean
+          id: string
+          photos_all_validated: number
+          photos_importance: string
+          photos_penalty_per_refused: number
+          profile_name: string
+          punct_0min: number
+          punct_15min: number
+          punct_30min: number
+          punct_5min: number
+          punct_noshow: number
+          punct_over: number
+          punctuality_tolerance: string
+          updated_at: string
+          updated_by: string | null
+          weight_checklist: number
+          weight_photos: number
+          weight_punctuality: number
+        }
+        Insert: {
+          checklist_bonus_per_photo_item?: number
+          checklist_complete?: number
+          checklist_penalty_per_missed?: number
+          checklist_strictness?: string
+          expert_mode_unlocked?: boolean
+          id?: string
+          photos_all_validated?: number
+          photos_importance?: string
+          photos_penalty_per_refused?: number
+          profile_name?: string
+          punct_0min?: number
+          punct_15min?: number
+          punct_30min?: number
+          punct_5min?: number
+          punct_noshow?: number
+          punct_over?: number
+          punctuality_tolerance?: string
+          updated_at?: string
+          updated_by?: string | null
+          weight_checklist?: number
+          weight_photos?: number
+          weight_punctuality?: number
+        }
+        Update: {
+          checklist_bonus_per_photo_item?: number
+          checklist_complete?: number
+          checklist_penalty_per_missed?: number
+          checklist_strictness?: string
+          expert_mode_unlocked?: boolean
+          id?: string
+          photos_all_validated?: number
+          photos_importance?: string
+          photos_penalty_per_refused?: number
+          profile_name?: string
+          punct_0min?: number
+          punct_15min?: number
+          punct_30min?: number
+          punct_5min?: number
+          punct_noshow?: number
+          punct_over?: number
+          punctuality_tolerance?: string
+          updated_at?: string
+          updated_by?: string | null
+          weight_checklist?: number
+          weight_photos?: number
+          weight_punctuality?: number
+        }
+        Relationships: []
+      }
       shift_handoffs: {
         Row: {
           author_id: string
