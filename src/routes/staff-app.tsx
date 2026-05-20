@@ -833,6 +833,7 @@ function ProfilTab({ profile, businessRoles, studios, userId, onProfileChange, o
         />
       </Card>
 
+      <MyStatsCard />
       <WorkedHoursEmployeeCard userId={userId} hourlyRate={profile.hourly_rate} />
       <EmployeeLastShifts userId={userId} />
 
