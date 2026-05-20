@@ -123,7 +123,7 @@ export function SectionsBuilder({ courseId, sections, onChange }: Props) {
 
       {sections.map((sec, si) => {
         const isOpen = openSections.has(sec.id);
-        const totalContents = sec.modules.reduce((acc, m: any) => acc + m.contents.length, 0);
+        const totalContents = sec.modules.reduce((acc: number, m: any) => acc + m.contents.length, 0);
         return (
           <div key={sec.id} className="rounded-xl border" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
             <div className="flex items-center gap-2 px-3 py-2.5">
