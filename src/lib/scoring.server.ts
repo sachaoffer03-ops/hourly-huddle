@@ -1,6 +1,9 @@
 // Server-only helper: compute score breakdown for a user.
-// Shared between scoring.functions.ts (admin-facing) and my-stats.functions.ts (self-facing).
-// Takes a supabase client (regular or admin) and a userId, no auth check.
+// Reads scoring_settings (cached 60s) to drive the per-shift punctuality scale
+// and the per-dimension weights for the final score.
+
+import { loadScoringSettings } from "./scoring-rules.server";
+import { scorePunctuality } from "./scoring-shared";
 
 type AnySupabase = any;
 
@@ -14,6 +17,16 @@ export interface ScoreBreakdown {
   recent: { shift_date: string; minutes_late: number | null; pscore: number | null }[];
 }
 
+function weightedFinal(rules: { weight_punctuality: number; weight_checklist: number; weight_photos: number }, manager: number, punct: number, checklist: number) {
+  // "manager" remplace l'axe "photos" pour le score consolidé profile-level :
+  // on garde la même pondération que photos (UX historique 3 axes équivalents).
+  const wp = rules.weight_punctuality;
+  const wc = rules.weight_checklist;
+  const wm = rules.weight_photos;
+  const total = wp + wc + wm || 100;
+  return (punct * wp + checklist * wc + manager * wm) / total;
+}
+
 export async function computeScoreBreakdown(
   supabase: AnySupabase,
   userId: string,
@@ -21,6 +34,8 @@ export async function computeScoreBreakdown(
   const lambda = 0.01;
   const now = Date.now();
   const dayMs = 86_400_000;
+
+  const rules = await loadScoringSettings(supabase);
 
   const { data: settings } = await supabase
     .from("ai_planning_settings")
@@ -71,13 +86,9 @@ export async function computeScoreBreakdown(
       let pscore: number | null = null;
       const ml = sh.minutes_late;
       const past = new Date(`${sh.shift_date}T${sh.end_time}`).getTime() < now;
-      if (ml === null && sh.published_at && past) pscore = 0;
+      if (ml === null && sh.published_at && past) pscore = scorePunctuality(rules, null, true);
       else if (ml === null) pscore = null;
-      else if (ml === 0) pscore = 10;
-      else if (ml <= 5) pscore = 9;
-      else if (ml <= 15) pscore = 7;
-      else if (ml <= 30) pscore = 4;
-      else pscore = 1;
+      else pscore = scorePunctuality(rules, ml);
       recent.push({ shift_date: sh.shift_date, minutes_late: ml, pscore });
       if (pscore === null) continue;
       const days = Math.max(0, (Date.parse(today) - Date.parse(sh.shift_date)) / dayMs);
@@ -120,7 +131,11 @@ export async function computeScoreBreakdown(
         if (!d) continue;
         const days = Math.max(0, (Date.parse(today) - Date.parse(d)) / dayMs);
         const w = Math.exp(-lambda * days);
-        num += (g.done / g.total) * 10 * w;
+        const pct = g.total > 0 ? g.done / g.total : 1;
+        const missed = Math.max(0, g.total - g.done);
+        const base = pct * rules.checklist_complete;
+        const penalty = missed * rules.checklist_penalty_per_missed;
+        num += Math.max(0, base - penalty) * w;
         den += w;
         checklistCount++;
       }
@@ -128,7 +143,7 @@ export async function computeScoreBreakdown(
     }
   }
 
-  const final = (manager + punct + checklist) / 3;
+  const final = weightedFinal(rules, manager, punct, checklist);
 
   const evolution: { date: string; score: number }[] = [];
   const recentSorted = recent.slice().sort((a, b) => a.shift_date.localeCompare(b.shift_date));
@@ -144,7 +159,7 @@ export async function computeScoreBreakdown(
       den += w;
     }
     const punctOnDay = den > 0 ? num / den : defaultScore;
-    evolution.push({ date: d, score: Math.round(((manager + punctOnDay + checklist) / 3) * 10) / 10 });
+    evolution.push({ date: d, score: Math.round(weightedFinal(rules, manager, punctOnDay, checklist) * 10) / 10 });
   }
 
   return {

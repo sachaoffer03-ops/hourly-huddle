@@ -15,6 +15,7 @@ import { Route as StaffAppRouteImport } from './routes/staff-app'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as SignalementsRouteImport } from './routes/signalements'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ReglesScoringRouteImport } from './routes/regles-scoring'
 import { Route as ReglagesRouteImport } from './routes/reglages'
 import { Route as RapportsRouteImport } from './routes/rapports'
 import { Route as PointageRouteImport } from './routes/pointage'
@@ -71,6 +72,11 @@ const SignalementsRoute = SignalementsRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReglesScoringRoute = ReglesScoringRouteImport.update({
+  id: '/regles-scoring',
+  path: '/regles-scoring',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReglagesRoute = ReglagesRouteImport.update({
@@ -225,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/pointage': typeof PointageRoute
   '/rapports': typeof RapportsRoute
   '/reglages': typeof ReglagesRoute
+  '/regles-scoring': typeof ReglesScoringRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signalements': typeof SignalementsRoute
   '/staff': typeof StaffRouteWithChildren
@@ -260,6 +267,7 @@ export interface FileRoutesByTo {
   '/pointage': typeof PointageRoute
   '/rapports': typeof RapportsRoute
   '/reglages': typeof ReglagesRoute
+  '/regles-scoring': typeof ReglesScoringRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signalements': typeof SignalementsRoute
   '/staff-app': typeof StaffAppRoute
@@ -295,6 +303,7 @@ export interface FileRoutesById {
   '/pointage': typeof PointageRoute
   '/rapports': typeof RapportsRoute
   '/reglages': typeof ReglagesRoute
+  '/regles-scoring': typeof ReglesScoringRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signalements': typeof SignalementsRoute
   '/staff': typeof StaffRouteWithChildren
@@ -332,6 +341,7 @@ export interface FileRouteTypes {
     | '/pointage'
     | '/rapports'
     | '/reglages'
+    | '/regles-scoring'
     | '/reset-password'
     | '/signalements'
     | '/staff'
@@ -367,6 +377,7 @@ export interface FileRouteTypes {
     | '/pointage'
     | '/rapports'
     | '/reglages'
+    | '/regles-scoring'
     | '/reset-password'
     | '/signalements'
     | '/staff-app'
@@ -401,6 +412,7 @@ export interface FileRouteTypes {
     | '/pointage'
     | '/rapports'
     | '/reglages'
+    | '/regles-scoring'
     | '/reset-password'
     | '/signalements'
     | '/staff'
@@ -437,6 +449,7 @@ export interface RootRouteChildren {
   PointageRoute: typeof PointageRoute
   RapportsRoute: typeof RapportsRoute
   ReglagesRoute: typeof ReglagesRoute
+  ReglesScoringRoute: typeof ReglesScoringRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignalementsRoute: typeof SignalementsRoute
   StaffRoute: typeof StaffRouteWithChildren
@@ -495,6 +508,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/regles-scoring': {
+      id: '/regles-scoring'
+      path: '/regles-scoring'
+      fullPath: '/regles-scoring'
+      preLoaderRoute: typeof ReglesScoringRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reglages': {
@@ -731,6 +751,7 @@ const rootRouteChildren: RootRouteChildren = {
   PointageRoute: PointageRoute,
   RapportsRoute: RapportsRoute,
   ReglagesRoute: ReglagesRoute,
+  ReglesScoringRoute: ReglesScoringRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignalementsRoute: SignalementsRoute,
   StaffRoute: StaffRouteWithChildren,
