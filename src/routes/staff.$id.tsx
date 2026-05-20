@@ -184,6 +184,8 @@ function EmployeeDetailPage() {
         </div>
       )}
 
+      <EmployeeStatsCard userId={emp.id} />
+
       <div className="grid grid-cols-5 gap-5">
         {/* LEFT */}
         <div className="col-span-2 flex flex-col gap-4">
