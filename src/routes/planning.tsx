@@ -1609,10 +1609,14 @@ function ShiftBlock({
             color: fg,
             borderLeft: `3px solid ${accent}`,
             borderRadius: 6,
-            padding: compact ? "2px 6px" : "4px 6px 4px 8px",
+            padding: compact ? "3px 6px" : "4px 6px 4px 8px",
             textAlign: "left",
             overflow: "hidden",
             cursor: "pointer",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "stretch",
+            justifyContent: "flex-start",
             boxShadow: shift.conflict
               ? "0 0 0 1px var(--danger-text)"
               : shift.isDraft
@@ -1623,7 +1627,7 @@ function ShiftBlock({
         >
           <div
             className="flex items-center gap-1"
-            style={{ fontSize: 11, fontWeight: 500, lineHeight: 1.2 }}
+            style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2 }}
           >
             {shift.isLocked && <Lock size={9} style={{ flexShrink: 0 }} />}
             {shift.conflict && (
@@ -1641,7 +1645,7 @@ function ShiftBlock({
           </div>
           {!compact && (
             <>
-              <div style={{ fontSize: 9, opacity: 0.8, marginTop: 1 }}>{shift.role}</div>
+              <div style={{ fontSize: 9, fontWeight: 600, opacity: 0.85, marginTop: 1 }}>{shift.role}</div>
               <div style={{ fontSize: 9, opacity: 0.7, marginTop: 1 }}>
                 {fmtHHMM(shift.startTime)} — {fmtHHMM(shift.endTime)}
               </div>
