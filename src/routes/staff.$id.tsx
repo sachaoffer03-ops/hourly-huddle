@@ -10,6 +10,7 @@ import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, ReferenceL
 import { useServerFn } from "@tanstack/react-start";
 import { getScoreBreakdown } from "@/lib/scoring.functions";
 import { WorkedHoursAdminCard, ClockedShiftsTable } from "@/components/WorkedHoursCard";
+import { EmployeeStatsCard } from "@/components/EmployeeStatsCard";
 
 export const Route = createFileRoute("/staff/$id")({
   component: EmployeeDetailPage,
