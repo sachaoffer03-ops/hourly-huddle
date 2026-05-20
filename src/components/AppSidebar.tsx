@@ -14,6 +14,8 @@ import {
   BarChart3,
   Building2,
   Settings,
+  Gauge,
+
   Eye,
   X,
 } from "lucide-react";
