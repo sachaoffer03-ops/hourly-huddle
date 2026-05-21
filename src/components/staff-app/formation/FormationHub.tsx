@@ -12,7 +12,7 @@ export function FormationHub({ userId }: { userId: string }) {
   const [data, setData] = useState<AssignedCourses | null>(null);
   const [openCourseId, setOpenCourseId] = useState<string | null>(null);
   const [profile, setProfile] = useState<{ first_name: string; last_name: string } | null>(null);
-  const [celebration, setCelebration] = useState<CourseDetail["course"] | null>(null);
+  const [celebration, setCelebration] = useState<CourseDetail | null>(null);
   const getCourses = useServerFn(getMyAssignedCourses);
 
   const load = async () => {
