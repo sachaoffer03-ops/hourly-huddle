@@ -23,6 +23,7 @@ import { ProposalsSheet, useProposals } from "@/components/staff-app/ProposalsSh
 import { WorkedHoursEmployeeCard, EmployeeLastShifts } from "@/components/WorkedHoursCard";
 import { MyStatsCard } from "@/components/staff-app/MyStatsCard";
 import { EmployeeNotifsWidget } from "@/components/staff-app/EmployeeNotifsWidget";
+import { ClockInSheet } from "@/components/staff-app/ClockInSheet";
 
 export const Route = createFileRoute("/staff-app")({
   component: StaffAppPage,
