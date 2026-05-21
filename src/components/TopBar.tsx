@@ -256,15 +256,6 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
                   );
                 })}
               </div>
-              <div className="border-t" style={{ borderColor: "var(--border)" }}>
-                <button
-                  onClick={() => { setNotifOpen(false); navigate({ to: "/notifications" }); }}
-                  className="w-full text-center py-2.5 transition-colors hover:bg-[var(--muted)]"
-                  style={{ fontSize: 11, fontWeight: 500, color: "var(--foreground)" }}
-                >
-                  Voir toutes les notifications
-                </button>
-              </div>
             </div>
           )}
 
