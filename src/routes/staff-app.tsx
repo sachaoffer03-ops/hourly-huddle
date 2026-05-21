@@ -1172,6 +1172,16 @@ function PointageTab({ studios, userId }: { studios: Record<string, string>; use
         </div>
       )}
 
+      <ClockInSheet
+        open={!!clockInShift}
+        onClose={() => setClockInShift(null)}
+        shift={clockInShift}
+        studios={studios}
+        onCompleted={({ clockedInAt, minutesLate }) => {
+          if (!clockInShift) return;
+          setTodayShift((prev) => prev?.id === clockInShift.id ? { ...prev, clocked_in_at: clockedInAt, minutes_late: minutesLate } : prev);
+        }}
+      />
       <ClosureFlow
         open={!!endShift}
         onClose={() => setEndShift(null)}
