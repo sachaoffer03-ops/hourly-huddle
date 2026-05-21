@@ -683,9 +683,14 @@ export type Database = {
       }
       modification_requests: {
         Row: {
+          admin_actor_id: string | null
           admin_response: string | null
           created_at: string
           id: string
+          proposed_end_date: string | null
+          proposed_end_time: string | null
+          proposed_start_date: string | null
+          proposed_start_time: string | null
           reason: string
           resolved_at: string | null
           shift_id: string | null
@@ -695,9 +700,14 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          admin_actor_id?: string | null
           admin_response?: string | null
           created_at?: string
           id?: string
+          proposed_end_date?: string | null
+          proposed_end_time?: string | null
+          proposed_start_date?: string | null
+          proposed_start_time?: string | null
           reason: string
           resolved_at?: string | null
           shift_id?: string | null
@@ -707,9 +717,14 @@ export type Database = {
           user_id: string
         }
         Update: {
+          admin_actor_id?: string | null
           admin_response?: string | null
           created_at?: string
           id?: string
+          proposed_end_date?: string | null
+          proposed_end_time?: string | null
+          proposed_start_date?: string | null
+          proposed_start_time?: string | null
           reason?: string
           resolved_at?: string | null
           shift_id?: string | null
@@ -2045,6 +2060,44 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "training_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unavailability_periods: {
+        Row: {
+          created_at: string
+          end_date: string
+          id: string
+          reason: string | null
+          source_request_id: string | null
+          start_date: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          id?: string
+          reason?: string | null
+          source_request_id?: string | null
+          start_date: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          id?: string
+          reason?: string | null
+          source_request_id?: string | null
+          start_date?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unavailability_periods_source_request_id_fkey"
+            columns: ["source_request_id"]
+            isOneToOne: false
+            referencedRelation: "modification_requests"
             referencedColumns: ["id"]
           },
         ]
