@@ -334,7 +334,7 @@ export function MyRequestsSheet({ open, onClose, userId }: { open: boolean; onCl
     accepted: { label: "Acceptée", bg: "var(--success-bg)", color: "var(--success-text)" },
     refused: { label: "Refusée", bg: "var(--danger-bg)", color: "var(--danger-text)" },
   };
-  const typeLabels: Record<string, string> = { swap: "Échange", cancel: "Annulation", time_change: "Changement d'horaire" };
+  const typeLabels: Record<string, string> = { swap: "Échange", cancel: "Annulation", time_change: "Changement d'horaire", unavailable: "Indisponibilité" };
   const urgencyLabels: Record<string, string> = { normal: "Normale", urgent: "Urgente", critique: "Critique" };
 
   const formatShift = (shiftId: string | null) => {
