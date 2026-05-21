@@ -525,6 +525,9 @@ async function runEngine(ctx: EngineCtx) {
       } else if (r.allowed_contracts.length > 0) {
         if (!r.allowed_contracts.some((ac) => e.contracts.has(ac as ContractType))) continue;
       }
+      // Formation : si une formation requise n'est pas validée pour ce rôle → exclu
+      const blocked = blockedRolesByUser.get(e.id);
+      if (blocked && blocked.has(r.role)) continue;
       out.push(e);
     }
     return out;
