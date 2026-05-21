@@ -124,7 +124,7 @@ export const acceptProposal = createServerFn({ method: "POST" })
         type: "proposal_accepted",
         title: "Trou comblé",
         body: `${updated.business_role} · ${dateLabel} · ${String(updated.start_time).slice(0,5)}–${String(updated.end_time).slice(0,5)}`,
-        link: "/trous",
+        link: adminLink({ kind: "shiftPointage", shiftId: updated.id }),
         priority: "info",
         category: "shift",
       });
