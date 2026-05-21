@@ -46,7 +46,7 @@ export function CourseDetailView({ courseId, firstName, initials, onBack, onCour
   }
 
   const flatModules: DetailModule[] = [];
-  data.sections.forEach((s) => s.modules.forEach((m) => flatModules.push(m as any)));
+  data.sections.forEach((s: any) => s.modules.forEach((m: any) => flatModules.push(m as DetailModule)));
 
   const openModuleHandler = (m: DetailModule) => {
     if ((m as any).locked) {
