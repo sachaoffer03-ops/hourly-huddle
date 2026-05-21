@@ -256,6 +256,42 @@ export function MyStatsCard() {
           )}
           <span>depuis ton arrivée</span>
         </div>
+
+        {/* Formation */}
+        {formation && formation.summary.totalCourses > 0 && (() => {
+          const sum = formation.summary;
+          const pct = sum.progressPct;
+          const barColor = sum.lockedPlanning ? "#ea8a00" : pct === 100 ? "#16a34a" : "var(--coral)";
+          return (
+            <div
+              className="mt-3 pt-3"
+              style={{ borderTop: "0.5px solid rgba(0,0,0,0.06)" }}
+            >
+              <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
+                <div className="flex items-center gap-1.5" style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
+                  {sum.lockedPlanning ? <Lock size={12} /> : <GraduationCap size={12} />}
+                  <span style={{ fontWeight: 500, color: "var(--foreground)" }}>Formation</span>
+                  <span>·</span>
+                  <span>{sum.completedCourses}/{sum.totalCourses} parcours</span>
+                  {newBadge && (
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{ fontSize: 10, fontWeight: 500, backgroundColor: "var(--coral-light)", color: "var(--coral-dark)", border: "0.5px solid var(--coral)" }}>
+                      <Award size={10} /> Nouveau badge
+                    </span>
+                  )}
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 500, color: "var(--foreground)" }}>{pct}%</span>
+              </div>
+              <div style={{ width: "100%", height: 5, borderRadius: 3, backgroundColor: "var(--muted)" }}>
+                <div style={{ width: `${pct}%`, height: "100%", borderRadius: 3, backgroundColor: barColor, transition: "width 0.3s" }} />
+              </div>
+              {sum.lockedPlanning && (
+                <div style={{ fontSize: 10, color: "#9A3412", marginTop: 4 }}>
+                  Termine {sum.blockingCourses.map((c: any) => `"${c.title}"`).join(", ")} pour débloquer ton planning
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </>
   );
