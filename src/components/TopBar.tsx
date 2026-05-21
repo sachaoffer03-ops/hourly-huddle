@@ -48,6 +48,8 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const [notifications, setNotifications] = useState<NotifRow[]>([]);
+  const [notifTab, setNotifTab] = useState<NotifTab>("unread");
+
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
