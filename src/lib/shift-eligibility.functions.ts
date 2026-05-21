@@ -103,6 +103,17 @@ export const getEligibleEmployeesForShift = createServerFn({ method: "POST" })
         .from("ai_planning_settings")
         .select("max_weekly_cdi_hours, max_weekly_student_hours, max_weekly_flexi_hours")
         .limit(1),
+      supabaseAdmin
+        .from("training_courses")
+        .select("id, title, icon, business_role_id, is_required_for_all, required_for_planning")
+        .eq("is_published", true)
+        .eq("required_for_planning", true),
+      supabaseAdmin
+        .from("training_course_completions")
+        .select("user_id, course_id"),
+      supabaseAdmin
+        .from("business_roles")
+        .select("id, name"),
     ]);
 
     const settings = settingsRows?.[0] || {
