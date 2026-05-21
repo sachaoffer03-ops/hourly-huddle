@@ -58,6 +58,7 @@ function EmployeeDetailPage() {
   const [rateMsg, setRateMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const [breakdown, setBreakdown] = useState<Awaited<ReturnType<typeof getScoreBreakdown>> | null>(null);
+  const [tab, setTab] = useState("profil");
   const fetchBreakdown = useServerFn(getScoreBreakdown);
 
   const load = async () => {
