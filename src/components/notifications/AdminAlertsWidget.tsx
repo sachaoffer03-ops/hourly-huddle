@@ -22,18 +22,19 @@ export function AdminAlertsWidget() {
 
   useEffect(() => {
     load();
-    let userId: string | null = null;
     let channel: any = null;
+    let cancelled = false;
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      userId = user.id;
-      channel = supabase
-        .channel(`admin-alerts-${userId}`)
-        .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, () => load())
-        .subscribe();
+      if (!user || cancelled) return;
+      const ch = supabase
+        .channel(`admin-alerts-${user.id}-${Math.random().toString(36).slice(2, 8)}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => load());
+      if (cancelled) return;
+      ch.subscribe();
+      channel = ch;
     })();
-    return () => { if (channel) supabase.removeChannel(channel); };
+    return () => { cancelled = true; if (channel) supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
