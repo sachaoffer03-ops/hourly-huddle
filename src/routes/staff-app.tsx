@@ -385,19 +385,45 @@ function AccueilTab({ profile, studios, studioClockOut, userId, onOpenNotifs, on
                 </div>
               )}
 
-              {state === "today_before" && next && (
-                <button
-                  onClick={() => handleClockIn(next)}
-                  className="mt-4 inline-flex items-center gap-1.5 rounded-md px-3 py-2"
-                  style={{
-                    fontSize: 12, fontWeight: 500,
-                    backgroundColor: liveLateMin > 0 ? "#E07A3E" : "var(--coral)",
-                    color: "#1A1614",
-                  }}
-                >
-                  <Clock size={13} /> {liveLateMin > 0 ? `Pointer mon arrivée — en retard de ${liveLateMin} min` : "Pointer mon arrivée"}
-                </button>
-              )}
+              {state === "today_before" && next && (() => {
+                const startDt = new Date(next.shift_date + "T" + next.start_time);
+                const diffMin = (nowTs - startDt.getTime()) / 60_000;
+                // -30min..+1h → bouton scan QR ; avant -30 → trop tôt ; après +1h → bloqué
+                if (diffMin < -30) {
+                  const mins = Math.ceil(Math.abs(diffMin) - 30);
+                  return (
+                    <div
+                      className="mt-4 inline-flex items-center gap-1.5 rounded-md px-3 py-2"
+                      style={{ fontSize: 12, fontWeight: 500, backgroundColor: "rgba(255,255,255,0.08)", color: "rgba(250,248,244,0.65)", border: "1px solid rgba(255,255,255,0.1)" }}
+                    >
+                      <Clock size={13} /> Scan disponible dans {mins} min
+                    </div>
+                  );
+                }
+                if (diffMin > 60) {
+                  return (
+                    <div
+                      className="mt-4 inline-flex items-center gap-1.5 rounded-md px-3 py-2"
+                      style={{ fontSize: 12, fontWeight: 500, backgroundColor: "#B91C1C", color: "#fff" }}
+                    >
+                      <AlertCircle size={13} /> En retard de plus d'1h — contacte ton manager
+                    </div>
+                  );
+                }
+                return (
+                  <button
+                    onClick={() => handleStartClockIn(next)}
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-md px-3 py-2"
+                    style={{
+                      fontSize: 12, fontWeight: 500,
+                      backgroundColor: liveLateMin > 0 ? "#E07A3E" : "var(--coral)",
+                      color: "#1A1614",
+                    }}
+                  >
+                    <QrCode size={13} /> {liveLateMin > 0 ? `Scanner le QR — en retard de ${liveLateMin} min` : "Scanner le QR pour pointer"}
+                  </button>
+                );
+              })()}
               {state === "in_service" && next && (() => {
                 const cfg = next.studio_id ? studioClockOut[next.studio_id] : undefined;
                 const beforeMin = cfg?.before ?? 15;
