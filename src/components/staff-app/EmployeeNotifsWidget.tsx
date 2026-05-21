@@ -5,6 +5,7 @@ import { CheckCircle2, ChevronRight } from "lucide-react";
 import { getRecentImportantNotifications, markNotificationRead } from "@/lib/notifications.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { getCategoryMeta, getPriorityMeta, getCategoryCta, formatRelativeFr } from "@/lib/notifications-meta";
+import { fallbackLinkByCategory } from "@/lib/notif-links";
 
 interface NotifRow {
   id: string; title: string; body: string | null; link: string | null;
