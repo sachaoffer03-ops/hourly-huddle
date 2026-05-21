@@ -314,7 +314,7 @@ const NowLine = forwardRef<HTMLDivElement, { now: Date }>(function NowLine({ now
           textTransform: "uppercase",
         }}
       >
-        Maintenant · {fmtHMS(now)}
+        Maintenant · {fmtHM(now)}
       </span>
       <div className="flex-1" style={{ height: 1, backgroundColor: "var(--coral)", opacity: 0.6 }} />
     </div>
