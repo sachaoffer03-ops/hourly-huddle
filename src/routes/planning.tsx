@@ -1376,23 +1376,22 @@ function PlanningCalendar({
     return map;
   }, [studioShifts, visibleDayIndices]);
 
-  const colTrack = (idx: number) =>
-    columnWidths[idx] != null ? `${columnWidths[idx]}px` : `minmax(${DEFAULT_COL_PX}px, 1fr)`;
+  const colTrack = (idx: number) => `minmax(0, ${widthOf(idx)}fr)`;
   const gridCols = `${TIME_COL_PX}px ${visibleDayIndices.map(colTrack).join(" ")}`;
-  const minWidth = TIME_COL_PX + visibleDayIndices.reduce((sum, idx) => sum + widthOf(idx), 0);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-3">
       <div
         className="rounded-xl border overflow-hidden"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
       >
-        <div style={{ overflowX: "auto", userSelect: isResizing ? "none" : undefined }}>
+        <div style={{ overflowX: "hidden", userSelect: isResizing ? "none" : undefined }}>
           <div
             style={{
               display: "grid",
               gridTemplateColumns: gridCols,
-              minWidth,
+              minWidth: 0,
+              width: "100%",
             }}
           >
             <div
