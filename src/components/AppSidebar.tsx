@@ -18,7 +18,6 @@ import {
 
   Eye,
   X,
-  Bell,
 } from "lucide-react";
 import logo from "@/assets/kadence-logo.png";
 
