@@ -139,6 +139,7 @@ function AccueilTab({ profile, studios, studioClockOut, userId, onOpenNotifs, on
   const [shifts, setShifts] = useState<ShiftRow[]>([]);
   const [weekStats, setWeekStats] = useState({ hours: 0, count: 0 });
   const [endShift, setEndShift] = useState<ShiftRow | null>(null);
+  const [clockInShift, setClockInShift] = useState<ShiftRow | null>(null);
   const [signalOpen, setSignalOpen] = useState(false);
   const [reqOpen, setReqOpen] = useState(false);
   const [reqShiftId, setReqShiftId] = useState<string | null>(null);
@@ -156,13 +157,9 @@ function AccueilTab({ profile, studios, studioClockOut, userId, onOpenNotifs, on
     return () => clearInterval(t);
   }, []);
 
-  async function handleClockIn(s: ShiftRow) {
-    const nowIso = new Date().toISOString();
-    const { error } = await supabase.from("shifts")
-      .update({ clocked_in_at: nowIso })
-      .eq("id", s.id);
-    if (error) { toast.error("Impossible de pointer", { description: error.message }); return; }
-    toast.success("Arrivée enregistrée");
+  function handleStartClockIn(s: ShiftRow) {
+    if (s.clocked_in_at) { toast.info("Arrivée déjà pointée"); return; }
+    setClockInShift(s);
   }
 
   async function handleEndShift(s: ShiftRow) {
