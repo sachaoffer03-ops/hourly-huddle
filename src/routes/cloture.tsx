@@ -519,8 +519,8 @@ function useTemplate(studioId: string, roleId: string, phase: "opening" | "closi
   return { template, loading, reload: ensure, setTemplate };
 }
 
-function ChecklistEditor({ studioId, roleId, roleName }: { studioId: string; roleId: string; roleName: string }) {
-  const { template, loading } = useTemplate(studioId, roleId);
+function ChecklistEditor({ studioId, roleId, roleName, phase = "closing" }: { studioId: string; roleId: string; roleName: string; phase?: "opening" | "closing" }) {
+  const { template, loading } = useTemplate(studioId, roleId, phase);
   const [items, setItems] = useState<any[]>([]);
   const [photos, setPhotos] = useState<any[]>([]);
 
