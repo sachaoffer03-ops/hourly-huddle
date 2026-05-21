@@ -90,6 +90,7 @@ export function DisposSheet({ open, onClose, userId }: { open: boolean; onClose:
     const [h, m] = t.split(":").map(Number);
     return h * 60 + (m || 0);
   };
+  const fmtMin = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
   // Détecte un chevauchement entre une plage candidate et les plages existantes (en excluant éventuellement un index)
   const overlapsExisting = (day: number, start: string, end: string, excludeIdx?: number) => {
     const s = toMin(start);
