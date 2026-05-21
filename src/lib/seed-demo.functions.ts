@@ -177,7 +177,6 @@ export const resetDemoEnvironment = createServerFn({ method: "POST" })
     log.push("Données précédentes purgées");
 
     // 4. Profil (upsert)
-    const today = new Date();
     const hireDate = addDays(today, -180);
     await supabaseAdmin.from("profiles").upsert({
       id: demoUserId,
