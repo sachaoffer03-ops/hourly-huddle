@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { employeeLink } from "@/lib/notif-links";
 
 const TIME = /^\d{2}:\d{2}(:\d{2})?$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -116,7 +117,7 @@ export const updateShift = createServerFn({ method: "POST" })
             type: "shift_removed",
             title: "Shift retiré",
             body: `Le shift du ${current.shift_date} ${String(current.start_time).slice(0,5)} a été réassigné.`,
-            link: "/staff-app",
+            link: employeeLink({ kind: "shift", shiftId: data.shiftId }),
             priority: "info",
             category: "shift",
           });
@@ -127,7 +128,7 @@ export const updateShift = createServerFn({ method: "POST" })
             type: "shift_added",
             title: "Nouveau shift",
             body: fmtRange,
-            link: "/staff-app",
+            link: employeeLink({ kind: "shift", shiftId: data.shiftId }),
             priority: "normal",
             category: "shift",
           });
@@ -138,7 +139,7 @@ export const updateShift = createServerFn({ method: "POST" })
           type: "shift_updated",
           title: "Shift modifié",
           body: fmtRange,
-          link: "/staff-app",
+          link: employeeLink({ kind: "shift", shiftId: data.shiftId }),
           priority: "info",
           category: "shift",
         });
@@ -199,7 +200,7 @@ export const createShift = createServerFn({ method: "POST" })
         type: "shift_added",
         title: "Nouveau shift ajouté",
         body: `${data.shiftDate} ${data.startTime.slice(0, 5)}-${data.endTime.slice(0, 5)}`,
-        link: "/staff-app",
+        link: row?.id ? employeeLink({ kind: "shift", shiftId: row.id }) : "/staff-app?tab=planning",
         priority: "normal",
         category: "shift",
       });
@@ -227,7 +228,7 @@ export const deleteShift = createServerFn({ method: "POST" })
         type: "shift_removed",
         title: "Shift annulé",
         body: `${cur.shift_date} ${String(cur.start_time).slice(0,5)}`,
-        link: "/staff-app",
+        link: "/staff-app?tab=planning",
         priority: "normal",
         category: "shift",
       });
@@ -321,7 +322,7 @@ export const publishPlanning = createServerFn({ method: "POST" })
         type: "planning_published",
         title: "Nouveau planning publié",
         body: `${count} shift${count > 1 ? "s" : ""} entre le ${data.startDate} et le ${data.endDate}`,
-        link: "/staff-app",
+        link: "/staff-app?tab=planning",
         priority: "info",
         category: "planning",
       }));

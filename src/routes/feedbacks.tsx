@@ -90,7 +90,7 @@ function FeedbacksPage() {
         type: "feedback_reply",
         title: "Réponse à ton feedback",
         body: v.length > 120 ? v.slice(0, 117) + "…" : v,
-        link: "/staff-app",
+        link: "/staff-app?tab=profil",
         priority: "normal",
         category: "general",
       });

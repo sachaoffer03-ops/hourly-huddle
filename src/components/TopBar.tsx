@@ -6,6 +6,7 @@ import { CreateShiftModal } from "@/components/CreateShiftModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getCategoryMeta, getPriorityMeta, formatRelativeFr } from "@/lib/notifications-meta";
+import { fallbackLinkByCategory } from "@/lib/notif-links";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -109,7 +110,12 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
       await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", n.id);
       setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read_at: new Date().toISOString() } : x)));
     }
-    if (n.link) navigate({ to: n.link as any });
+    const target = n.link || fallbackLinkByCategory(n.category, false);
+    if (target.startsWith("/staff-app")) {
+      window.location.assign(target);
+    } else {
+      navigate({ to: target as any });
+    }
   };
 
   const markAllRead = async () => {

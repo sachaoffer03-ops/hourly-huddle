@@ -537,7 +537,7 @@ export const publishCourse = createServerFn({ method: "POST" })
           type: "training_assigned",
           title: "Nouveau parcours de formation",
           body: `${c.icon ?? "📚"} ${c.title} est disponible.`,
-          link: "/staff-app?tab=formation",
+          link: `/staff-app?tab=formation&course=${data.courseId}`,
           priority: "normal",
           category: "training",
         })) as any
@@ -1198,7 +1198,7 @@ export const submitQuizAttempt = createServerFn({ method: "POST" })
           type: "training_blocked",
           title: "Formation bloquée",
           body: `${name} a échoué 3 fois au quiz "${(quiz as any).title}".`,
-          link: "/formation",
+          link: `/staff/${userId}?tab=formation`,
           priority: "urgent",
           category: "training",
         })) as any);
@@ -1267,7 +1267,7 @@ async function maybeCompleteCourse(supabase: any, userId: string, courseId: stri
       type: "training_completed",
       title: "Formation terminée",
       body: `${name} a terminé "${c?.title ?? "un parcours"}".`,
-      link: "/formation",
+      link: `/staff/${userId}?tab=formation`,
       priority: "info",
       category: "training",
     })) as any);

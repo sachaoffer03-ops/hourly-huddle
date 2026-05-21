@@ -85,7 +85,7 @@ export const cancelMyRequest = createServerFn({ method: "POST" })
 
 // ───────────────────────── ADMIN ─────────────────────────
 
-async function notifyEmployee(userId: string, reqType: string, status: "accepted" | "refused", note?: string) {
+async function notifyEmployee(userId: string, reqType: string, status: "accepted" | "refused", note?: string, requestId?: string) {
   const typeLabel: Record<string, string> = {
     cancel: "annulation",
     time_change: "changement d'horaire",
@@ -101,7 +101,7 @@ async function notifyEmployee(userId: string, reqType: string, status: "accepted
     type: "modification_request_resolved",
     title: status === "accepted" ? "Demande acceptée" : "Demande refusée",
     body,
-    link: "/staff-app",
+    link: requestId ? `/staff-app?tab=planning&request=${requestId}` : "/staff-app?tab=planning",
     priority: "info",
     category: "request",
   });
@@ -140,7 +140,7 @@ export const acceptCancelRequest = createServerFn({ method: "POST" })
       .update({ status: "accepted", resolved_at: now, admin_actor_id: userId })
       .eq("id", req.id);
 
-    await notifyEmployee(req.user_id, req.type, "accepted");
+    await notifyEmployee(req.user_id, req.type, "accepted", undefined, data.requestId);
     return { ok: true, shiftId: req.shift_id, findReplacement: data.findReplacement };
   });
 
@@ -178,7 +178,7 @@ export const acceptTimeChangeRequest = createServerFn({ method: "POST" })
       .update({ status: "accepted", resolved_at: now, admin_actor_id: userId })
       .eq("id", req.id);
 
-    await notifyEmployee(req.user_id, req.type, "accepted", `Nouveau créneau : ${data.finalStart.slice(0, 5)}–${data.finalEnd.slice(0, 5)}`);
+    await notifyEmployee(req.user_id, req.type, "accepted", `Nouveau créneau : ${data.finalStart.slice(0, 5)}–${data.finalEnd.slice(0, 5)}`, data.requestId);
     return { ok: true };
   });
 
@@ -224,7 +224,7 @@ export const acceptUnavailabilityRequest = createServerFn({ method: "POST" })
       .eq("id", req.id);
 
     await notifyEmployee(req.user_id, req.type, "accepted",
-      `Période : ${req.proposed_start_date} → ${req.proposed_end_date}`);
+      `Période : ${req.proposed_start_date} → ${req.proposed_end_date}`, data.requestId);
     return { ok: true };
   });
 
@@ -259,7 +259,7 @@ export const refuseRequest = createServerFn({ method: "POST" })
       })
       .eq("id", req.id);
 
-    await notifyEmployee(req.user_id, req.type, "refused", data.response);
+    await notifyEmployee(req.user_id, req.type, "refused", data.response, data.requestId);
     return { ok: true };
   });
 

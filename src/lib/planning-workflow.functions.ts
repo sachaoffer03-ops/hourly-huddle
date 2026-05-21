@@ -115,7 +115,7 @@ export const publishPlanning = createServerFn({ method: "POST" })
         type: "planning_published",
         title: "Nouveau planning publié",
         body: `Le planning de ${monthLabel} est disponible. Consulte-le maintenant.`,
-        link: "/staff-app",
+        link: "/staff-app?tab=planning",
         priority: "info",
         category: "planning",
       }));

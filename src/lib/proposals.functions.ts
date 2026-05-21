@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { employeeLink, adminLink } from "@/lib/notif-links";
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
@@ -53,7 +54,7 @@ export const sendProposals = createServerFn({ method: "POST" })
       type: "shift_proposal",
       title: "Nouvelle proposition de shift",
       body: `${shift.business_role} · ${dateLabel} · ${String(shift.start_time).slice(0,5)}–${String(shift.end_time).slice(0,5)}`,
-      link: "/staff-app",
+      link: `/staff-app?tab=accueil&shift=${data.shiftId}`,
       priority: "normal",
       category: "shift",
     }));
@@ -123,7 +124,7 @@ export const acceptProposal = createServerFn({ method: "POST" })
         type: "proposal_accepted",
         title: "Trou comblé",
         body: `${updated.business_role} · ${dateLabel} · ${String(updated.start_time).slice(0,5)}–${String(updated.end_time).slice(0,5)}`,
-        link: "/trous",
+        link: adminLink({ kind: "shiftPointage", shiftId: updated.id }),
         priority: "info",
         category: "shift",
       });
@@ -200,7 +201,7 @@ export const sendReplacementProposals = createServerFn({ method: "POST" })
       type: "shift_proposal",
       title: "Proposition de remplacement",
       body: `${shift.business_role} · ${dateLabel} · ${String(shift.start_time).slice(0,5)}–${String(shift.end_time).slice(0,5)}`,
-      link: "/staff-app",
+      link: `/staff-app?tab=accueil&shift=${req.shift_id}`,
       priority: "normal",
       category: "shift",
     }));
@@ -280,7 +281,8 @@ export const acceptReplacementProposal = createServerFn({ method: "POST" })
         type: "replacement_accepted",
         title: "Remplaçant trouvé",
         body,
-        link: "/demandes",
+        link: adminLink({ kind: "request", requestId: req.id }),
+        category: "request",
       });
     }
     // Notifie l'employé d'origine
@@ -289,7 +291,8 @@ export const acceptReplacementProposal = createServerFn({ method: "POST" })
       type: "request_accepted",
       title: "Demande acceptée",
       body: `Un remplaçant a été trouvé. ${body}`,
-      link: "/staff-app",
+      link: employeeLink({ kind: "request", requestId: req.id }),
+      category: "request",
     });
 
     return { ok: true };

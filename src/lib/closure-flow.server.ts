@@ -181,7 +181,7 @@ export async function finalizeClosure(input: FinalizeClosureInput) {
         type: "shift_closed",
         title: "Shift clôturé",
         body: `${name} a clôturé son shift (${shift.business_role})`,
-        link: `/staff/${ownerId}`,
+        link: `/cloture?shift=${shift.id}`,
         priority: "info",
         category: "shift",
       }));
@@ -428,7 +428,7 @@ export async function notifyOverdueClockOuts() {
     if (Date.now() < dueIso) continue;
 
     // Idempotency: have we already notified for this shift ?
-    const linkSig = `/staff/${sh.user_id}#shift-${sh.id}`;
+    const linkSig = `/pointage?shift=${sh.id}`;
     const { data: existing } = await supabaseAdmin
       .from("notifications")
       .select("id")

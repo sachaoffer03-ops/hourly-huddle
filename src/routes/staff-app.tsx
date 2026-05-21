@@ -54,7 +54,24 @@ function todayISO() { return new Date().toISOString().slice(0, 10); }
 function StaffAppPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("accueil");
+  const [tab, setTab] = useState<Tab>(() => {
+    if (typeof window === "undefined") return "accueil";
+    const t = new URLSearchParams(window.location.search).get("tab");
+    const allowed: Tab[] = ["accueil", "planning", "pointage", "formation", "chat", "profil"];
+    return (allowed.includes(t as Tab) ? (t as Tab) : "accueil");
+  });
+
+  // Sync tab when URL changes (e.g. clic notif déjà sur staff-app)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onPop = () => {
+      const t = new URLSearchParams(window.location.search).get("tab");
+      const allowed: Tab[] = ["accueil", "planning", "pointage", "formation", "chat", "profil"];
+      if (t && allowed.includes(t as Tab)) setTab(t as Tab);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [businessRoles, setBusinessRoles] = useState<Role[]>([]);
   const [studios, setStudios] = useState<Record<string, string>>({});
