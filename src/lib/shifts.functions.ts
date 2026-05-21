@@ -200,7 +200,7 @@ export const createShift = createServerFn({ method: "POST" })
         type: "shift_added",
         title: "Nouveau shift ajouté",
         body: `${data.shiftDate} ${data.startTime.slice(0, 5)}-${data.endTime.slice(0, 5)}`,
-        link: "/staff-app",
+        link: row?.id ? employeeLink({ kind: "shift", shiftId: row.id }) : "/staff-app?tab=planning",
         priority: "normal",
         category: "shift",
       });
