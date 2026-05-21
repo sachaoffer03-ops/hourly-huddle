@@ -537,7 +537,7 @@ export const publishCourse = createServerFn({ method: "POST" })
           type: "training_assigned",
           title: "Nouveau parcours de formation",
           body: `${c.icon ?? "📚"} ${c.title} est disponible.`,
-          link: "/staff-app?tab=formation",
+          link: `/staff-app?tab=formation&course=${data.courseId}`,
           priority: "normal",
           category: "training",
         })) as any
