@@ -70,9 +70,10 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
       userId = user.id;
       const { data } = await supabase
         .from("notifications")
-        .select("id, title, body, link, read_at, created_at")
+        .select("id, title, body, link, read_at, created_at, priority, category")
         .order("created_at", { ascending: false })
-        .limit(15);
+        .limit(20);
+
       setNotifications((data ?? []) as NotifRow[]);
 
       channel = supabase
