@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getFormationNotifications } from "@/lib/formation.functions";
 import { GraduationCap, ChevronRight, CheckCircle2, AlertTriangle, Sparkles } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
+
 
 type Item = {
   id: string;
@@ -29,10 +29,10 @@ function iconFor(variant: Item["variant"]) {
   return <GraduationCap size={18} />;
 }
 
-export function FormationNotifBanner() {
+export function FormationNotifBanner({ onGoFormation }: { onGoFormation: () => void }) {
   const fetchNotifs = useServerFn(getFormationNotifications);
   const [items, setItems] = useState<Item[]>([]);
-  const navigate = useNavigate();
+
 
   useEffect(() => {
     let cancelled = false;
@@ -55,7 +55,7 @@ export function FormationNotifBanner() {
           <button
             key={it.id}
             type="button"
-            onClick={() => { if (clickable) navigate({ to: "/staff-app", search: { tab: "formation" } as any }); }}
+            onClick={() => { if (clickable) onGoFormation(); }}
             className="w-full rounded-xl px-4 py-3.5 flex items-center gap-3 text-left transition-colors"
             style={{ backgroundColor: s.bg, border: `0.5px solid ${s.border}`, cursor: clickable ? "pointer" : "default" }}
           >
