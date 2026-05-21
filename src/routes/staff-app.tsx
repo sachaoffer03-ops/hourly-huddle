@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import {
   Home, Calendar, User, ChevronRight, Clock, GraduationCap, ArrowLeft, CheckSquare,
   AlertCircle, Replace, Inbox, MessageCircle, CalendarCheck, CheckCircle2, Phone,
-  MapPin, Cake, CreditCard, Hash, Mail, Bell, Sparkles
+  MapPin, Cake, CreditCard, Hash, Mail, Bell, Sparkles, QrCode
 } from "lucide-react";
 import { roleColors, getQuotaStatus, type Role } from "@/lib/role-colors";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +23,7 @@ import { ProposalsSheet, useProposals } from "@/components/staff-app/ProposalsSh
 import { WorkedHoursEmployeeCard, EmployeeLastShifts } from "@/components/WorkedHoursCard";
 import { MyStatsCard } from "@/components/staff-app/MyStatsCard";
 import { EmployeeNotifsWidget } from "@/components/staff-app/EmployeeNotifsWidget";
+import { ClockInSheet } from "@/components/staff-app/ClockInSheet";
 
 export const Route = createFileRoute("/staff-app")({
   component: StaffAppPage,
@@ -138,6 +139,7 @@ function AccueilTab({ profile, studios, studioClockOut, userId, onOpenNotifs, on
   const [shifts, setShifts] = useState<ShiftRow[]>([]);
   const [weekStats, setWeekStats] = useState({ hours: 0, count: 0 });
   const [endShift, setEndShift] = useState<ShiftRow | null>(null);
+  const [clockInShift, setClockInShift] = useState<ShiftRow | null>(null);
   const [signalOpen, setSignalOpen] = useState(false);
   const [reqOpen, setReqOpen] = useState(false);
   const [reqShiftId, setReqShiftId] = useState<string | null>(null);
@@ -155,13 +157,9 @@ function AccueilTab({ profile, studios, studioClockOut, userId, onOpenNotifs, on
     return () => clearInterval(t);
   }, []);
 
-  async function handleClockIn(s: ShiftRow) {
-    const nowIso = new Date().toISOString();
-    const { error } = await supabase.from("shifts")
-      .update({ clocked_in_at: nowIso })
-      .eq("id", s.id);
-    if (error) { toast.error("Impossible de pointer", { description: error.message }); return; }
-    toast.success("Arrivée enregistrée");
+  function handleStartClockIn(s: ShiftRow) {
+    if (s.clocked_in_at) { toast.info("Arrivée déjà pointée"); return; }
+    setClockInShift(s);
   }
 
   async function handleEndShift(s: ShiftRow) {
@@ -387,19 +385,45 @@ function AccueilTab({ profile, studios, studioClockOut, userId, onOpenNotifs, on
                 </div>
               )}
 
-              {state === "today_before" && next && (
-                <button
-                  onClick={() => handleClockIn(next)}
-                  className="mt-4 inline-flex items-center gap-1.5 rounded-md px-3 py-2"
-                  style={{
-                    fontSize: 12, fontWeight: 500,
-                    backgroundColor: liveLateMin > 0 ? "#E07A3E" : "var(--coral)",
-                    color: "#1A1614",
-                  }}
-                >
-                  <Clock size={13} /> {liveLateMin > 0 ? `Pointer mon arrivée — en retard de ${liveLateMin} min` : "Pointer mon arrivée"}
-                </button>
-              )}
+              {state === "today_before" && next && (() => {
+                const startDt = new Date(next.shift_date + "T" + next.start_time);
+                const diffMin = (nowTs - startDt.getTime()) / 60_000;
+                // -30min..+1h → bouton scan QR ; avant -30 → trop tôt ; après +1h → bloqué
+                if (diffMin < -30) {
+                  const mins = Math.ceil(Math.abs(diffMin) - 30);
+                  return (
+                    <div
+                      className="mt-4 inline-flex items-center gap-1.5 rounded-md px-3 py-2"
+                      style={{ fontSize: 12, fontWeight: 500, backgroundColor: "rgba(255,255,255,0.08)", color: "rgba(250,248,244,0.65)", border: "1px solid rgba(255,255,255,0.1)" }}
+                    >
+                      <Clock size={13} /> Scan disponible dans {mins} min
+                    </div>
+                  );
+                }
+                if (diffMin > 60) {
+                  return (
+                    <div
+                      className="mt-4 inline-flex items-center gap-1.5 rounded-md px-3 py-2"
+                      style={{ fontSize: 12, fontWeight: 500, backgroundColor: "#B91C1C", color: "#fff" }}
+                    >
+                      <AlertCircle size={13} /> En retard de plus d'1h — contacte ton manager
+                    </div>
+                  );
+                }
+                return (
+                  <button
+                    onClick={() => handleStartClockIn(next)}
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-md px-3 py-2"
+                    style={{
+                      fontSize: 12, fontWeight: 500,
+                      backgroundColor: liveLateMin > 0 ? "#E07A3E" : "var(--coral)",
+                      color: "#1A1614",
+                    }}
+                  >
+                    <QrCode size={13} /> {liveLateMin > 0 ? `Scanner le QR — en retard de ${liveLateMin} min` : "Scanner le QR pour pointer"}
+                  </button>
+                );
+              })()}
               {state === "in_service" && next && (() => {
                 const cfg = next.studio_id ? studioClockOut[next.studio_id] : undefined;
                 const beforeMin = cfg?.before ?? 15;
@@ -563,9 +587,19 @@ function AccueilTab({ profile, studios, studioClockOut, userId, onOpenNotifs, on
       <ShiftDetailSheet
         open={!!shiftDetail} onClose={() => setShiftDetail(null)}
         shift={shiftDetail} studios={studios}
-        onClockIn={() => { if (shiftDetail) { const s = shiftDetail; setShiftDetail(null); handleClockIn(s); } }}
+        onClockIn={() => { if (shiftDetail) { const s = shiftDetail; setShiftDetail(null); handleStartClockIn(s); } }}
         onEndShift={() => { if (shiftDetail) { const s = shiftDetail; setShiftDetail(null); handleEndShift(s); } }}
         onRequestModif={() => { if (shiftDetail) { setReqShiftId(shiftDetail.id); setShiftDetail(null); setReqOpen(true); } }}
+      />
+      <ClockInSheet
+        open={!!clockInShift}
+        onClose={() => setClockInShift(null)}
+        shift={clockInShift}
+        studios={studios}
+        onCompleted={({ clockedInAt, minutesLate }) => {
+          if (!clockInShift) return;
+          setShifts((prev) => prev.map((s) => s.id === clockInShift.id ? { ...s, clocked_in_at: clockedInAt, minutes_late: minutesLate } : s));
+        }}
       />
       <ClosureFlow
         open={!!endShift}
@@ -611,6 +645,7 @@ function PlanningTab({ studios, userId }: { studios: Record<string, string>; use
   const [loading, setLoading] = useState(true);
   const [shiftDetail, setShiftDetail] = useState<ShiftRow | null>(null);
   const [endShift, setEndShift] = useState<ShiftRow | null>(null);
+  const [clockInShift, setClockInShift] = useState<ShiftRow | null>(null);
   const [reqOpen, setReqOpen] = useState(false);
   const [reqShiftId, setReqShiftId] = useState<string | null>(null);
 
@@ -726,15 +761,23 @@ function PlanningTab({ studios, userId }: { studios: Record<string, string>; use
       <ShiftDetailSheet
         open={!!shiftDetail} onClose={() => setShiftDetail(null)}
         shift={shiftDetail} studios={studios}
-        onClockIn={async () => {
+        onClockIn={() => {
           if (!shiftDetail) return;
           const s = shiftDetail; setShiftDetail(null);
-          const { error } = await supabase.from("shifts").update({ clocked_in_at: new Date().toISOString() }).eq("id", s.id);
-          if (error) toast.error("Impossible de pointer", { description: error.message });
-          else toast.success("Arrivée enregistrée");
+          setClockInShift(s);
         }}
         onEndShift={() => { if (shiftDetail) { const s = shiftDetail; setShiftDetail(null); handleEndShift(s); } }}
         onRequestModif={() => { if (shiftDetail) { setReqShiftId(shiftDetail.id); setShiftDetail(null); setReqOpen(true); } }}
+      />
+      <ClockInSheet
+        open={!!clockInShift}
+        onClose={() => setClockInShift(null)}
+        shift={clockInShift}
+        studios={studios}
+        onCompleted={({ clockedInAt, minutesLate }) => {
+          if (!clockInShift) return;
+          setShifts((prev) => prev.map((s) => s.id === clockInShift.id ? { ...s, clocked_in_at: clockedInAt, minutes_late: minutesLate } : s));
+        }}
       />
       <ClosureFlow
         open={!!endShift}
