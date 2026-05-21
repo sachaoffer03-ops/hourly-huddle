@@ -140,7 +140,7 @@ export const acceptCancelRequest = createServerFn({ method: "POST" })
       .update({ status: "accepted", resolved_at: now, admin_actor_id: userId })
       .eq("id", req.id);
 
-    await notifyEmployee(req.user_id, req.type, "accepted");
+    await notifyEmployee(req.user_id, req.type, "accepted", undefined, data.requestId);
     return { ok: true, shiftId: req.shift_id, findReplacement: data.findReplacement };
   });
 
