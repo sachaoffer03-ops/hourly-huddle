@@ -428,7 +428,7 @@ export async function notifyOverdueClockOuts() {
     if (Date.now() < dueIso) continue;
 
     // Idempotency: have we already notified for this shift ?
-    const linkSig = `/staff/${sh.user_id}#shift-${sh.id}`;
+    const linkSig = `/pointage?shift=${sh.id}`;
     const { data: existing } = await supabaseAdmin
       .from("notifications")
       .select("id")
