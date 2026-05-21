@@ -423,7 +423,7 @@ function ClockOutSection({ studio }: { studio: any }) {
 // SECTION B — CHECKLISTS PER ROLE
 // ============================================================
 
-function ChecklistsSection({ studioId }: { studioId: string }) {
+function ChecklistsSection({ studioId, phase = "closing" }: { studioId: string; phase?: "opening" | "closing" }) {
   const { roles } = useBusinessRoles({ onlyActive: true });
   const [activeRoleId, setActiveRoleId] = useState<string | null>(null);
   useEffect(() => {
@@ -431,9 +431,10 @@ function ChecklistsSection({ studioId }: { studioId: string }) {
   }, [roles, activeRoleId]);
 
   const activeRole = roles.find((r) => r.id === activeRoleId) ?? null;
+  const title = phase === "opening" ? "Checklist d'ouverture par poste" : "Checklist de fin par poste";
 
   return (
-    <SectionCard icon={DoorClosed} title="Checklist de fin par poste">
+    <SectionCard icon={DoorClosed} title={title}>
       <div className="flex flex-wrap gap-1.5 mb-4">
         {roles.map((r) => {
           const isActive = r.id === activeRoleId;
@@ -459,13 +460,13 @@ function ChecklistsSection({ studioId }: { studioId: string }) {
       </div>
 
       {activeRole && (
-        <ChecklistEditor studioId={studioId} roleId={activeRole.id} roleName={activeRole.name} />
+        <ChecklistEditor studioId={studioId} roleId={activeRole.id} roleName={activeRole.name} phase={phase} />
       )}
     </SectionCard>
   );
 }
 
-function useTemplate(studioId: string, roleId: string) {
+function useTemplate(studioId: string, roleId: string, phase: "opening" | "closing" = "closing") {
   const [template, setTemplate] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -476,6 +477,7 @@ function useTemplate(studioId: string, roleId: string) {
       .select("*")
       .eq("studio_id", studioId)
       .eq("business_role_id", roleId)
+      .eq("phase", phase)
       .maybeSingle();
     if (existing) {
       setTemplate(existing);
@@ -487,7 +489,8 @@ function useTemplate(studioId: string, roleId: string) {
       .insert({
         studio_id: studioId,
         business_role_id: roleId,
-        name: "Clôture",
+        name: phase === "opening" ? "Ouverture" : "Clôture",
+        phase,
         is_active: true,
         is_blocking: true,
       } as any)
@@ -497,7 +500,7 @@ function useTemplate(studioId: string, roleId: string) {
     setTemplate(created ?? null);
     setLoading(false);
     return created;
-  }, [studioId, roleId]);
+  }, [studioId, roleId, phase]);
 
   useEffect(() => { ensure(); }, [ensure]);
 
