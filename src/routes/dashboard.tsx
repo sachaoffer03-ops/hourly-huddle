@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight, AlertTriangle, ChevronRight, ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { RealtimeTimeline } from "@/components/dashboard/RealtimeTimeline";
-import { AdminAlertsWidget } from "@/components/notifications/AdminAlertsWidget";
+
 
 export const Route = createFileRoute("/dashboard")({
   component: DashboardPage,
