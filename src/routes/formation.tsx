@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -93,7 +93,7 @@ function FormationIndexPage() {
           {data.courses.map((c) => {
             const accent = c.color ?? "#F0997B";
             return (
-              <button key={c.id} onClick={() => navigate({ to: "/formation/$courseId", params: { courseId: c.id } })}
+              <Link key={c.id} to="/formation/$courseId" params={{ courseId: c.id }} preload="intent"
                 className="rounded-xl border text-left transition-all hover:shadow-sm overflow-hidden flex flex-col"
                 style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
                 <div style={{ height: 4, backgroundColor: accent }} />
@@ -127,7 +127,7 @@ function FormationIndexPage() {
                     </div>
                   </div>
                 </div>
-              </button>
+              </Link>
             );
           })}
         </div>
