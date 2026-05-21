@@ -267,7 +267,8 @@ export async function reviewSubmission(submissionId: string, feedback: string | 
       type: "checklist_reviewed",
       title: "Checklist révisée par l'admin",
       body: feedback.length > 100 ? feedback.slice(0, 100) + "…" : feedback,
-      link: "/staff-app",
+      link: (sub as any)?.shift_id ? `/staff-app?tab=planning&shift=${(sub as any).shift_id}` : "/staff-app?tab=planning",
+      category: "shift",
     } as any);
   }
 }
