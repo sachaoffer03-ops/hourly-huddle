@@ -256,7 +256,7 @@ function AppShell() {
     <div className="flex min-h-screen" style={{ backgroundColor: "var(--background)" }}>
       <AppSidebar />
       <MobileSidebar open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
-      <div className="flex-1 flex flex-col md:ml-[220px]">
+      <div className="flex-1 min-w-0 flex flex-col overflow-x-hidden md:ml-[220px]">
         <TopBar onMenuToggle={() => setMobileMenuOpen(prev => !prev)} />
         <main className="flex-1 overflow-y-auto overflow-x-hidden min-w-0">
           <Outlet />
