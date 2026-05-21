@@ -214,23 +214,6 @@ function KpiCard({ label, value, unit, change, changeColor, onClick }: { label: 
   );
 }
 
-function ShiftRowItem({ name, role, studio, startHour, endHour, status }: { name: string; role: string; studio: string; startHour: string; endHour: string; status: { bg: string; text: string; label: string } }) {
-  const rc = getRoleStyle(role);
-  const ini = name.split(" ").map((n) => n[0]).filter(Boolean).join("").slice(0, 2);
-  return (
-    <div className="flex items-center gap-3 rounded-lg px-3 py-2.5">
-      <div className="flex items-center justify-center rounded-full shrink-0" style={{ width: 32, height: 32, backgroundColor: rc.bg, color: rc.text, fontSize: 11, fontWeight: 500 }}>{ini}</div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span style={{ fontSize: 13, fontWeight: 500 }}>{name}</span>
-          <span className="rounded-full px-1.5 py-0.5" style={{ fontSize: 10, backgroundColor: rc.bg, color: rc.text }}>{role}</span>
-        </div>
-        <div style={{ fontSize: 12, color: "var(--muted-foreground)", marginTop: 1 }}>{studio} · {startHour} — {endHour}</div>
-      </div>
-      <span className="rounded-full px-2.5 py-1 shrink-0" style={{ fontSize: 11, fontWeight: 500, backgroundColor: status.bg, color: status.text }}>{status.label}</span>
-    </div>
-  );
-}
 
 function ActionRow({ title, subtitle, onClick }: { title: string; subtitle: string; onClick?: () => void }) {
   return (
