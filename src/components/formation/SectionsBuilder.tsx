@@ -9,6 +9,7 @@ import {
 } from "@/lib/formation.functions";
 import { ContentEditModal } from "./ContentEditModal";
 import { QuizEditModal } from "./QuizEditModal";
+import { PromptDialog, type PromptVariant } from "./PromptDialog";
 import { TYPE_COLOR, TYPE_LABEL, fmtDuration } from "./types";
 import type { CourseFull, ContentType } from "./types";
 
