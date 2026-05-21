@@ -51,18 +51,23 @@ async function getDeadlineDay(supabase: any): Promise<number> {
 }
 
 /**
- * Vérifie que la date n'est pas dans un mois "verrouillé" par la deadline.
- * Pour le mois M, deadline = jour D du mois M-1. Si on est après cette date,
- * impossible de toucher aux dispos du mois M.
+ * Verrouillé UNIQUEMENT si un planning publié couvre le mois de la date cible.
+ * La deadline est purement indicative côté UI.
  */
-function isMonthLocked(targetDate: string, deadlineDay: number, today: Date): boolean {
+async function isMonthLocked(supabase: any, targetDate: string): Promise<boolean> {
   const target = new Date(`${targetDate}T00:00:00`);
-  const targetMonthStart = new Date(target.getFullYear(), target.getMonth(), 1);
-  const deadline = new Date(targetMonthStart);
-  deadline.setMonth(deadline.getMonth() - 1);
-  deadline.setDate(deadlineDay);
-  deadline.setHours(23, 59, 59, 999);
-  return today > deadline;
+  const y = target.getFullYear();
+  const m = target.getMonth();
+  const monthStart = `${y}-${String(m + 1).padStart(2, "0")}-01`;
+  const lastDay = new Date(y, m + 1, 0).getDate();
+  const monthEnd = `${y}-${String(m + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  const { data } = await supabase
+    .from("planning_publications")
+    .select("id")
+    .lte("period_start", monthEnd)
+    .gte("period_end", monthStart)
+    .limit(1);
+  return (data?.length ?? 0) > 0;
 }
 
 function validateRangeShape(start: string, end: string) {
