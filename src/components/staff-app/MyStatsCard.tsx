@@ -106,7 +106,7 @@ export function MyStatsCard() {
   if (loading) return <Skeleton />;
   if (!stats) return null;
 
-  const { earnings, weekHours, lastShiftDimona, career, score } = stats;
+  const { earnings, weekHours, lastShiftDimona, career } = stats;
 
   // delta couleur
   const deltaColor = earnings.delta > 0 ? "#16a34a" : earnings.delta < 0 ? "#dc2626" : "var(--muted-foreground)";
@@ -119,9 +119,6 @@ export function MyStatsCard() {
   // dimona
   const dimonaInfo = lastShiftDimona.status ? DIMONA_LABEL[lastShiftDimona.status] : null;
 
-  // score color
-  const scoreColor = score.current >= 7 ? "#16a34a" : score.current >= 5 ? "#ea8a00" : "#dc2626";
-  const sparkData = score.sparkline30d.map((value, i) => ({ i, value }));
 
   return (
     <>
