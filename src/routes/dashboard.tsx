@@ -139,9 +139,6 @@ function DashboardPage() {
         <KpiCard label="Signalements ouverts" value={data.pendingSignalements.toString()} unit="" change="À résoudre" changeColor={data.pendingSignalements > 0 ? "var(--warning-text)" : "var(--success-text)"} onClick={() => navigate({ to: "/signalements" })} />
       </div>
 
-      <div className="mt-5">
-        <AdminAlertsWidget />
-      </div>
 
       <div className="mt-5">
         <RealtimeTimeline />
