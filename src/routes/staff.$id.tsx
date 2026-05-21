@@ -58,6 +58,7 @@ function EmployeeDetailPage() {
   const [rateMsg, setRateMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const [breakdown, setBreakdown] = useState<Awaited<ReturnType<typeof getScoreBreakdown>> | null>(null);
+  const [tab, setTab] = useState("profil");
   const fetchBreakdown = useServerFn(getScoreBreakdown);
 
   const load = async () => {
@@ -186,9 +187,9 @@ function EmployeeDetailPage() {
         </div>
       )}
 
-      <EmployeeStatsCard userId={emp.id} />
+      <EmployeeStatsCard userId={emp.id} onOpenFormation={() => setTab("formation")} />
 
-      <Tabs defaultValue="profil" className="w-full">
+      <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="profil">Profil</TabsTrigger>
           <TabsTrigger value="formation">Formation</TabsTrigger>

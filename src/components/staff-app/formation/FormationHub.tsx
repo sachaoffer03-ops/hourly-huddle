@@ -12,7 +12,7 @@ export function FormationHub({ userId }: { userId: string }) {
   const [data, setData] = useState<AssignedCourses | null>(null);
   const [openCourseId, setOpenCourseId] = useState<string | null>(null);
   const [profile, setProfile] = useState<{ first_name: string; last_name: string } | null>(null);
-  const [celebration, setCelebration] = useState<CourseDetail["course"] | null>(null);
+  const [celebration, setCelebration] = useState<CourseDetail | null>(null);
   const getCourses = useServerFn(getMyAssignedCourses);
 
   const load = async () => {
@@ -30,14 +30,27 @@ export function FormationHub({ userId }: { userId: string }) {
   const initials = `${(profile?.first_name ?? "").charAt(0)}${(profile?.last_name ?? "").charAt(0)}`.toUpperCase() || "—";
 
   if (celebration) {
+    const course = celebration.course as any;
+    const totalModules = celebration.totalModules;
+    const quizScores: number[] = [];
+    celebration.sections.forEach((s: any) => s.modules.forEach((m: any) => {
+      const best = m.quiz?.best_score;
+      if (typeof best === "number") quizScores.push(best);
+    }));
+    const avgQuiz = quizScores.length > 0
+      ? Math.round(quizScores.reduce((a, b) => a + b, 0) / quizScores.length)
+      : null;
     return (
       <div className="flex flex-col items-center text-center p-6 gap-5" style={{ minHeight: 500 }}>
         <div className="rounded-full flex items-center justify-center" style={{ width: 96, height: 96, backgroundColor: "color-mix(in oklch, #16A34A 18%, transparent)" }}>
           <GraduationCap size={48} strokeWidth={1.5} style={{ color: "#16A34A" }} />
         </div>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 500 }}>Parcours {(celebration as any).title} complet !</div>
-          <div style={{ fontSize: 13, color: "var(--muted-foreground)", marginTop: 6 }}>Bravo {firstName}, tu as tout validé 👏</div>
+          <div style={{ fontSize: 20, fontWeight: 500 }}>Parcours {course.title} complet !</div>
+          <div style={{ fontSize: 13, color: "var(--muted-foreground)", marginTop: 6 }}>
+            {totalModules} module{totalModules > 1 ? "s" : ""} validé{totalModules > 1 ? "s" : ""}
+            {avgQuiz !== null && ` · quiz final ${avgQuiz}%`}
+          </div>
         </div>
         <div className="w-full rounded-xl p-4" style={{ backgroundColor: "#0F172A", color: "white" }}>
           <div className="flex items-center gap-2 mb-2">
@@ -50,14 +63,10 @@ export function FormationHub({ userId }: { userId: string }) {
             Tu peux déclarer tes disponibilités, accepter des shifts et pointer en arrivant.
           </div>
         </div>
-        <div className="w-full rounded-xl p-3" style={{ backgroundColor: "color-mix(in oklch, #F0997B 12%, transparent)", border: "0.5px solid color-mix(in oklch, #F0997B 30%, transparent)" }}>
-          <div style={{ fontSize: 13, fontWeight: 500 }}>+100 points bonus</div>
-          <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 2 }}>Valables sur le shop Skult (bientôt)</div>
-        </div>
         <button onClick={() => { setCelebration(null); setOpenCourseId(null); load(); }}
           className="rounded-md w-full py-3 flex items-center justify-center gap-2"
           style={{ fontSize: 14, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)" }}>
-          <Calendar size={14} /> Retour
+          <Calendar size={14} /> Accéder à mon planning
         </button>
       </div>
     );

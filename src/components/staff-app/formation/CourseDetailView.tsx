@@ -11,7 +11,7 @@ interface Props {
   firstName: string;
   initials: string;
   onBack: () => void;
-  onCourseCompleted: (course: CourseDetail["course"]) => void;
+  onCourseCompleted: (detail: CourseDetail) => void;
 }
 
 export function CourseDetailView({ courseId, firstName, initials, onBack, onCourseCompleted }: Props) {
@@ -39,7 +39,7 @@ export function CourseDetailView({ courseId, firstName, initials, onBack, onCour
           setOpenModule(null);
           const fresh = await getCourse({ data: { courseId } });
           setData(fresh);
-          if (fresh.completedAt && !data.completedAt) onCourseCompleted(fresh.course);
+          if (fresh.completedAt && !data.completedAt) onCourseCompleted(fresh);
         }}
       />
     );

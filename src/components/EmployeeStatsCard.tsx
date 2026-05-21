@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts";
-import { Wallet, Clock, FileCheck, Star, TrendingUp, TrendingDown, Minus, AlertTriangle, ExternalLink } from "lucide-react";
+import { Wallet, Clock, FileCheck, Star, TrendingUp, TrendingDown, Minus, AlertTriangle, ExternalLink, GraduationCap, Lock } from "lucide-react";
 import { getEmployeeStats } from "@/lib/my-stats.functions";
+import { getAssignedCoursesForEmployee } from "@/lib/formation.functions";
 
 type Stats = Awaited<ReturnType<typeof getEmployeeStats>>;
+type Formation = Awaited<ReturnType<typeof getAssignedCoursesForEmployee>>;
 
 function fmtMoney(n: number): string { return n.toFixed(2).replace(".", ",") + " €"; }
 function fmtHours(n: number): string {
@@ -56,19 +58,24 @@ function Skeleton() {
   );
 }
 
-export function EmployeeStatsCard({ userId }: { userId: string }) {
+export function EmployeeStatsCard({ userId, onOpenFormation }: { userId: string; onOpenFormation?: () => void }) {
   const fetchStats = useServerFn(getEmployeeStats);
+  const fetchFormation = useServerFn(getAssignedCoursesForEmployee);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [formation, setFormation] = useState<Formation | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancel = false;
     setLoading(true);
-    fetchStats({ data: { userId } })
-      .then((s) => { if (!cancel) { setStats(s); setLoading(false); } })
+    Promise.all([
+      fetchStats({ data: { userId } }),
+      fetchFormation({ data: { userId } }).catch(() => null),
+    ])
+      .then(([s, f]) => { if (!cancel) { setStats(s); setFormation(f as Formation | null); setLoading(false); } })
       .catch(() => { if (!cancel) setLoading(false); });
     return () => { cancel = true; };
-  }, [fetchStats, userId]);
+  }, [fetchStats, fetchFormation, userId]);
 
   if (loading) return <Skeleton />;
   if (!stats) return null;
@@ -204,6 +211,39 @@ export function EmployeeStatsCard({ userId }: { userId: string }) {
           Détail dans Rapports <ExternalLink size={11} />
         </Link>
       </div>
+
+      {/* Formation */}
+      {formation && formation.summary.totalCourses > 0 && (() => {
+        const sum = formation.summary;
+        const pct = sum.progressPct;
+        const barColor = sum.lockedPlanning ? "#ea8a00" : pct === 100 ? "#16a34a" : "var(--coral)";
+        const Wrap: any = onOpenFormation ? "button" : "div";
+        return (
+          <Wrap
+            onClick={onOpenFormation}
+            className={`mt-3 pt-3 w-full text-left ${onOpenFormation ? "cursor-pointer" : ""}`}
+            style={{ borderTop: "0.5px solid rgba(0,0,0,0.06)", display: "block" }}
+          >
+            <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
+              <div className="flex items-center gap-1.5" style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
+                {sum.lockedPlanning ? <Lock size={12} /> : <GraduationCap size={12} />}
+                <span style={{ fontWeight: 500, color: "var(--foreground)" }}>Formation</span>
+                <span>·</span>
+                <span>{sum.completedCourses}/{sum.totalCourses} parcours validé{sum.totalCourses > 1 ? "s" : ""}</span>
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 500, color: "var(--foreground)" }}>{pct}%</span>
+            </div>
+            <div style={{ width: "100%", height: 5, borderRadius: 3, backgroundColor: "var(--muted)" }}>
+              <div style={{ width: `${pct}%`, height: "100%", borderRadius: 3, backgroundColor: barColor, transition: "width 0.3s" }} />
+            </div>
+            {sum.lockedPlanning && (
+              <div style={{ fontSize: 10, color: "#9A3412", marginTop: 4 }}>
+                Bloque le planning · {sum.blockingCourses.map((c: any) => `"${c.title}"`).join(", ")}
+              </div>
+            )}
+          </Wrap>
+        );
+      })()}
     </div>
   );
 }
