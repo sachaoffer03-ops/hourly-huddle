@@ -203,11 +203,8 @@ export const deleteAvailability = createServerFn({ method: "POST" })
     if (existing.avail_date < todayStr) {
       throw new Error("Impossible de supprimer une dispo passée");
     }
-    if (!admin) {
-      const deadline = await getDeadlineDay(supabase);
-      if (isMonthLocked(existing.avail_date, deadline, today)) {
-        throw new Error("Deadline dépassée pour ce mois");
-      }
+    if (!admin && await isMonthLocked(supabase, existing.avail_date)) {
+      throw new Error("Le planning de ce mois est publié — tu ne peux plus modifier tes dispos.");
     }
 
     const { error } = await supabase.from("availabilities").delete().eq("id", data.id);
