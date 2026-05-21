@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Sheet, FormField, TextArea, PrimaryButton, fmtRelative } from "./shared";
-import { AlertCircle, GraduationCap, Check, Play, Replace, Clock, X as XIcon, ChevronDown } from "lucide-react";
+import { AlertCircle, GraduationCap, Check, Play, Clock, X as XIcon, ChevronDown, CalendarOff } from "lucide-react";
+import { createModificationRequest, cancelMyRequest } from "@/lib/demandes.functions";
 
 type SignalCategory = "stock" | "materiel" | "hygiene" | "autre";
 const CATS: { key: SignalCategory; label: string }[] = [
@@ -59,12 +61,12 @@ export function SignalementSheet({ open, onClose, userId, studioId }: { open: bo
   );
 }
 
-type ReqType = "swap" | "cancel" | "time_change";
+type ReqType = "cancel" | "time_change" | "unavailable";
 type Urgency = "normal" | "urgent" | "critique";
-const REQ_TYPES: { key: ReqType; label: string; icon: typeof Replace }[] = [
-  { key: "swap", label: "Échanger", icon: Replace },
-  { key: "cancel", label: "Annuler", icon: XIcon },
-  { key: "time_change", label: "Décaler", icon: Clock },
+const REQ_TYPES: { key: ReqType; label: string; desc: string; icon: typeof XIcon }[] = [
+  { key: "cancel", label: "Annuler ce shift", desc: "Tu ne pourras pas être là", icon: XIcon },
+  { key: "time_change", label: "Décaler", desc: "Propose un autre créneau le même jour", icon: Clock },
+  { key: "unavailable", label: "Indispo future", desc: "Signale une période d'indisponibilité", icon: CalendarOff },
 ];
 
 interface ShiftOption {
@@ -80,20 +82,28 @@ function urgencyFromDate(shiftDate: string, startTime: string): Urgency {
 }
 
 export function RequestModificationSheet({ open, onClose, userId, shiftId }: { open: boolean; onClose: () => void; userId: string; shiftId: string | null }) {
-  const [type, setType] = useState<ReqType>("swap");
+  const [type, setType] = useState<ReqType>("cancel");
   const [urgency, setUrgency] = useState<Urgency>("normal");
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [shifts, setShifts] = useState<ShiftOption[]>([]);
   const [selectedShift, setSelectedShift] = useState<string | null>(null);
+  const [propStart, setPropStart] = useState("");
+  const [propEnd, setPropEnd] = useState("");
+  const [unavailStart, setUnavailStart] = useState("");
+  const [unavailEnd, setUnavailEnd] = useState("");
+
+  const createFn = useServerFn(createModificationRequest);
 
   useEffect(() => {
     if (!open) return;
-    setType("swap"); setUrgency("normal"); setReason("");
+    setType("cancel"); setUrgency("normal"); setReason("");
     setSelectedShift(shiftId || null);
+    setPropStart(""); setPropEnd("");
+    const today = new Date().toISOString().slice(0, 10);
+    setUnavailStart(today); setUnavailEnd(today);
 
     (async () => {
-      const today = new Date().toISOString().slice(0, 10);
       const { data } = await supabase.from("shifts")
         .select("id,shift_date,start_time,end_time,business_role")
         .eq("user_id", userId)
@@ -103,24 +113,47 @@ export function RequestModificationSheet({ open, onClose, userId, shiftId }: { o
     })();
   }, [open, userId, shiftId]);
 
-  // Auto-update urgency selon le shift choisi
   useEffect(() => {
     if (!selectedShift) return;
     const s = shifts.find(x => x.id === selectedShift);
-    if (s) setUrgency(urgencyFromDate(s.shift_date, s.start_time));
-  }, [selectedShift, shifts]);
+    if (!s) return;
+    setUrgency(urgencyFromDate(s.shift_date, s.start_time));
+    if (type === "time_change" && !propStart) {
+      setPropStart(s.start_time.slice(0, 5));
+      setPropEnd(s.end_time.slice(0, 5));
+    }
+  }, [selectedShift, shifts, type, propStart]);
+
+  const needsShift = type === "cancel" || type === "time_change";
 
   const submit = async () => {
-    if (!selectedShift) { toast.error("Sélectionne un shift"); return; }
-    if (!reason.trim()) { toast.error("Indique la raison"); return; }
+    if (reason.trim().length === 0) { toast.error("Indique la raison"); return; }
+    if (needsShift && !selectedShift) { toast.error("Sélectionne un shift"); return; }
+    if (type === "time_change" && (!propStart || !propEnd)) { toast.error("Indique le créneau proposé"); return; }
+    if (type === "unavailable" && (!unavailStart || !unavailEnd)) { toast.error("Indique la période"); return; }
+    if (type === "unavailable" && unavailStart > unavailEnd) { toast.error("La date de fin doit être après le début"); return; }
+
     setSubmitting(true);
-    const { error } = await supabase.from("modification_requests").insert({
-      user_id: userId, shift_id: selectedShift, type, urgency, reason: reason.trim(),
-    });
-    setSubmitting(false);
-    if (error) { toast.error("Erreur d'envoi"); return; }
-    toast.success("Demande envoyée à l'admin");
-    onClose();
+    try {
+      await createFn({
+        data: {
+          type,
+          shiftId: needsShift ? selectedShift : null,
+          reason: reason.trim(),
+          urgency,
+          proposedStartTime: type === "time_change" ? propStart : null,
+          proposedEndTime: type === "time_change" ? propEnd : null,
+          proposedStartDate: type === "unavailable" ? unavailStart : null,
+          proposedEndDate: type === "unavailable" ? unavailEnd : null,
+        },
+      });
+      toast.success("Demande envoyée, tu seras notifié de la décision");
+      onClose();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erreur d'envoi");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const formatShiftLabel = (s: ShiftOption) => {
@@ -132,41 +165,65 @@ export function RequestModificationSheet({ open, onClose, userId, shiftId }: { o
 
   return (
     <Sheet open={open} onClose={onClose} title="Modifier un shift">
-      <FormField label="Quel shift ?" hint={shifts.length === 0 ? undefined : "Choisis le shift concerné par ta demande."}>
-        {shifts.length === 0 ? (
-          <div className="rounded-md px-3 py-3" style={{ fontSize: 12, backgroundColor: "var(--muted)", color: "var(--muted-foreground)", lineHeight: 1.5 }}>
-            Aucun shift à venir. Tes shifts s'afficheront ici une fois que l'admin aura généré le planning à partir de tes dispos.
-          </div>
-        ) : (
-          <ShiftDropdown
-            shifts={shifts}
-            value={selected}
-            onChange={(id) => setSelectedShift(id)}
-            formatLabel={formatShiftLabel}
-          />
-        )}
-      </FormField>
-
-      <FormField label="Type">
-        <div className="grid grid-cols-3 gap-1.5">
+      <FormField label="Que veux-tu faire ?">
+        <div className="flex flex-col gap-1.5">
           {REQ_TYPES.map(t => {
             const active = type === t.key;
+            const Icon = t.icon;
             return (
-              <button key={t.key} onClick={() => setType(t.key)} className="rounded-md py-2.5 flex flex-col items-center gap-1"
+              <button key={t.key} onClick={() => setType(t.key)} className="rounded-md px-3 py-2.5 flex items-center gap-3 text-left transition-colors"
                 style={{
-                  fontSize: 11, fontWeight: active ? 500 : 400,
-                  backgroundColor: active ? "var(--coral)" : "#fff",
-                  color: active ? "var(--coral-text)" : "var(--foreground)",
+                  backgroundColor: active ? "var(--coral-light)" : "#fff",
                   border: `0.5px solid ${active ? "var(--coral)" : "rgba(0,0,0,0.12)"}`,
                 }}>
-                <t.icon size={14} />
-                {t.label}
+                <Icon size={16} style={{ color: active ? "var(--coral-dark)" : "var(--muted-foreground)" }} />
+                <div className="flex-1">
+                  <div style={{ fontSize: 12, fontWeight: 500, color: active ? "var(--coral-dark)" : "var(--foreground)" }}>{t.label}</div>
+                  <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{t.desc}</div>
+                </div>
               </button>
             );
           })}
         </div>
       </FormField>
-      <FormField label="Urgence" hint="Calculée automatiquement selon la date du shift, mais tu peux ajuster.">
+
+      {needsShift && (
+        <FormField label="Quel shift ?" hint={shifts.length === 0 ? undefined : "Choisis le shift concerné."}>
+          {shifts.length === 0 ? (
+            <div className="rounded-md px-3 py-3" style={{ fontSize: 12, backgroundColor: "var(--muted)", color: "var(--muted-foreground)", lineHeight: 1.5 }}>
+              Aucun shift à venir.
+            </div>
+          ) : (
+            <ShiftDropdown shifts={shifts} value={selected} onChange={(id) => setSelectedShift(id)} formatLabel={formatShiftLabel} />
+          )}
+        </FormField>
+      )}
+
+      {type === "time_change" && selected && (
+        <FormField label="Nouveau créneau proposé">
+          <div className="flex items-center gap-2">
+            <input type="time" value={propStart} onChange={e => setPropStart(e.target.value)}
+              className="rounded-md px-2.5 py-2 flex-1" style={{ fontSize: 12, border: "0.5px solid rgba(0,0,0,0.12)" }} />
+            <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>→</span>
+            <input type="time" value={propEnd} onChange={e => setPropEnd(e.target.value)}
+              className="rounded-md px-2.5 py-2 flex-1" style={{ fontSize: 12, border: "0.5px solid rgba(0,0,0,0.12)" }} />
+          </div>
+        </FormField>
+      )}
+
+      {type === "unavailable" && (
+        <FormField label="Période d'indisponibilité">
+          <div className="flex items-center gap-2">
+            <input type="date" value={unavailStart} onChange={e => setUnavailStart(e.target.value)}
+              className="rounded-md px-2.5 py-2 flex-1" style={{ fontSize: 12, border: "0.5px solid rgba(0,0,0,0.12)" }} />
+            <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>→</span>
+            <input type="date" value={unavailEnd} onChange={e => setUnavailEnd(e.target.value)}
+              className="rounded-md px-2.5 py-2 flex-1" style={{ fontSize: 12, border: "0.5px solid rgba(0,0,0,0.12)" }} />
+          </div>
+        </FormField>
+      )}
+
+      <FormField label="Urgence">
         <div className="grid grid-cols-3 gap-1.5">
           {(["normal","urgent","critique"] as Urgency[]).map(u => {
             const labels: Record<Urgency, string> = { normal: "Normale", urgent: "Urgente", critique: "Critique" };
@@ -183,8 +240,8 @@ export function RequestModificationSheet({ open, onClose, userId, shiftId }: { o
           })}
         </div>
       </FormField>
-      <FormField label="Raison" hint="Sois précis : ça aide l'admin à décider rapidement.">
-        <TextArea value={reason} onChange={setReason} rows={5}
+      <FormField label="Raison" hint="Max 500 caractères.">
+        <TextArea value={reason} onChange={(v) => setReason(v.slice(0, 500))} rows={4}
           placeholder="Ex: Examen ce matin-là / Maladie / Conflit avec un autre engagement..." />
       </FormField>
       <div className="mt-2"><PrimaryButton onClick={submit} disabled={submitting}>{submitting ? "Envoi…" : "Envoyer la demande"}</PrimaryButton></div>
@@ -277,7 +334,7 @@ export function MyRequestsSheet({ open, onClose, userId }: { open: boolean; onCl
     accepted: { label: "Acceptée", bg: "var(--success-bg)", color: "var(--success-text)" },
     refused: { label: "Refusée", bg: "var(--danger-bg)", color: "var(--danger-text)" },
   };
-  const typeLabels: Record<string, string> = { swap: "Échange", cancel: "Annulation", time_change: "Changement d'horaire" };
+  const typeLabels: Record<string, string> = { swap: "Échange", cancel: "Annulation", time_change: "Changement d'horaire", unavailable: "Indisponibilité" };
   const urgencyLabels: Record<string, string> = { normal: "Normale", urgent: "Urgente", critique: "Critique" };
 
   const formatShift = (shiftId: string | null) => {
