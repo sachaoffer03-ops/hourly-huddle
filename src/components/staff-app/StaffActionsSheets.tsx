@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Sheet, FormField, TextArea, PrimaryButton, fmtRelative } from "./shared";
-import { AlertCircle, GraduationCap, Check, Play, Replace, Clock, X as XIcon, ChevronDown } from "lucide-react";
+import { AlertCircle, GraduationCap, Check, Play, Clock, X as XIcon, ChevronDown, CalendarOff } from "lucide-react";
+import { createModificationRequest, cancelMyRequest } from "@/lib/demandes.functions";
 
 type SignalCategory = "stock" | "materiel" | "hygiene" | "autre";
 const CATS: { key: SignalCategory; label: string }[] = [
