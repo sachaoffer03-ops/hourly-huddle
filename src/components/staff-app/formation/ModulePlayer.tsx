@@ -24,7 +24,7 @@ export function ModulePlayer({ module, firstName, initials, reviewMode, onBack, 
   const hasQuiz = !!module.quiz;
   const totalSteps = contents.length + (hasQuiz ? 1 : 0);
   const [step, setStep] = useState(0);
-  const [localCompleted, setLocalCompleted] = useState<Set<string>>(() => new Set(contents.filter((c) => c.status === "completed").map((c) => c.id)));
+  const [localCompleted, setLocalCompleted] = useState<Set<string>>(() => new Set(contents.filter((c: any) => c.status === "completed").map((c: any) => c.id)));
   const updateProgress = useServerFn(updateContentProgress);
   const sentRef = useRef<Set<string>>(new Set());
 
