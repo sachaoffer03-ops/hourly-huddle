@@ -150,7 +150,6 @@ export const updateAvailability = createServerFn({ method: "POST" })
   .inputValidator((i) => UpdateInput.parse(i))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const today = new Date();
     const todayStr = todayIso();
     const admin = await isAdmin(supabase, userId);
 
@@ -167,11 +166,8 @@ export const updateAvailability = createServerFn({ method: "POST" })
       throw new Error("Impossible de modifier une dispo passée");
     }
 
-    if (!admin) {
-      const deadline = await getDeadlineDay(supabase);
-      if (isMonthLocked(existing.avail_date, deadline, today)) {
-        throw new Error(`Deadline dépassée pour ce mois`);
-      }
+    if (!admin && await isMonthLocked(supabase, existing.avail_date)) {
+      throw new Error("Le planning de ce mois est publié — tu ne peux plus modifier tes dispos.");
     }
 
     const { s, e } = validateRangeShape(data.start_time, data.end_time);
