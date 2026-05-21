@@ -263,7 +263,7 @@ export const resetDemoEnvironment = createServerFn({ method: "POST" })
         { studio_id: studio.id, question_text: "Comment s'est passé ton service ?", response_type: "stars_1_5", order_index: 0, is_required: true },
         { studio_id: studio.id, question_text: "Tout le matériel fonctionne correctement ?", response_type: "yes_no", order_index: 1, is_required: true },
         { studio_id: studio.id, question_text: "Note de l'affluence aujourd'hui", response_type: "stars_1_5", order_index: 2, is_required: false },
-        { studio_id: studio.id, question_text: "As-tu un message pour la relève ?", response_type: "text", order_index: 3, is_required: false },
+        { studio_id: studio.id, question_text: "As-tu un message pour la relève ?", response_type: "free_text", order_index: 3, is_required: false },
         { studio_id: studio.id, question_text: "Stock suffisant pour demain ?", response_type: "yes_no", order_index: 4, is_required: true },
       ]);
       log.push("5 questions de clôture créées");
