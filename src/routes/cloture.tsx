@@ -742,13 +742,15 @@ function DuplicateButton({ items, currentRoleId, studioId, phase = "closing" }: 
 // SECTION C — PHOTOS & AI
 // ============================================================
 
-function PhotosSection({ studioId }: { studioId: string }) {
+function PhotosSection({ studioId, phase = "closing" }: { studioId: string; phase?: "opening" | "closing" }) {
   const { roles } = useBusinessRoles({ onlyActive: true });
   const [roleId, setRoleId] = useState<string | null>(null);
   useEffect(() => { if (!roleId && roles.length > 0) setRoleId(roles[0].id); }, [roles, roleId]);
 
+  const title = phase === "opening" ? "Photos d'ouverture" : "Photos de clôture & analyse IA";
+
   return (
-    <SectionCard icon={Camera} title="Photos de clôture & analyse IA">
+    <SectionCard icon={Camera} title={title}>
       <div className="flex flex-wrap gap-1.5 mb-4">
         {roles.map((r) => {
           const active = r.id === roleId;
@@ -770,13 +772,13 @@ function PhotosSection({ studioId }: { studioId: string }) {
           );
         })}
       </div>
-      {roleId && <PhotosEditor studioId={studioId} roleId={roleId} roleName={roles.find((r) => r.id === roleId)?.name ?? ""} />}
+      {roleId && <PhotosEditor studioId={studioId} roleId={roleId} roleName={roles.find((r) => r.id === roleId)?.name ?? ""} phase={phase} />}
     </SectionCard>
   );
 }
 
-function PhotosEditor({ studioId, roleId, roleName }: { studioId: string; roleId: string; roleName: string }) {
-  const { template, loading, setTemplate } = useTemplate(studioId, roleId);
+function PhotosEditor({ studioId, roleId, roleName, phase = "closing" }: { studioId: string; roleId: string; roleName: string; phase?: "opening" | "closing" }) {
+  const { template, loading, setTemplate } = useTemplate(studioId, roleId, phase);
   const [photos, setPhotos] = useState<any[]>([]);
   const [editing, setEditing] = useState<any | null>(null);
   const [editingIsNew, setEditingIsNew] = useState(false);
