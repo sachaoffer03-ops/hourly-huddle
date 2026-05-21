@@ -645,6 +645,7 @@ function PlanningTab({ studios, userId }: { studios: Record<string, string>; use
   const [loading, setLoading] = useState(true);
   const [shiftDetail, setShiftDetail] = useState<ShiftRow | null>(null);
   const [endShift, setEndShift] = useState<ShiftRow | null>(null);
+  const [clockInShift, setClockInShift] = useState<ShiftRow | null>(null);
   const [reqOpen, setReqOpen] = useState(false);
   const [reqShiftId, setReqShiftId] = useState<string | null>(null);
 
