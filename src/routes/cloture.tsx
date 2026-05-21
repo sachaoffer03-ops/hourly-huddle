@@ -30,7 +30,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 const clotureSearchSchema = z.object({
-  tab: fallback(z.enum(["config", "notation"]), "config").default("config"),
+  tab: fallback(z.enum(["config", "opening", "notation"]), "config").default("config"),
 });
 
 export const Route = createFileRoute("/cloture")({
