@@ -21,7 +21,7 @@ const pageTitles: Record<string, string> = {
   "/contingents": "Quotas étudiants",
   "/studios": "Studios & postes",
   "/reglages": "Réglages",
-  "/notifications": "Notifications",
+  
 };
 
 interface NotifRow {
