@@ -39,7 +39,7 @@ export function CourseDetailView({ courseId, firstName, initials, onBack, onCour
           setOpenModule(null);
           const fresh = await getCourse({ data: { courseId } });
           setData(fresh);
-          if (fresh.completedAt && !data.completedAt) onCourseCompleted(fresh.course);
+          if (fresh.completedAt && !data.completedAt) onCourseCompleted(fresh);
         }}
       />
     );
