@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts";
-import { Wallet, Clock, FileCheck, Star, TrendingUp, TrendingDown, Minus, GraduationCap, Award, Lock } from "lucide-react";
+import { Wallet, Clock, FileCheck, TrendingUp, TrendingDown, Minus, GraduationCap, Award, Lock } from "lucide-react";
 import { getMyStats } from "@/lib/my-stats.functions";
 import { getMyAssignedCourses } from "@/lib/formation.functions";
+
 
 type Stats = Awaited<ReturnType<typeof getMyStats>>;
 type Formation = Awaited<ReturnType<typeof getMyAssignedCourses>>;
@@ -106,7 +106,7 @@ export function MyStatsCard() {
   if (loading) return <Skeleton />;
   if (!stats) return null;
 
-  const { earnings, weekHours, lastShiftDimona, career, score } = stats;
+  const { earnings, weekHours, lastShiftDimona, career } = stats;
 
   // delta couleur
   const deltaColor = earnings.delta > 0 ? "#16a34a" : earnings.delta < 0 ? "#dc2626" : "var(--muted-foreground)";
@@ -119,9 +119,6 @@ export function MyStatsCard() {
   // dimona
   const dimonaInfo = lastShiftDimona.status ? DIMONA_LABEL[lastShiftDimona.status] : null;
 
-  // score color
-  const scoreColor = score.current >= 7 ? "#16a34a" : score.current >= 5 ? "#ea8a00" : "#dc2626";
-  const sparkData = score.sparkline30d.map((value, i) => ({ i, value }));
 
   return (
     <>
@@ -132,7 +129,8 @@ export function MyStatsCard() {
         className="rounded-xl border p-3"
         style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)" }}
       >
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
+
           {/* Gains ce mois */}
           <SubCard title="Gains ce mois" icon={<Wallet size={11} />}>
             {!earnings.hasRate ? (
@@ -214,25 +212,8 @@ export function MyStatsCard() {
             )}
           </SubCard>
 
-          {/* Score */}
-          <SubCard title="Mon score" icon={<Star size={11} />}>
-            <div className="flex items-baseline gap-1" style={{ marginTop: 2 }}>
-              <span style={{ fontSize: 22, fontWeight: 500, lineHeight: 1.1, color: scoreColor }}>
-                {score.current.toFixed(1).replace(".", ",")}
-              </span>
-              <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>/ 10</span>
-            </div>
-            <div style={{ height: 28, marginTop: 2 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={sparkData}>
-                  <YAxis hide domain={[0, 10]} />
-                  <Line type="monotone" dataKey="value" stroke={scoreColor} strokeWidth={1.5} dot={false} isAnimationActive={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            <div style={{ fontSize: 10, color: "var(--muted-foreground)" }}>30 derniers jours</div>
-          </SubCard>
         </div>
+
 
         {/* Carrière */}
         <div
