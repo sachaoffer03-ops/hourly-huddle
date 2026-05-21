@@ -281,7 +281,8 @@ export const acceptReplacementProposal = createServerFn({ method: "POST" })
         type: "replacement_accepted",
         title: "Remplaçant trouvé",
         body,
-        link: "/demandes",
+        link: adminLink({ kind: "request", requestId: req.id }),
+        category: "request",
       });
     }
     // Notifie l'employé d'origine
@@ -290,7 +291,8 @@ export const acceptReplacementProposal = createServerFn({ method: "POST" })
       type: "request_accepted",
       title: "Demande acceptée",
       body: `Un remplaçant a été trouvé. ${body}`,
-      link: "/staff-app",
+      link: employeeLink({ kind: "request", requestId: req.id }),
+      category: "request",
     });
 
     return { ok: true };
