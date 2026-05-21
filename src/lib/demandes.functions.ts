@@ -85,7 +85,7 @@ export const cancelMyRequest = createServerFn({ method: "POST" })
 
 // ───────────────────────── ADMIN ─────────────────────────
 
-async function notifyEmployee(userId: string, reqType: string, status: "accepted" | "refused", note?: string) {
+async function notifyEmployee(userId: string, reqType: string, status: "accepted" | "refused", note?: string, requestId?: string) {
   const typeLabel: Record<string, string> = {
     cancel: "annulation",
     time_change: "changement d'horaire",
@@ -101,7 +101,7 @@ async function notifyEmployee(userId: string, reqType: string, status: "accepted
     type: "modification_request_resolved",
     title: status === "accepted" ? "Demande acceptée" : "Demande refusée",
     body,
-    link: "/staff-app",
+    link: requestId ? `/staff-app?tab=planning&request=${requestId}` : "/staff-app?tab=planning",
     priority: "info",
     category: "request",
   });
