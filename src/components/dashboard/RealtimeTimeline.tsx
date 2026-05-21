@@ -299,32 +299,26 @@ function StudioPill({ label, active, onClick }: { label: string; active: boolean
   );
 }
 
-const NowLine = (() => {
-  function Inner(
-    { now }: { now: Date },
-    ref: React.Ref<HTMLDivElement>,
-  ) {
-    return (
-      <div ref={ref} className="flex items-center gap-2 py-1 my-1">
-        <span
-          className="rounded-md px-2.5 py-1 shrink-0"
-          style={{
-            fontSize: 10,
-            fontWeight: 500,
-            letterSpacing: "0.06em",
-            backgroundColor: "var(--coral)",
-            color: "white",
-            textTransform: "uppercase",
-          }}
-        >
-          Maintenant · {fmtHMS(now)}
-        </span>
-        <div className="flex-1" style={{ height: 1, backgroundColor: "var(--coral)", opacity: 0.6 }} />
-      </div>
-    );
-  }
-  return (require("react") as any).forwardRef(Inner) as (props: { now: Date } & { ref?: React.Ref<HTMLDivElement> }) => JSX.Element;
-})();
+const NowLine = forwardRef<HTMLDivElement, { now: Date }>(function NowLine({ now }, ref) {
+  return (
+    <div ref={ref} className="flex items-center gap-2 py-1 my-1">
+      <span
+        className="rounded-md px-2.5 py-1 shrink-0"
+        style={{
+          fontSize: 10,
+          fontWeight: 500,
+          letterSpacing: "0.06em",
+          backgroundColor: "var(--coral)",
+          color: "white",
+          textTransform: "uppercase",
+        }}
+      >
+        Maintenant · {fmtHMS(now)}
+      </span>
+      <div className="flex-1" style={{ height: 1, backgroundColor: "var(--coral)", opacity: 0.6 }} />
+    </div>
+  );
+});
 
 function ShiftRow({
   shift,
