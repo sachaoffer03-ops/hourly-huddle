@@ -1005,6 +1005,7 @@ function PointageTab({ studios, userId }: { studios: Record<string, string>; use
   const [last, setLast] = useState<PointageShiftRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [endShift, setEndShift] = useState<ShiftRow | null>(null);
+  const [clockInShift, setClockInShift] = useState<ShiftRow | null>(null);
   const [nowTs, setNowTs] = useState(Date.now());
   const navigate = useNavigate();
   useEffect(() => {
@@ -1046,10 +1047,9 @@ function PointageTab({ studios, userId }: { studios: Record<string, string>; use
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  async function clockIn(s: ShiftRow) {
-    const { error } = await supabase.from("shifts").update({ clocked_in_at: new Date().toISOString() }).eq("id", s.id);
-    if (error) toast.error("Impossible de pointer", { description: error.message });
-    else toast.success("Arrivée enregistrée");
+  function clockIn(s: ShiftRow) {
+    if (s.clocked_in_at) { toast.info("Arrivée déjà pointée"); return; }
+    setClockInShift(s);
   }
 
   async function clockOut(s: ShiftRow) {
