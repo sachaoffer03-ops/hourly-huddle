@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts";
-import { Wallet, Clock, FileCheck, Star, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Wallet, Clock, FileCheck, Star, TrendingUp, TrendingDown, Minus, GraduationCap, Award, Lock } from "lucide-react";
 import { getMyStats } from "@/lib/my-stats.functions";
+import { getMyAssignedCourses } from "@/lib/formation.functions";
 
 type Stats = Awaited<ReturnType<typeof getMyStats>>;
+type Formation = Awaited<ReturnType<typeof getMyAssignedCourses>>;
 
 function fmtMoney(n: number): string {
   return n.toFixed(2).replace(".", ",") + " €";
@@ -74,16 +76,32 @@ function Skeleton() {
 
 export function MyStatsCard() {
   const fetchStats = useServerFn(getMyStats);
+  const fetchFormation = useServerFn(getMyAssignedCourses);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [formation, setFormation] = useState<Formation | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancel = false;
-    fetchStats({})
-      .then((s) => { if (!cancel) { setStats(s); setLoading(false); } })
+    Promise.all([fetchStats({}), fetchFormation({}).catch(() => null)])
+      .then(([s, f]) => { if (!cancel) { setStats(s); setFormation(f as Formation | null); setLoading(false); } })
       .catch(() => { if (!cancel) setLoading(false); });
     return () => { cancel = true; };
-  }, [fetchStats]);
+  }, [fetchStats, fetchFormation]);
+
+  // Badges en mémoire (clé : completedCount). Si l'utilisateur ouvre l'app et a un nouveau parcours validé depuis sa dernière visite → "Nouveau badge !"
+  const newBadge = useMemo(() => {
+    if (!formation) return false;
+    const done = formation.summary.completedCourses;
+    try {
+      const last = parseInt(sessionStorage.getItem("formation_badges_seen") ?? "-1", 10);
+      if (done > last) {
+        sessionStorage.setItem("formation_badges_seen", String(done));
+        return last >= 0 && done > last;
+      }
+    } catch {}
+    return false;
+  }, [formation]);
 
   if (loading) return <Skeleton />;
   if (!stats) return null;
@@ -238,6 +256,42 @@ export function MyStatsCard() {
           )}
           <span>depuis ton arrivée</span>
         </div>
+
+        {/* Formation */}
+        {formation && formation.summary.totalCourses > 0 && (() => {
+          const sum = formation.summary;
+          const pct = sum.progressPct;
+          const barColor = sum.lockedPlanning ? "#ea8a00" : pct === 100 ? "#16a34a" : "var(--coral)";
+          return (
+            <div
+              className="mt-3 pt-3"
+              style={{ borderTop: "0.5px solid rgba(0,0,0,0.06)" }}
+            >
+              <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
+                <div className="flex items-center gap-1.5" style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
+                  {sum.lockedPlanning ? <Lock size={12} /> : <GraduationCap size={12} />}
+                  <span style={{ fontWeight: 500, color: "var(--foreground)" }}>Formation</span>
+                  <span>·</span>
+                  <span>{sum.completedCourses}/{sum.totalCourses} parcours</span>
+                  {newBadge && (
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{ fontSize: 10, fontWeight: 500, backgroundColor: "var(--coral-light)", color: "var(--coral-dark)", border: "0.5px solid var(--coral)" }}>
+                      <Award size={10} /> Nouveau badge
+                    </span>
+                  )}
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 500, color: "var(--foreground)" }}>{pct}%</span>
+              </div>
+              <div style={{ width: "100%", height: 5, borderRadius: 3, backgroundColor: "var(--muted)" }}>
+                <div style={{ width: `${pct}%`, height: "100%", borderRadius: 3, backgroundColor: barColor, transition: "width 0.3s" }} />
+              </div>
+              {sum.lockedPlanning && (
+                <div style={{ fontSize: 10, color: "#9A3412", marginTop: 4 }}>
+                  Termine {sum.blockingCourses.map((c: any) => `"${c.title}"`).join(", ")} pour débloquer ton planning
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </>
   );

@@ -16,6 +16,7 @@ import { ShiftDetailSheet, DocumentsSheet, NotificationsSheet } from "@/componen
 import { EditProfileSheet, type EditableProfile } from "@/components/staff-app/EditProfileSheet";
 import { DisposSheet, disposKey } from "@/components/staff-app/DisposSheet";
 import { FormationPanel } from "@/components/staff-app/FormationPanel";
+import { FormationNotifBanner } from "@/components/staff-app/formation/FormationNotifBanner";
 import { ChatPanel } from "@/components/staff-app/ChatPanel";
 import { useStaffNotifications } from "@/hooks/use-staff-notifications";
 import { ProposalsSheet, useProposals } from "@/components/staff-app/ProposalsSheet";
@@ -101,7 +102,7 @@ function StaffAppPage() {
       {tab !== "accueil" && <BellButton userId={user.id} onOpen={() => setNotifOpen(true)} />}
 
       <div className="flex-1 overflow-y-auto pb-20">
-        {tab === "accueil" && <AccueilTab profile={profile} studios={studios} studioClockOut={studioClockOut} userId={user.id} onOpenNotifs={() => setNotifOpen(true)} />}
+        {tab === "accueil" && <AccueilTab profile={profile} studios={studios} studioClockOut={studioClockOut} userId={user.id} onOpenNotifs={() => setNotifOpen(true)} onGoFormation={() => setTab("formation")} />}
         {tab === "planning" && <PlanningTab studios={studios} userId={user.id} />}
         {tab === "pointage" && <PointageTab studios={studios} userId={user.id} />}
         {tab === "formation" && <FormationPanel userId={user.id} />}
@@ -132,7 +133,7 @@ function StaffAppPage() {
 }
 
 /* ─── ACCUEIL ─── */
-function AccueilTab({ profile, studios, studioClockOut, userId, onOpenNotifs }: { profile: ProfileRow | null; studios: Record<string, string>; studioClockOut: Record<string, { before: number; grace: number }>; userId: string; onOpenNotifs: () => void }) {
+function AccueilTab({ profile, studios, studioClockOut, userId, onOpenNotifs, onGoFormation }: { profile: ProfileRow | null; studios: Record<string, string>; studioClockOut: Record<string, { before: number; grace: number }>; userId: string; onOpenNotifs: () => void; onGoFormation: () => void }) {
   const [shifts, setShifts] = useState<ShiftRow[]>([]);
   const [weekStats, setWeekStats] = useState({ hours: 0, count: 0 });
   const [endShift, setEndShift] = useState<ShiftRow | null>(null);
@@ -469,6 +470,9 @@ function AccueilTab({ profile, studios, studioClockOut, userId, onOpenNotifs }: 
           </div>
         );
       })()}
+
+      {/* Notifications formation */}
+      <FormationNotifBanner onGoFormation={onGoFormation} />
 
       {/* Bandeau propositions de shift */}
       {proposals.length > 0 && (
