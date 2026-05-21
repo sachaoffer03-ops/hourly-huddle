@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts";
-import { Wallet, Clock, FileCheck, Star, TrendingUp, TrendingDown, Minus, AlertTriangle, ExternalLink } from "lucide-react";
+import { Wallet, Clock, FileCheck, Star, TrendingUp, TrendingDown, Minus, AlertTriangle, ExternalLink, GraduationCap, Lock } from "lucide-react";
 import { getEmployeeStats } from "@/lib/my-stats.functions";
+import { getAssignedCoursesForEmployee } from "@/lib/formation.functions";
 
 type Stats = Awaited<ReturnType<typeof getEmployeeStats>>;
+type Formation = Awaited<ReturnType<typeof getAssignedCoursesForEmployee>>;
 
 function fmtMoney(n: number): string { return n.toFixed(2).replace(".", ",") + " €"; }
 function fmtHours(n: number): string {
