@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts";
-import { Wallet, Clock, FileCheck, Star, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Wallet, Clock, FileCheck, Star, TrendingUp, TrendingDown, Minus, GraduationCap, Award, Lock } from "lucide-react";
 import { getMyStats } from "@/lib/my-stats.functions";
+import { getMyAssignedCourses } from "@/lib/formation.functions";
 
 type Stats = Awaited<ReturnType<typeof getMyStats>>;
+type Formation = Awaited<ReturnType<typeof getMyAssignedCourses>>;
 
 function fmtMoney(n: number): string {
   return n.toFixed(2).replace(".", ",") + " €";
@@ -74,16 +76,32 @@ function Skeleton() {
 
 export function MyStatsCard() {
   const fetchStats = useServerFn(getMyStats);
+  const fetchFormation = useServerFn(getMyAssignedCourses);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [formation, setFormation] = useState<Formation | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancel = false;
-    fetchStats({})
-      .then((s) => { if (!cancel) { setStats(s); setLoading(false); } })
+    Promise.all([fetchStats({}), fetchFormation({}).catch(() => null)])
+      .then(([s, f]) => { if (!cancel) { setStats(s); setFormation(f as Formation | null); setLoading(false); } })
       .catch(() => { if (!cancel) setLoading(false); });
     return () => { cancel = true; };
-  }, [fetchStats]);
+  }, [fetchStats, fetchFormation]);
+
+  // Badges en mémoire (clé : completedCount). Si l'utilisateur ouvre l'app et a un nouveau parcours validé depuis sa dernière visite → "Nouveau badge !"
+  const newBadge = useMemo(() => {
+    if (!formation) return false;
+    const done = formation.summary.completedCourses;
+    try {
+      const last = parseInt(sessionStorage.getItem("formation_badges_seen") ?? "-1", 10);
+      if (done > last) {
+        sessionStorage.setItem("formation_badges_seen", String(done));
+        return last >= 0 && done > last;
+      }
+    } catch {}
+    return false;
+  }, [formation]);
 
   if (loading) return <Skeleton />;
   if (!stats) return null;
