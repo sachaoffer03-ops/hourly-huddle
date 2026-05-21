@@ -761,15 +761,23 @@ function PlanningTab({ studios, userId }: { studios: Record<string, string>; use
       <ShiftDetailSheet
         open={!!shiftDetail} onClose={() => setShiftDetail(null)}
         shift={shiftDetail} studios={studios}
-        onClockIn={async () => {
+        onClockIn={() => {
           if (!shiftDetail) return;
           const s = shiftDetail; setShiftDetail(null);
-          const { error } = await supabase.from("shifts").update({ clocked_in_at: new Date().toISOString() }).eq("id", s.id);
-          if (error) toast.error("Impossible de pointer", { description: error.message });
-          else toast.success("Arrivée enregistrée");
+          setClockInShift(s);
         }}
         onEndShift={() => { if (shiftDetail) { const s = shiftDetail; setShiftDetail(null); handleEndShift(s); } }}
         onRequestModif={() => { if (shiftDetail) { setReqShiftId(shiftDetail.id); setShiftDetail(null); setReqOpen(true); } }}
+      />
+      <ClockInSheet
+        open={!!clockInShift}
+        onClose={() => setClockInShift(null)}
+        shift={clockInShift}
+        studios={studios}
+        onCompleted={({ clockedInAt, minutesLate }) => {
+          if (!clockInShift) return;
+          setShifts((prev) => prev.map((s) => s.id === clockInShift.id ? { ...s, clocked_in_at: clockedInAt, minutes_late: minutesLate } : s));
+        }}
       />
       <ClosureFlow
         open={!!endShift}
