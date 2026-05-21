@@ -402,9 +402,14 @@ export const resetDemoEnvironment = createServerFn({ method: "POST" })
         .from("training_courses").select("id").eq("business_role_id", baristaRole.id).eq("is_published", true).limit(1);
       const courseId = courses?.[0]?.id;
       if (courseId) {
-        const { data: modules } = await supabaseAdmin
-          .from("training_modules").select("id").eq("course_id", courseId);
+        const { data: sections } = await supabaseAdmin
+          .from("training_sections").select("id").eq("course_id", courseId);
+        const sectionIds = (sections ?? []).map((s: any) => s.id);
+        const { data: modules } = sectionIds.length
+          ? await supabaseAdmin.from("training_modules").select("id").in("section_id", sectionIds)
+          : { data: [] as any[] };
         const moduleIds = (modules ?? []).map((m: any) => m.id);
+
         if (moduleIds.length > 0) {
           const { data: contents } = await supabaseAdmin
             .from("training_contents").select("id, duration_seconds").in("module_id", moduleIds);
