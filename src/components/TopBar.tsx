@@ -6,6 +6,7 @@ import { CreateShiftModal } from "@/components/CreateShiftModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getCategoryMeta, getPriorityMeta, formatRelativeFr } from "@/lib/notifications-meta";
+import { fallbackLinkByCategory } from "@/lib/notif-links";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
