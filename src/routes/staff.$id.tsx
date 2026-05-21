@@ -199,6 +199,14 @@ function EmployeeDetailPage() {
       <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="profil">Profil</TabsTrigger>
+          <TabsTrigger value="documents">
+            Documents
+            {unviewedDocs > 0 && (
+              <span className="ml-1.5 rounded-full px-1.5" style={{ fontSize: 10, backgroundColor: "var(--coral)", color: "var(--coral-text)" }}>
+                {unviewedDocs}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="formation">Formation</TabsTrigger>
         </TabsList>
         <TabsContent value="profil">
