@@ -10,6 +10,7 @@ import {
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { notifyOverdueClockOutsFn } from "@/lib/closure-flow.functions";
+import { saveClosureQuestionsConfig, updateStudioClosureConfig } from "@/lib/cloture-config.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useStudios } from "@/hooks/use-studios";
@@ -555,6 +556,7 @@ const OVERDUE_LABELS: Record<string, string> = {
 };
 
 function ClockOutSection({ studio }: { studio: any }) {
+  const updateStudioConfig = useServerFn(updateStudioClosureConfig);
   const initial = useMemo(() => ({
     graceIn: studio.clock_in_grace_period_min ?? 15,
     before: studio.clock_out_button_appears_before_min ?? 15,
@@ -569,13 +571,12 @@ function ClockOutSection({ studio }: { studio: any }) {
   const save = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase.from("studios").update({
+      await updateStudioConfig({ data: { studioId: studio.id, patch: {
         clock_in_grace_period_min: draft.graceIn,
         clock_out_button_appears_before_min: draft.before,
         clock_out_grace_period_min: draft.grace,
         clock_out_overdue_action: draft.action,
-      }).eq("id", studio.id);
-      if (error) throw error;
+      } } });
       confirmSaved(draft);
       flashSaved();
       toast.success("✓ Configuration du pointage enregistrée");
@@ -1388,14 +1389,36 @@ const QR_RENEWAL_OPTIONS = [
 ];
 
 function QrSection({ studio }: { studio: any }) {
-  const update = async (patch: any) => {
-    const { error } = await supabase.from("studios").update(patch).eq("id", studio.id);
-    if (error) toast.error(error.message); else flashSaved();
+  const updateStudioConfig = useServerFn(updateStudioClosureConfig);
+  const initial = useMemo(() => ({
+    renewal: studio.qr_renewal_seconds ?? 60,
+    currentCode: studio.current_qr_code ?? "",
+  }), [studio.id, studio.qr_renewal_seconds, studio.current_qr_code]);
+  const { draft, setDraft, isDirty, confirmSaved, revert, reset } = useDraftState(initial);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { reset(initial); }, [initial, reset]);
+  useDirtySection(`qr-${studio.id}`, isDirty);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await updateStudioConfig({ data: { studioId: studio.id, patch: {
+        qr_renewal_seconds: draft.renewal,
+        current_qr_code: draft.currentCode || null,
+      } } });
+      confirmSaved(draft);
+      flashSaved();
+      toast.success("✓ QR code enregistré");
+    } catch (e: any) {
+      toast.error(`Erreur : ${e.message ?? e}`);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const regenerate = async () => {
-    await update({ current_qr_code: randomCode(5) });
-    toast.success("Code régénéré");
+    setDraft({ ...draft, currentCode: randomCode(5) });
   };
 
   return (
@@ -1403,10 +1426,11 @@ function QrSection({ studio }: { studio: any }) {
       icon={QrCode}
       title="QR code de clôture"
       subtitle="Un QR code unique s'affiche sur la tablette posée à l'accueil du studio. Il change automatiquement à l'intervalle ci-dessous pour empêcher qu'un employé pointe à distance."
+      right={<SaveButton isDirty={isDirty} saving={saving} onSave={save} onRevert={revert} />}
     >
       <div className="flex flex-wrap gap-5">
         <Field label="Renouvellement du code">
-          <Select value={String(studio.qr_renewal_seconds ?? 60)} onValueChange={(v) => update({ qr_renewal_seconds: parseInt(v, 10) })}>
+          <Select value={String(draft.renewal)} onValueChange={(v) => setDraft({ ...draft, renewal: parseInt(v, 10) })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {QR_RENEWAL_OPTIONS.map((o) => <SelectItem key={o.v} value={String(o.v)}>{o.l}</SelectItem>)}
@@ -1430,12 +1454,12 @@ function QrSection({ studio }: { studio: any }) {
         <div style={{ flex: 1, minWidth: 240 }}>
           <div style={{ fontWeight: 500, marginBottom: 2 }}>Code actuellement affiché sur la tablette de <b>{studio.name}</b></div>
           <div style={{ color: "var(--muted-foreground)" }}>
-            C'est le code que l'employé scanne (ou tape) à la fin de son shift. Il se renouvelle automatiquement toutes les {studio.qr_renewal_seconds ?? 60} secondes.
+            C'est le code que l'employé scanne (ou tape) à la fin de son shift. Il se renouvelle automatiquement toutes les {draft.renewal} secondes.
           </div>
         </div>
         <div className="flex items-center gap-3">
           <span className="px-2.5 py-1.5 rounded" style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 14, backgroundColor: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)" }}>
-            {studio.current_qr_code ?? "—"}
+            {draft.currentCode || "—"}
           </span>
           <button onClick={regenerate}
             className="rounded-md border px-3 py-1.5 flex items-center gap-1.5"
@@ -1459,18 +1483,21 @@ const RESPONSE_TYPES: Record<string, string> = {
 };
 
 function QuestionsSection({ studioId }: { studioId: string }) {
-  const [questions, setQuestions] = useState<any[]>([]);
+  const saveQuestionsConfig = useServerFn(saveClosureQuestionsConfig);
+  const { draft: questions, setDraft: setQuestions, isDirty, confirmSaved, revert, reset } = useDraftState<any[]>([]);
+  const [saving, setSaving] = useState(false);
 
-  const reload = useCallback(async () => {
+  const loadQuestions = useCallback(async () => {
     const { data } = await supabase
       .from("closure_questions" as any)
       .select("*")
       .eq("studio_id", studioId)
       .order("order_index");
-    setQuestions((data as any) ?? []);
+    return ((data as any) ?? []) as any[];
   }, [studioId]);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => { loadQuestions().then(reset); }, [loadQuestions, reset]);
+  useDirtySection(`questions-${studioId}`, isDirty);
   // NOTE: no realtime — reload manuel après chaque mutation locale.
 
 
@@ -1478,26 +1505,44 @@ function QuestionsSection({ studioId }: { studioId: string }) {
 
   const add = async () => {
     const nextIdx = (questions[questions.length - 1]?.order_index ?? -1) + 1;
-    const { data, error } = await supabase.from("closure_questions" as any).insert({
-      studio_id: studioId, question_text: "Nouvelle question", response_type: "stars_1_5", order_index: nextIdx,
-    } as any).select("*").single();
-    if (error) { toast.error(error.message); return; }
-    // Optimistic refresh (don't rely on realtime publication)
-    setQuestions((prev) => [...prev, data]);
-    flashSaved();
+    setQuestions((prev) => [...prev, {
+      _tmpId: crypto.randomUUID(),
+      studio_id: studioId,
+      question_text: "Nouvelle question",
+      response_type: "stars_1_5",
+      order_index: nextIdx,
+    }]);
   };
 
   const onDragEnd = async (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
-    const oldIdx = questions.findIndex((q) => q.id === active.id);
-    const newIdx = questions.findIndex((q) => q.id === over.id);
-    const next = arrayMove(questions, oldIdx, newIdx);
+    const oldIdx = questions.findIndex((q) => (q.id ?? q._tmpId) === active.id);
+    const newIdx = questions.findIndex((q) => (q.id ?? q._tmpId) === over.id);
+    if (oldIdx < 0 || newIdx < 0) return;
+    const next = arrayMove(questions, oldIdx, newIdx).map((q, order_index) => ({ ...q, order_index }));
     setQuestions(next);
-    await Promise.all(next.map((q, i) =>
-      supabase.from("closure_questions" as any).update({ order_index: i } as any).eq("id", q.id)
-    ));
-    flashSaved();
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const fresh = await saveQuestionsConfig({ data: {
+        studioId,
+        questions: questions.map((q) => ({
+          id: q.id,
+          question_text: String(q.question_text ?? "").trim() || "Question sans titre",
+          response_type: q.response_type,
+        })),
+      } });
+      confirmSaved(fresh);
+      flashSaved();
+      toast.success("✓ Questions enregistrées");
+    } catch (e: any) {
+      toast.error(`Erreur : ${e.message ?? e}`);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -1506,23 +1551,26 @@ function QuestionsSection({ studioId }: { studioId: string }) {
       title="Questions post-shift"
       subtitle="Les réponses alimentent le cerveau du SaaS : elles peuvent ajuster la note de l'employé et nourrissent tes rapports. Visible uniquement par toi et tes managers."
       right={
-        <span className="rounded-full px-2.5 py-1 flex items-center gap-1.5"
-          style={{ fontSize: 11, fontWeight: 500, backgroundColor: "color-mix(in oklab, #a78bfa 18%, white)", color: "#4c1d95" }}>
-          <Lock size={11} /> Admin & managers
-        </span>
+        <div className="flex flex-wrap items-center gap-2 justify-end">
+          <span className="rounded-full px-2.5 py-1 flex items-center gap-1.5"
+            style={{ fontSize: 11, fontWeight: 500, backgroundColor: "color-mix(in oklab, #a78bfa 18%, white)", color: "#4c1d95" }}>
+            <Lock size={11} /> Admin & managers
+          </span>
+          <SaveButton isDirty={isDirty} saving={saving} onSave={save} onRevert={revert} />
+        </div>
       }
     >
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-        <SortableContext items={questions.map((q) => q.id)} strategy={verticalListSortingStrategy}>
+        <SortableContext items={questions.map((q) => q.id ?? q._tmpId)} strategy={verticalListSortingStrategy}>
           <div className="flex flex-col gap-1.5">
             {questions.map((q) => (
               <SortableQuestion
-                key={q.id}
+                key={q.id ?? q._tmpId}
                 q={q}
                 onChanged={(patch) =>
-                  setQuestions((prev) => prev.map((x) => (x.id === q.id ? { ...x, ...patch } : x)))
+                  setQuestions((prev) => prev.map((x) => ((x.id ?? x._tmpId) === (q.id ?? q._tmpId) ? { ...x, ...patch } : x)))
                 }
-                onDeleted={() => setQuestions((prev) => prev.filter((x) => x.id !== q.id))}
+                onDeleted={() => setQuestions((prev) => prev.filter((x) => (x.id ?? x._tmpId) !== (q.id ?? q._tmpId)))}
               />
             ))}
           </div>
@@ -1545,26 +1593,16 @@ function QuestionsSection({ studioId }: { studioId: string }) {
 }
 
 function SortableQuestion({ q, onChanged, onDeleted }: { q: any; onChanged?: (patch: any) => void; onDeleted?: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: q.id });
+  const rowId = q.id ?? q._tmpId;
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: rowId });
   const [text, setText] = useState(q.question_text);
   useEffect(() => setText(q.question_text), [q.question_text]);
 
-  const saveText = async (v: string) => {
-    if (v === q.question_text) return;
-    const { error } = await supabase.from("closure_questions" as any).update({ question_text: v } as any).eq("id", q.id);
-    if (error) toast.error(`Erreur : ${error.message}`); else { flashSaved(); toast.success("✓ Question enregistrée"); }
-  };
-
-
-  const setType = async (v: string) => {
+  const setType = (v: string) => {
     onChanged?.({ response_type: v });
-    const { error } = await supabase.from("closure_questions" as any).update({ response_type: v } as any).eq("id", q.id);
-    if (error) toast.error(error.message); else flashSaved();
   };
-  const remove = async () => {
+  const remove = () => {
     onDeleted?.();
-    const { error } = await supabase.from("closure_questions" as any).delete().eq("id", q.id);
-    if (error) toast.error(error.message); else flashSaved();
   };
 
   return (
@@ -1582,8 +1620,7 @@ function SortableQuestion({ q, onChanged, onDeleted }: { q: any; onChanged?: (pa
         <GripVertical size={14} />
       </button>
       <input value={text}
-        onChange={(e) => setText(e.target.value)}
-        onBlur={(e) => saveText(e.target.value)}
+        onChange={(e) => { setText(e.target.value); onChanged?.({ question_text: e.target.value }); }}
         className="flex-1 px-2 py-1 rounded"
         style={{ fontSize: 13, backgroundColor: "transparent", border: "none", outline: "none" }} />
       <Select value={q.response_type} onValueChange={setType}>
