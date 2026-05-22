@@ -113,10 +113,20 @@ export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted
     setClockedOutAt(shift.clocked_out_at ?? null);
     (async () => {
       try {
-        const tpl = await findApplicableTemplate({ studioId: shift.studio_id ?? null, businessRole: shift.business_role });
+        // Detect closure phase (closing | transition | null)
+        const detected = await detectChecklistMoment({ shiftId: shift.id, side: "clock_out" });
+        setPhase(detected);
+
+        // Cache the user's first name for the transition handoff notification
+        const { data: me } = await supabase.from("profiles").select("first_name").eq("id", userId).maybeSingle();
+        setFirstNameMe((me as any)?.first_name ?? null);
+
+        const tpl = detected
+          ? await findApplicableTemplate({ studioId: shift.studio_id ?? null, businessRole: shift.business_role, phase: detected })
+          : null;
         if (tpl) {
           setTemplate(tpl);
-          const subId = await getOrCreateSubmission(userId, shift.id, tpl.id);
+          const subId = await getOrCreateSubmission(userId, shift.id, tpl.id, detected!);
           setSubmissionId(subId);
           const [{ data: its }, { data: phs }, { data: subItems }, { data: subPhotos }] = await Promise.all([
             supabase.from("checklist_template_items").select("*").eq("template_id", tpl.id).order("order_index"),
@@ -145,12 +155,12 @@ export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted
           setTemplate(null); setItems([]); setPhotos([]); setSubmissionId(null);
         }
 
-        if (shift.studio_id) {
+        // Closure questions only for the full 'closing' phase
+        if (detected === "closing" && shift.studio_id) {
           const { data: qs } = await supabase.from("closure_questions")
             .select("id,question_text,response_type,is_required,order_index")
             .eq("studio_id", shift.studio_id).order("order_index");
           setClosureQuestions((qs ?? []) as any);
-          // load existing responses
           if (qs && qs.length) {
             const { data: subId } = await supabase.from("checklist_submissions")
               .select("id").eq("shift_id", shift.id).eq("user_id", userId).maybeSingle();
