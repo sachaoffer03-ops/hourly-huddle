@@ -10,6 +10,7 @@ import {
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { notifyOverdueClockOutsFn } from "@/lib/closure-flow.functions";
+import { saveClosureQuestionsConfig, updateStudioClosureConfig } from "@/lib/cloture-config.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useStudios } from "@/hooks/use-studios";
@@ -555,6 +556,7 @@ const OVERDUE_LABELS: Record<string, string> = {
 };
 
 function ClockOutSection({ studio }: { studio: any }) {
+  const updateStudioConfig = useServerFn(updateStudioClosureConfig);
   const initial = useMemo(() => ({
     graceIn: studio.clock_in_grace_period_min ?? 15,
     before: studio.clock_out_button_appears_before_min ?? 15,
@@ -569,13 +571,12 @@ function ClockOutSection({ studio }: { studio: any }) {
   const save = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase.from("studios").update({
+      await updateStudioConfig({ data: { studioId: studio.id, patch: {
         clock_in_grace_period_min: draft.graceIn,
         clock_out_button_appears_before_min: draft.before,
         clock_out_grace_period_min: draft.grace,
         clock_out_overdue_action: draft.action,
-      }).eq("id", studio.id);
-      if (error) throw error;
+      } } });
       confirmSaved(draft);
       flashSaved();
       toast.success("✓ Configuration du pointage enregistrée");
