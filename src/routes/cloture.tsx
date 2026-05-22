@@ -1392,12 +1392,8 @@ function QuestionsSection({ studioId }: { studioId: string }) {
   }, [studioId]);
 
   useEffect(() => { reload(); }, [reload]);
-  useEffect(() => {
-    const ch = supabase.channel(`closure-q-${studioId}-${Math.random()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "closure_questions", filter: `studio_id=eq.${studioId}` }, () => reload())
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [studioId, reload]);
+  // NOTE: no realtime — reload manuel après chaque mutation locale.
+
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
