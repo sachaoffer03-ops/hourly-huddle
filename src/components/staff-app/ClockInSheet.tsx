@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, X, QrCode, Loader2, Check } from "lucide-react";
+import { ArrowLeft, X, QrCode, Loader2 } from "lucide-react";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { useServerFn } from "@tanstack/react-start";
 import { validateClockInFn } from "@/lib/shift-clock.functions";
+import { OpeningFlow } from "./OpeningFlow";
 
 export interface ClockInShiftRow {
   id: string;
@@ -20,15 +21,17 @@ interface Props {
   onClose: () => void;
   shift: ClockInShiftRow | null;
   studios: Record<string, string>;
+  userId: string;
+  firstName?: string | null;
   onCompleted?: (info: { clockedInAt: string; minutesLate: number }) => void;
 }
 
-export function ClockInSheet({ open, onClose, shift, studios, onCompleted }: Props) {
+export function ClockInSheet({ open, onClose, shift, studios, userId, firstName, onCompleted }: Props) {
   const validateClockIn = useServerFn(validateClockInFn);
   const [manual, setManual] = useState(false);
   const [code, setCode] = useState<string[]>(["", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState<{ minutesLate: number } | null>(null);
+  const [done, setDone] = useState<{ minutesLate: number; clockedInAt: string } | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -64,9 +67,10 @@ export function ClockInSheet({ open, onClose, shift, studios, onCompleted }: Pro
       }
       const r = await validateClockIn({ data: { shiftId: shift.id, qrCode: clean, lat, lng } });
       const minutesLate = (r as any).minutesLate ?? 0;
-      setDone({ minutesLate });
+      const clockedInAt = (r as any).clockedInAt ?? new Date().toISOString();
+      setDone({ minutesLate, clockedInAt });
       toast.success("Arrivée pointée");
-      onCompleted?.({ clockedInAt: (r as any).clockedInAt, minutesLate });
+      onCompleted?.({ clockedInAt, minutesLate });
     } catch (e: any) {
       toast.error("Pointage refusé", { description: e?.message ?? "Code invalide" });
     } finally {
