@@ -47,32 +47,39 @@ export function OpeningFlow({ open, onClose, shift, userId, studios, firstName, 
     setLoading(true);
     (async () => {
       try {
-        const tpl = await findApplicableTemplate({
-          studioId: shift.studio_id ?? null,
-          businessRole: shift.business_role,
-          phase: "opening",
-        });
-        if (tpl) {
-          setTemplate(tpl);
-          const subId = await getOrCreateSubmission(userId, shift.id, tpl.id, "opening");
-          setSubmissionId(subId);
-          const [{ data: its }, { data: phs }, { data: subItems }, { data: subPhotos }] = await Promise.all([
-            supabase.from("checklist_template_items").select("*").eq("template_id", tpl.id).order("order_index"),
-            supabase.from("checklist_template_photos").select("*").eq("template_id", tpl.id).order("order_index"),
-            supabase.from("checklist_submission_items").select("template_item_id,is_checked").eq("submission_id", subId),
-            supabase.from("checklist_submission_photos").select("template_photo_id,photo_url").eq("submission_id", subId),
-          ]);
-          setItems((its ?? []) as any);
-          setPhotos((phs ?? []) as any);
-          const im: Record<string, boolean> = {};
-          (subItems ?? []).forEach((r: any) => { im[r.template_item_id] = r.is_checked; });
-          setItemStates(im);
-          const pm: Record<string, { url: string | null; status: "idle" | "uploading" | "done" }> = {};
-          (phs ?? []).forEach((p: any) => {
-            const sp = (subPhotos ?? []).find((s: any) => s.template_photo_id === p.id);
-            pm[p.id] = { url: sp?.photo_url ?? null, status: sp?.photo_url ? "done" : "idle" };
+        // Detect phase (opening | transition | null) for this clock-in
+        const detected = await detectChecklistMoment({ shiftId: shift.id, side: "clock_in" });
+        setPhase(detected);
+        if (detected) {
+          const tpl = await findApplicableTemplate({
+            studioId: shift.studio_id ?? null,
+            businessRole: shift.business_role,
+            phase: detected,
           });
-          setPhotoStates(pm);
+          if (tpl) {
+            setTemplate(tpl);
+            const subId = await getOrCreateSubmission(userId, shift.id, tpl.id, detected);
+            setSubmissionId(subId);
+            const [{ data: its }, { data: phs }, { data: subItems }, { data: subPhotos }] = await Promise.all([
+              supabase.from("checklist_template_items").select("*").eq("template_id", tpl.id).order("order_index"),
+              supabase.from("checklist_template_photos").select("*").eq("template_id", tpl.id).order("order_index"),
+              supabase.from("checklist_submission_items").select("template_item_id,is_checked").eq("submission_id", subId),
+              supabase.from("checklist_submission_photos").select("template_photo_id,photo_url").eq("submission_id", subId),
+            ]);
+            setItems((its ?? []) as any);
+            setPhotos((phs ?? []) as any);
+            const im: Record<string, boolean> = {};
+            (subItems ?? []).forEach((r: any) => { im[r.template_item_id] = r.is_checked; });
+            setItemStates(im);
+            const pm: Record<string, { url: string | null; status: "idle" | "uploading" | "done" }> = {};
+            (phs ?? []).forEach((p: any) => {
+              const sp = (subPhotos ?? []).find((s: any) => s.template_photo_id === p.id);
+              pm[p.id] = { url: sp?.photo_url ?? null, status: sp?.photo_url ? "done" : "idle" };
+            });
+            setPhotoStates(pm);
+          } else {
+            setTemplate(null); setItems([]); setPhotos([]); setSubmissionId(null);
+          }
         } else {
           setTemplate(null); setItems([]); setPhotos([]); setSubmissionId(null);
         }
