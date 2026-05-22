@@ -116,6 +116,8 @@ export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted
         // Detect closure phase (closing | transition | null)
         const detected = await detectChecklistMoment({ shiftId: shift.id, side: "clock_out" });
         setPhase(detected);
+        // Initial step: closing → 1 (recap), transition → 2 (items), null → 4 (QR only)
+        setStep(detected === null ? 4 : detected === "transition" ? 2 : 1);
 
         // Cache the user's first name for the transition handoff notification
         const { data: me } = await supabase.from("profiles").select("first_name").eq("id", userId).maybeSingle();
