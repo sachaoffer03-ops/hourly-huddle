@@ -822,10 +822,12 @@ function SortableItem({ item, photos, onDeleted }: { item: any; photos: any[]; o
   const [label, setLabel] = useState(item.label);
   useEffect(() => setLabel(item.label), [item.label]);
 
-  const saveLabel = useDebouncedCallback(async (v: string) => {
+  const saveLabel = async (v: string) => {
+    if (v === item.label) return;
     const { error } = await supabase.from("checklist_template_items").update({ label: v } as any).eq("id", item.id);
-    if (error) toast.error(error.message); else flashSaved();
-  }, 500);
+    if (error) toast.error(`Erreur : ${error.message}`); else { flashSaved(); toast.success("✓ Item enregistré"); }
+  };
+
 
   const setPhoto = async (v: string) => {
     const photo_zone_id = v === "__none__" ? null : v;
