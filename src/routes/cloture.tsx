@@ -820,14 +820,19 @@ function SortableItem({ item, photos, onDeleted }: { item: any; photos: any[]; o
     opacity: isDragging ? 0.5 : 1,
   };
   const [label, setLabel] = useState(item.label);
-  useEffect(() => setLabel(item.label), [item.label]);
+  const lastSavedRef = useRef(item.label);
+  useEffect(() => { setLabel(item.label); lastSavedRef.current = item.label; }, [item.id, item.label]);
 
-  const saveLabel = async (v: string) => {
-    if (v === item.label) return;
+  const saveLabel = useCallback(async (v: string) => {
+    if (v === lastSavedRef.current) return;
+    lastSavedRef.current = v;
     const { error } = await supabase.from("checklist_template_items").update({ label: v } as any).eq("id", item.id);
-    if (error) toast.error(`Erreur : ${error.message}`); else { flashSaved(); toast.success("✓ Item enregistré"); }
-  };
+    if (error) toast.error(`Erreur : ${error.message}`); else flashSaved();
+  }, [item.id]);
 
+  // Auto-save débounce — évite de perdre les modifs si l'utilisateur clique
+  // sur « Dupliquer » ou change de poste avant d'avoir blur le champ.
+  const debouncedSave = useDebouncedCallback(saveLabel, 500);
 
   const setPhoto = async (v: string) => {
     const photo_zone_id = v === "__none__" ? null : v;
@@ -850,8 +855,11 @@ function SortableItem({ item, photos, onDeleted }: { item: any; photos: any[]; o
       </button>
       <input
         value={label}
-        onChange={(e) => setLabel(e.target.value)}
+        onChange={(e) => { setLabel(e.target.value); debouncedSave(e.target.value); }}
         onBlur={(e) => saveLabel(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
+        }}
         className="flex-1 px-2 py-1 rounded"
         style={{ fontSize: 13, backgroundColor: "transparent", border: "none", outline: "none" }}
       />
