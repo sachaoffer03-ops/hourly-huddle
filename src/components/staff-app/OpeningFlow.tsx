@@ -272,7 +272,7 @@ export function OpeningFlow({ open, onClose, shift, userId, studios, firstName, 
                 className="w-full rounded-md py-3 disabled:opacity-50"
                 style={{ fontSize: 14, fontWeight: 500, backgroundColor: "var(--coral)", color: "var(--coral-text)" }}
               >
-                {hasChecklist ? "Commencer ma checklist d'ouverture →" : "Commencer mon service →"}
+                {hasChecklist ? ctaStart : "Commencer mon service →"}
               </button>
             </div>
           </>
