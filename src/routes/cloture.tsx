@@ -211,16 +211,29 @@ function ClotureePage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span
-            style={{
-              fontSize: 12,
-              color: "var(--success-text)",
-              opacity: flash ? 1 : 0,
-              transition: "opacity .25s",
-            }}
-          >
-            ✓ Enregistré
-          </span>
+          {dirtyCount > 0 ? (
+            <span
+              className="rounded-full px-2.5 py-1 flex items-center gap-1.5"
+              style={{
+                fontSize: 11, fontWeight: 500,
+                backgroundColor: "color-mix(in oklab, #f59e0b 18%, white)",
+                color: "#b45309",
+              }}
+            >
+              <AlertCircle size={11} /> {dirtyCount} modification{dirtyCount > 1 ? "s" : ""} non enregistrée{dirtyCount > 1 ? "s" : ""}
+            </span>
+          ) : (
+            <span
+              style={{
+                fontSize: 11,
+                color: flash ? "var(--success-text)" : "var(--muted-foreground)",
+                transition: "color .25s",
+              }}
+            >
+              {flash ? "✓ Enregistré" : "✓ À jour"}
+            </span>
+          )}
+
           {(tab === "config" || tab === "checklists") && (
             <Select value={studioId ?? ""} onValueChange={(v) => setStudioId(v)}>
               <SelectTrigger className="w-[200px]"><SelectValue placeholder="Studio" /></SelectTrigger>
