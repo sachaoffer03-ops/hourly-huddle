@@ -5,8 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
-import { AppSidebar, MobileSidebar } from "@/components/AppSidebar";
-import { TopBar } from "@/components/TopBar";
 import { FiltersBar, presetToRange, type Preset } from "@/components/reports/FiltersBar";
 import { KpiCard } from "@/components/reports/KpiCard";
 import { Sparkline } from "@/components/reports/Sparkline";
@@ -38,7 +36,6 @@ function RapportsPage() {
   const { appRole, loading } = useAuth();
   const navigate = useNavigate();
   const search = Route.useSearch();
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && appRole && appRole !== "admin" && appRole !== "manager") {
@@ -138,14 +135,9 @@ function RapportsPage() {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: "var(--background)" }}>
-      <AppSidebar />
-      <MobileSidebar open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
-      <div className="flex-1 md:ml-[220px] flex flex-col">
-        <TopBar onMenuToggle={() => setMobileNavOpen(true)} />
-        <main className="flex-1 p-4 md:p-6 max-w-[1400px] w-full mx-auto">
-          <h1 className="text-2xl font-medium mb-1">Rapports</h1>
-          <p className="text-sm text-[var(--muted-foreground)] mb-4">Vue d'ensemble de l'activité de l'équipe sur la période sélectionnée.</p>
+    <main className="p-4 md:p-6 max-w-[1400px] w-full mx-auto">
+      <h1 className="text-2xl font-medium mb-1">Rapports</h1>
+      <p className="text-sm text-[var(--muted-foreground)] mb-4">Vue d'ensemble de l'activité de l'équipe sur la période sélectionnée.</p>
 
           <FiltersBar
             preset={search.preset} from={filters.from} to={filters.to}
@@ -307,12 +299,10 @@ function RapportsPage() {
                 </table>
               </div>
             </TabsContent>
-          </Tabs>
-        </main>
-      </div>
+      </Tabs>
 
       <EmployeeDetailSheet userId={openEmployee} from={filters.from} to={filters.to} onClose={() => setOpenEmployee(null)} />
       <ShiftDetailSheet shiftId={openShift} onClose={() => setOpenShift(null)} />
-    </div>
+    </main>
   );
 }
