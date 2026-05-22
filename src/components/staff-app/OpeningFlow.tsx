@@ -30,6 +30,7 @@ type Step = 1 | 2 | 3 | 4;
 
 export function OpeningFlow({ open, onClose, shift, userId, studios, firstName, clockedInAt, minutesLate = 0 }: Props) {
   const [loading, setLoading] = useState(true);
+  const [phase, setPhase] = useState<ChecklistPhase | null>(null);
   const [template, setTemplate] = useState<ChecklistTemplate | null>(null);
   const [items, setItems] = useState<ChecklistTemplateItem[]>([]);
   const [photos, setPhotos] = useState<ChecklistTemplatePhoto[]>([]);
