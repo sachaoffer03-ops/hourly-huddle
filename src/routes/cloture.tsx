@@ -691,48 +691,74 @@ function ChecklistsSection({ studioId, phase = "closing" }: { studioId: string; 
   );
 }
 
+// In-flight cache: one ensure() per (studio, role, phase) per browser session
+// avoids race-condition double inserts when React mounts the component twice
+// (StrictMode, tab switching, etc.) and avoids re-creating after a duplicate
+// was dedupe'd elsewhere.
+const templateEnsureCache = new Map<string, Promise<any>>();
+
 function useTemplate(studioId: string, roleId: string, phase: ChecklistPhase = "closing") {
   const [template, setTemplate] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const ensure = useCallback(async () => {
+  const ensure = useCallback(async (force = false) => {
     setLoading(true);
-    const { data: existing } = await supabase
-      .from("checklist_templates")
-      .select("*")
-      .eq("studio_id", studioId)
-      .eq("business_role_id", roleId)
-      .eq("phase", phase)
-      .maybeSingle();
-    if (existing) {
-      setTemplate(existing);
-      setLoading(false);
-      return existing;
+    const key = `${studioId}::${roleId}::${phase}`;
+    if (force) templateEnsureCache.delete(key);
+    let p = templateEnsureCache.get(key);
+    if (!p) {
+      p = (async () => {
+        // SELECT first (ordered, limit 1) — survives even if duplicates remain
+        const { data: existing } = await supabase
+          .from("checklist_templates")
+          .select("*")
+          .eq("studio_id", studioId)
+          .eq("business_role_id", roleId)
+          .eq("phase", phase)
+          .order("created_at", { ascending: true })
+          .limit(1);
+        if (existing && existing.length > 0) return existing[0];
+
+        // INSERT — protected by unique index. On conflict re-read.
+        const { data: created, error } = await supabase
+          .from("checklist_templates")
+          .insert({
+            studio_id: studioId,
+            business_role_id: roleId,
+            name: phase === "opening" ? "Ouverture" : phase === "transition" ? "Transition" : "Clôture",
+            phase,
+            is_active: true,
+            is_blocking: true,
+          } as any)
+          .select("*")
+          .single();
+        if (error) {
+          const { data: again } = await supabase
+            .from("checklist_templates")
+            .select("*")
+            .eq("studio_id", studioId)
+            .eq("business_role_id", roleId)
+            .eq("phase", phase)
+            .order("created_at", { ascending: true })
+            .limit(1);
+          if (again && again.length > 0) return again[0];
+          toast.error(error.message);
+          return null;
+        }
+        return created;
+      })();
+      templateEnsureCache.set(key, p);
+      p.catch(() => templateEnsureCache.delete(key));
     }
-    const { data: created, error } = await supabase
-      .from("checklist_templates")
-      .insert({
-        studio_id: studioId,
-        business_role_id: roleId,
-        name: phase === "opening" ? "Ouverture" : phase === "transition" ? "Transition" : "Clôture",
-        phase,
-        is_active: true,
-        is_blocking: true,
-      } as any)
-      .select("*")
-      .single();
-    if (error) toast.error(error.message);
-    setTemplate(created ?? null);
+    const tpl = await p;
+    setTemplate(tpl);
     setLoading(false);
-    return created;
+    return tpl;
   }, [studioId, roleId, phase]);
 
   useEffect(() => { ensure(); }, [ensure]);
 
-  // NOTE: no realtime — admin edits stay authoritative until they save / reload.
-
-
-  return { template, loading, reload: ensure, setTemplate };
+  return { template, loading, reload: () => ensure(true), setTemplate };
 }
 
 function ChecklistEditor({ studioId, roleId, roleName, phase = "closing" }: { studioId: string; roleId: string; roleName: string; phase?: ChecklistPhase }) {
