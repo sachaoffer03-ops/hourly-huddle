@@ -48,6 +48,38 @@ async function ensureDemoAuthUser(): Promise<string> {
   return created.user.id;
 }
 
+// Ensure an additional demo employee (Léa, Tom…) exists with the full profile
+// stack required to be eligible for shifts (auth user, profile, role,
+// contract, studio, business_role).
+async function ensureExtraDemoEmployee(opts: {
+  email: string; firstName: string; lastName: string;
+  studioId: string; businessRole: string;
+}): Promise<string> {
+  const { email, firstName, lastName, studioId, businessRole } = opts;
+  const { data: list } = await supabaseAdmin.auth.admin.listUsers({ perPage: 200 });
+  let userId = list?.users?.find((u: any) => u.email === email)?.id as string | undefined;
+  if (!userId) {
+    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+      email, password: DEMO_PASSWORD, email_confirm: true,
+      user_metadata: { first_name: firstName, last_name: lastName },
+    });
+    if (error || !created?.user) throw new Error(`Création user ${email}: ${error?.message ?? "inconnu"}`);
+    userId = created.user.id;
+  } else {
+    await supabaseAdmin.auth.admin.updateUserById(userId, { password: DEMO_PASSWORD, email_confirm: true });
+  }
+  await supabaseAdmin.from("profiles").upsert({
+    id: userId, email, first_name: firstName, last_name: lastName,
+    status: "active", contract: "CDI", studio_id: studioId,
+    is_test: true, is_protected: false, hourly_rate: 12.5, score: 8.0,
+  }, { onConflict: "id" });
+  await supabaseAdmin.from("user_roles").upsert({ user_id: userId, role: "employee" }, { onConflict: "user_id,role" });
+  await supabaseAdmin.from("user_contracts").upsert({ user_id: userId, contract: "CDI" }, { onConflict: "user_id,contract" });
+  await supabaseAdmin.from("user_studios").upsert({ user_id: userId, studio_id: studioId }, { onConflict: "user_id,studio_id" });
+  await supabaseAdmin.from("user_business_roles").upsert({ user_id: userId, role: businessRole }, { onConflict: "user_id,role" });
+  return userId!;
+}
+
 // Supprime toutes les données liées à un user demo (cascade manuel par sécurité)
 async function purgeDemoUserData(userId: string) {
   await supabaseAdmin.from("notifications").delete().eq("user_id", userId);
