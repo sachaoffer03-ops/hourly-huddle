@@ -850,7 +850,8 @@ function SortableItem({ item, photos, onDeleted }: { item: any; photos: any[]; o
       </button>
       <input
         value={label}
-        onChange={(e) => { setLabel(e.target.value); saveLabel(e.target.value); }}
+        onChange={(e) => setLabel(e.target.value)}
+        onBlur={(e) => saveLabel(e.target.value)}
         className="flex-1 px-2 py-1 rounded"
         style={{ fontSize: 13, backgroundColor: "transparent", border: "none", outline: "none" }}
       />
