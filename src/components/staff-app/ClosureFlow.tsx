@@ -381,14 +381,20 @@ export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted
     <div className="fixed inset-0 z-50 flex flex-col" style={{ backgroundColor: "#FAF8F4" }}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b shrink-0" style={{ borderColor: "rgba(0,0,0,0.06)", paddingTop: "max(12px, env(safe-area-inset-top))" }}>
-        <button
-          onClick={() => step > 1 && step < 6 ? setStep((s) => (s - 1) as Step) : requestCloseWithConfirm()}
-          className="rounded-full p-2"
-          style={{ backgroundColor: "var(--muted)" }}
-          aria-label="Retour"
-        >
-          {step > 1 && step < 6 ? <ArrowLeft size={16} /> : <X size={16} />}
-        </button>
+        {(() => {
+          const minStep: Step = phase === "closing" ? 1 : phase === "transition" ? 2 : 4;
+          const canGoBack = step > minStep && step < 6;
+          return (
+            <button
+              onClick={() => (canGoBack ? setStep((s) => (s - 1) as Step) : requestCloseWithConfirm())}
+              className="rounded-full p-2"
+              style={{ backgroundColor: "var(--muted)" }}
+              aria-label={canGoBack ? "Retour" : "Fermer"}
+            >
+              {canGoBack ? <ArrowLeft size={16} /> : <X size={16} />}
+            </button>
+          );
+        })()}
         <Stepper step={step} />
         <div style={{ width: 32 }} />
       </div>
@@ -400,7 +406,7 @@ export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted
         {step === 3 && <Step3 role={shift.business_role} photos={photos} states={photoStates} onUpload={handlePhotoUpload} template={template} hasTemplate={!!template} />}
         {step === 4 && <Step4 onSubmitCode={submitQrCode} loading={clockOutLoading} />}
         {step === 5 && <Step5 questions={closureQuestions} responses={questionResponses} setResponses={setQuestionResponses} submissionId={submissionId} />}
-        {step === 6 && <Step6 recap={recap} studios={studios} onClose={() => { onClose(); window.location.reload(); }} onRetry={runFinalize} finalizing={finalizing} />}
+        {step === 6 && <Step6 recap={recap} studios={studios} phase={phase} firstName={firstNameMe} onClose={() => { onClose(); window.location.reload(); }} onRetry={runFinalize} finalizing={finalizing} />}
       </div>
 
       {/* Footer (steps 1-5) */}
