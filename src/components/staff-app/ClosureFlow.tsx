@@ -330,7 +330,13 @@ export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted
       const r = await validateClockOut({ data: { shiftId: shift.id, qrCode: code, lat, lng } });
       setClockedOutAt(r.completedAt ?? new Date().toISOString());
       toast.success("Pointage de sortie validé");
-      setStep(5);
+      // Closing → questions step ; transition/null → finalize directly
+      if (phase === "closing") {
+        setStep(5);
+      } else {
+        setStep(6);
+        await runFinalize();
+      }
     } catch (e: any) {
       toast.error("Validation refusée", { description: e?.message ?? "Code invalide" });
     } finally {
@@ -354,6 +360,10 @@ export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted
       }).filter((r) => r.stars != null || r.yesno != null || r.text != null);
       const result = await finalizeClosure({ data: { shiftId: shift.id, submissionId, responses } });
       setRecap(result as Recap);
+      // If we were doing a transition, notify the next employee picking up the shift
+      if (phase === "transition") {
+        notifyTransitionIncoming({ fromShiftId: shift.id, fromUserFirstName: firstNameMe }).catch(() => {});
+      }
       onCompleted?.();
     } catch (e: any) {
       console.error(e);
@@ -362,6 +372,7 @@ export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted
       setFinalizing(false);
     }
   };
+
 
   // ─── Render ──────────────────────────────────────────────────────────────
   return (
