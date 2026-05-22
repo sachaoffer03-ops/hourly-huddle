@@ -1484,7 +1484,7 @@ const RESPONSE_TYPES: Record<string, string> = {
 
 function QuestionsSection({ studioId }: { studioId: string }) {
   const saveQuestionsConfig = useServerFn(saveClosureQuestionsConfig);
-  const { draft: questions, setDraft: setQuestions, saved, isDirty, confirmSaved, revert, reset } = useDraftState<any[]>([]);
+  const { draft: questions, setDraft: setQuestions, isDirty, confirmSaved, revert, reset } = useDraftState<any[]>([]);
   const [saving, setSaving] = useState(false);
 
   const loadQuestions = useCallback(async () => {
