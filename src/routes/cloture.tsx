@@ -1515,8 +1515,9 @@ function QuestionsSection({ studioId }: { studioId: string }) {
   const onDragEnd = async (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
-    const oldIdx = questions.findIndex((q) => q.id === active.id);
-    const newIdx = questions.findIndex((q) => q.id === over.id);
+    const oldIdx = questions.findIndex((q) => (q.id ?? q._tmpId) === active.id);
+    const newIdx = questions.findIndex((q) => (q.id ?? q._tmpId) === over.id);
+    if (oldIdx < 0 || newIdx < 0) return;
     const next = arrayMove(questions, oldIdx, newIdx).map((q, order_index) => ({ ...q, order_index }));
     setQuestions(next);
   };
@@ -1596,26 +1597,16 @@ function QuestionsSection({ studioId }: { studioId: string }) {
 }
 
 function SortableQuestion({ q, onChanged, onDeleted }: { q: any; onChanged?: (patch: any) => void; onDeleted?: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: q.id });
+  const rowId = q.id ?? q._tmpId;
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: rowId });
   const [text, setText] = useState(q.question_text);
   useEffect(() => setText(q.question_text), [q.question_text]);
 
-  const saveText = async (v: string) => {
-    if (v === q.question_text) return;
-    const { error } = await supabase.from("closure_questions" as any).update({ question_text: v } as any).eq("id", q.id);
-    if (error) toast.error(`Erreur : ${error.message}`); else { flashSaved(); toast.success("✓ Question enregistrée"); }
-  };
-
-
-  const setType = async (v: string) => {
+  const setType = (v: string) => {
     onChanged?.({ response_type: v });
-    const { error } = await supabase.from("closure_questions" as any).update({ response_type: v } as any).eq("id", q.id);
-    if (error) toast.error(error.message); else flashSaved();
   };
-  const remove = async () => {
+  const remove = () => {
     onDeleted?.();
-    const { error } = await supabase.from("closure_questions" as any).delete().eq("id", q.id);
-    if (error) toast.error(error.message); else flashSaved();
   };
 
   return (
@@ -1633,8 +1624,7 @@ function SortableQuestion({ q, onChanged, onDeleted }: { q: any; onChanged?: (pa
         <GripVertical size={14} />
       </button>
       <input value={text}
-        onChange={(e) => setText(e.target.value)}
-        onBlur={(e) => saveText(e.target.value)}
+        onChange={(e) => { setText(e.target.value); onChanged?.({ question_text: e.target.value }); }}
         className="flex-1 px-2 py-1 rounded"
         style={{ fontSize: 13, backgroundColor: "transparent", border: "none", outline: "none" }} />
       <Select value={q.response_type} onValueChange={setType}>
