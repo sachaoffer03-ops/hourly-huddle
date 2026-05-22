@@ -999,13 +999,8 @@ function PhotosEditor({ studioId, roleId, roleName, phase = "closing" }: { studi
     setPhotos((data as any) ?? []);
   }, [template?.id]);
   useEffect(() => { reload(); }, [reload]);
-  useEffect(() => {
-    if (!template?.id) return;
-    const ch = supabase.channel(`tpl-photos-${template.id}-${Math.random()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_template_photos", filter: `template_id=eq.${template.id}` }, () => reload())
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [template?.id, reload]);
+  // NOTE: no realtime — reload manuel après chaque mutation locale.
+
 
   const update = useCallback(async (patch: any) => {
     if (!template?.id) return;
