@@ -22,6 +22,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { NotationTab } from "@/components/cloture/NotationTab";
 import type { ChecklistPhase } from "@/lib/checklists.helpers";
+import { useDraftState, useDirtySection, useDirtyCount, useBeforeUnloadIfDirty } from "@/hooks/use-draft-state";
+import { Save as SaveIcon, AlertCircle } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
   type DragEndEvent,
@@ -75,7 +77,7 @@ function addMinutes(time: string, delta: number): string {
 }
 
 // ============================================================
-// SAVED INDICATOR
+// SAVED INDICATOR (flash after each successful write)
 // ============================================================
 
 const SAVED_EVENT = "kadence-cloture-saved";
@@ -95,6 +97,58 @@ function useSavedFlash() {
   }, []);
   return flash;
 }
+
+// ============================================================
+// SAVE BUTTON — explicit, used by draft-state sections
+// ============================================================
+
+function SaveButton({ isDirty, saving, onSave, onRevert }: {
+  isDirty: boolean; saving: boolean; onSave: () => void; onRevert?: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      {isDirty && onRevert && (
+        <button
+          type="button"
+          onClick={onRevert}
+          disabled={saving}
+          className="rounded-md px-2.5 py-1.5 border"
+          style={{ fontSize: 12, borderColor: "var(--border)", color: "var(--muted-foreground)", backgroundColor: "transparent" }}
+        >
+          Annuler
+        </button>
+      )}
+      {isDirty && (
+        <span
+          className="rounded-full px-2 py-0.5 flex items-center gap-1"
+          style={{
+            fontSize: 10, fontWeight: 500,
+            backgroundColor: "color-mix(in oklab, #f59e0b 18%, white)",
+            color: "#b45309",
+          }}
+        >
+          <AlertCircle size={10} /> Non enregistré
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={!isDirty || saving}
+        className="rounded-md px-3 py-1.5 flex items-center gap-1.5 transition-colors"
+        style={{
+          fontSize: 12, fontWeight: 500,
+          backgroundColor: isDirty ? "var(--coral)" : "var(--muted)",
+          color: isDirty ? "var(--coral-text)" : "var(--muted-foreground)",
+          opacity: saving ? 0.6 : 1,
+          cursor: !isDirty || saving ? "default" : "pointer",
+        }}
+      >
+        <SaveIcon size={13} /> {saving ? "Enregistrement…" : "Enregistrer"}
+      </button>
+    </div>
+  );
+}
+
 
 // ============================================================
 // MAIN PAGE
@@ -119,6 +173,8 @@ function ClotureePage() {
   }, [loading, appRole]);
 
   const flash = useSavedFlash();
+  const dirtyCount = useBeforeUnloadIfDirty();
+
 
   // Legacy redirect: ?tab=opening was the old standalone opening tab; now lives under Checklists
   useEffect(() => {
@@ -155,16 +211,29 @@ function ClotureePage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span
-            style={{
-              fontSize: 12,
-              color: "var(--success-text)",
-              opacity: flash ? 1 : 0,
-              transition: "opacity .25s",
-            }}
-          >
-            ✓ Enregistré
-          </span>
+          {dirtyCount > 0 ? (
+            <span
+              className="rounded-full px-2.5 py-1 flex items-center gap-1.5"
+              style={{
+                fontSize: 11, fontWeight: 500,
+                backgroundColor: "color-mix(in oklab, #f59e0b 18%, white)",
+                color: "#b45309",
+              }}
+            >
+              <AlertCircle size={11} /> {dirtyCount} modification{dirtyCount > 1 ? "s" : ""} non enregistrée{dirtyCount > 1 ? "s" : ""}
+            </span>
+          ) : (
+            <span
+              style={{
+                fontSize: 11,
+                color: flash ? "var(--success-text)" : "var(--muted-foreground)",
+                transition: "color .25s",
+              }}
+            >
+              {flash ? "✓ Enregistré" : "✓ À jour"}
+            </span>
+          )}
+
           {(tab === "config" || tab === "checklists") && (
             <Select value={studioId ?? ""} onValueChange={(v) => setStudioId(v)}>
               <SelectTrigger className="w-[200px]"><SelectValue placeholder="Studio" /></SelectTrigger>
@@ -486,45 +555,49 @@ const OVERDUE_LABELS: Record<string, string> = {
 };
 
 function ClockOutSection({ studio }: { studio: any }) {
-  const [local, setLocal] = useState({
+  const initial = useMemo(() => ({
     graceIn: studio.clock_in_grace_period_min ?? 15,
     before: studio.clock_out_button_appears_before_min ?? 15,
     grace: studio.clock_out_grace_period_min ?? 20,
     action: studio.clock_out_overdue_action ?? "notify_manager",
-  });
-  useEffect(() => {
-    setLocal({
-      graceIn: studio.clock_in_grace_period_min ?? 15,
-      before: studio.clock_out_button_appears_before_min ?? 15,
-      grace: studio.clock_out_grace_period_min ?? 20,
-      action: studio.clock_out_overdue_action ?? "notify_manager",
-    });
-  }, [studio.id, studio.clock_in_grace_period_min, studio.clock_out_button_appears_before_min, studio.clock_out_grace_period_min, studio.clock_out_overdue_action]);
+  }), [studio.id, studio.clock_in_grace_period_min, studio.clock_out_button_appears_before_min, studio.clock_out_grace_period_min, studio.clock_out_overdue_action]);
+  const { draft, setDraft, isDirty, confirmSaved, revert, reset } = useDraftState(initial);
+  useEffect(() => { reset(initial); }, [initial, reset]);
+  useDirtySection(`clockout-${studio.id}`, isDirty);
+  const [saving, setSaving] = useState(false);
 
-  const save = async (patch: Partial<typeof local>) => {
-    const next = { ...local, ...patch };
-    setLocal(next);
-    const dbPatch: any = {};
-    if (patch.graceIn !== undefined) dbPatch.clock_in_grace_period_min = patch.graceIn;
-    if (patch.before !== undefined) dbPatch.clock_out_button_appears_before_min = patch.before;
-    if (patch.grace !== undefined) dbPatch.clock_out_grace_period_min = patch.grace;
-    if (patch.action !== undefined) dbPatch.clock_out_overdue_action = patch.action;
-    const { error } = await supabase.from("studios").update(dbPatch).eq("id", studio.id);
-    if (error) toast.error(error.message); else flashSaved();
+  const save = async () => {
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("studios").update({
+        clock_in_grace_period_min: draft.graceIn,
+        clock_out_button_appears_before_min: draft.before,
+        clock_out_grace_period_min: draft.grace,
+        clock_out_overdue_action: draft.action,
+      }).eq("id", studio.id);
+      if (error) throw error;
+      confirmSaved(draft);
+      flashSaved();
+      toast.success("✓ Configuration du pointage enregistrée");
+    } catch (e: any) {
+      toast.error(`Erreur : ${e.message ?? e}`);
+    } finally {
+      setSaving(false);
+    }
   };
-  const saveDebounced = useDebouncedCallback((patch: Partial<typeof local>) => save(patch), 500);
 
   return (
     <SectionCard
       icon={Clock}
       title="Configuration du pointage"
       subtitle="Tolérance à l'arrivée et à la sortie. Ces réglages alimentent la page Pointage et les notifications proactives envoyées au manager."
+      right={<SaveButton isDirty={isDirty} saving={saving} onSave={save} onRevert={revert} />}
     >
       <div className="flex flex-wrap gap-5">
         <Field label="Tolérance retard à l'arrivée">
           <NumInput
-            value={local.graceIn}
-            onChange={(n) => { setLocal({ ...local, graceIn: n }); saveDebounced({ graceIn: n }); }}
+            value={draft.graceIn}
+            onChange={(n) => setDraft({ ...draft, graceIn: n })}
             suffix="min après l'heure de début"
           />
           <p style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 4 }}>
@@ -533,20 +606,20 @@ function ClockOutSection({ studio }: { studio: any }) {
         </Field>
         <Field label="Le bouton de sortie apparaît">
           <NumInput
-            value={local.before}
-            onChange={(n) => { setLocal({ ...local, before: n }); saveDebounced({ before: n }); }}
+            value={draft.before}
+            onChange={(n) => setDraft({ ...draft, before: n })}
             suffix="min avant la fin du shift"
           />
         </Field>
         <Field label="Pointage de sortie attendu au plus tard">
           <NumInput
-            value={local.grace}
-            onChange={(n) => { setLocal({ ...local, grace: n }); saveDebounced({ grace: n }); }}
+            value={draft.grace}
+            onChange={(n) => setDraft({ ...draft, grace: n })}
             suffix="min après la fin prévue"
           />
         </Field>
         <Field label="Au-delà">
-          <Select value={local.action} onValueChange={(v) => save({ action: v })}>
+          <Select value={draft.action} onValueChange={(v) => setDraft({ ...draft, action: v })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {Object.entries(OVERDUE_LABELS).map(([k, v]) => (
@@ -562,13 +635,14 @@ function ClockOutSection({ studio }: { studio: any }) {
         style={{ backgroundColor: "color-mix(in oklab, #60a5fa 10%, white)", borderLeft: "3px solid #60a5fa", fontSize: 12, lineHeight: 1.6 }}
       >
         <span style={{ fontWeight: 500 }}>Exemple : </span>
-        un shift commence à <b>08h00</b>. Si l'employé n'a pas pointé à <b>{addMinutes("08:00", local.graceIn)}</b>, l'admin est notifié.
-        Il se termine à <b>22h00</b> : le bouton « Terminer mon shift » apparaît dès <b>{addMinutes("22:00", -local.before)}</b>.
-        S'il n'a pas scanné le QR à <b>{addMinutes("22:00", local.grace)}</b>, <b>{OVERDUE_LABELS[local.action].toLowerCase()}</b>.
+        un shift commence à <b>08h00</b>. Si l'employé n'a pas pointé à <b>{addMinutes("08:00", draft.graceIn)}</b>, l'admin est notifié.
+        Il se termine à <b>22h00</b> : le bouton « Terminer mon shift » apparaît dès <b>{addMinutes("22:00", -draft.before)}</b>.
+        S'il n'a pas scanné le QR à <b>{addMinutes("22:00", draft.grace)}</b>, <b>{OVERDUE_LABELS[draft.action].toLowerCase()}</b>.
       </div>
     </SectionCard>
   );
 }
+
 
 // ============================================================
 // SECTION B — CHECKLISTS PER ROLE
@@ -655,17 +729,8 @@ function useTemplate(studioId: string, roleId: string, phase: ChecklistPhase = "
 
   useEffect(() => { ensure(); }, [ensure]);
 
-  useEffect(() => {
-    if (!template?.id) return;
-    const ch = supabase
-      .channel(`tpl-${template.id}-${Math.random()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_templates", filter: `id=eq.${template.id}` }, async () => {
-        const { data } = await supabase.from("checklist_templates").select("*").eq("id", template.id).maybeSingle();
-        if (data) setTemplate(data);
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [template?.id]);
+  // NOTE: no realtime — admin edits stay authoritative until they save / reload.
+
 
   return { template, loading, reload: ensure, setTemplate };
 }
@@ -686,14 +751,8 @@ function ChecklistEditor({ studioId, roleId, roleName, phase = "closing" }: { st
   }, [template?.id]);
 
   useEffect(() => { reload(); }, [reload]);
-  useEffect(() => {
-    if (!template?.id) return;
-    const ch = supabase.channel(`tpl-content-${template.id}-${Math.random()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_template_items", filter: `template_id=eq.${template.id}` }, () => reload())
-      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_template_photos", filter: `template_id=eq.${template.id}` }, () => reload())
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [template?.id, reload]);
+  // NOTE: no realtime — re-fetch happens after each explicit local mutation.
+
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
@@ -763,10 +822,12 @@ function SortableItem({ item, photos, onDeleted }: { item: any; photos: any[]; o
   const [label, setLabel] = useState(item.label);
   useEffect(() => setLabel(item.label), [item.label]);
 
-  const saveLabel = useDebouncedCallback(async (v: string) => {
+  const saveLabel = async (v: string) => {
+    if (v === item.label) return;
     const { error } = await supabase.from("checklist_template_items").update({ label: v } as any).eq("id", item.id);
-    if (error) toast.error(error.message); else flashSaved();
-  }, 500);
+    if (error) toast.error(`Erreur : ${error.message}`); else { flashSaved(); toast.success("✓ Item enregistré"); }
+  };
+
 
   const setPhoto = async (v: string) => {
     const photo_zone_id = v === "__none__" ? null : v;
@@ -789,7 +850,8 @@ function SortableItem({ item, photos, onDeleted }: { item: any; photos: any[]; o
       </button>
       <input
         value={label}
-        onChange={(e) => { setLabel(e.target.value); saveLabel(e.target.value); }}
+        onChange={(e) => setLabel(e.target.value)}
+        onBlur={(e) => saveLabel(e.target.value)}
         className="flex-1 px-2 py-1 rounded"
         style={{ fontSize: 13, backgroundColor: "transparent", border: "none", outline: "none" }}
       />
@@ -940,13 +1002,8 @@ function PhotosEditor({ studioId, roleId, roleName, phase = "closing" }: { studi
     setPhotos((data as any) ?? []);
   }, [template?.id]);
   useEffect(() => { reload(); }, [reload]);
-  useEffect(() => {
-    if (!template?.id) return;
-    const ch = supabase.channel(`tpl-photos-${template.id}-${Math.random()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_template_photos", filter: `template_id=eq.${template.id}` }, () => reload())
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [template?.id, reload]);
+  // NOTE: no realtime — reload manuel après chaque mutation locale.
+
 
   const update = useCallback(async (patch: any) => {
     if (!template?.id) return;
@@ -1338,12 +1395,8 @@ function QuestionsSection({ studioId }: { studioId: string }) {
   }, [studioId]);
 
   useEffect(() => { reload(); }, [reload]);
-  useEffect(() => {
-    const ch = supabase.channel(`closure-q-${studioId}-${Math.random()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "closure_questions", filter: `studio_id=eq.${studioId}` }, () => reload())
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [studioId, reload]);
+  // NOTE: no realtime — reload manuel après chaque mutation locale.
+
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
@@ -1420,10 +1473,12 @@ function SortableQuestion({ q, onChanged, onDeleted }: { q: any; onChanged?: (pa
   const [text, setText] = useState(q.question_text);
   useEffect(() => setText(q.question_text), [q.question_text]);
 
-  const saveText = useDebouncedCallback(async (v: string) => {
+  const saveText = async (v: string) => {
+    if (v === q.question_text) return;
     const { error } = await supabase.from("closure_questions" as any).update({ question_text: v } as any).eq("id", q.id);
-    if (error) toast.error(error.message); else flashSaved();
-  }, 500);
+    if (error) toast.error(`Erreur : ${error.message}`); else { flashSaved(); toast.success("✓ Question enregistrée"); }
+  };
+
 
   const setType = async (v: string) => {
     onChanged?.({ response_type: v });
@@ -1450,7 +1505,9 @@ function SortableQuestion({ q, onChanged, onDeleted }: { q: any; onChanged?: (pa
       <button {...attributes} {...listeners} className="cursor-grab touch-none" style={{ color: "var(--muted-foreground)" }}>
         <GripVertical size={14} />
       </button>
-      <input value={text} onChange={(e) => { setText(e.target.value); saveText(e.target.value); }}
+      <input value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={(e) => saveText(e.target.value)}
         className="flex-1 px-2 py-1 rounded"
         style={{ fontSize: 13, backgroundColor: "transparent", border: "none", outline: "none" }} />
       <Select value={q.response_type} onValueChange={setType}>
