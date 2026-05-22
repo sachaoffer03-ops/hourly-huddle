@@ -4,7 +4,7 @@ import { ArrowLeft, X, Camera, Check, AlertCircle, QrCode, Star, MapPin, Loader2
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
-import { findApplicableTemplate, getOrCreateSubmission, uploadSubmissionPhoto } from "@/lib/checklists.helpers";
+import { findApplicableTemplate, getOrCreateSubmission, uploadSubmissionPhoto, detectChecklistMoment, notifyTransitionIncoming, type ChecklistPhase } from "@/lib/checklists.helpers";
 import { validateClockOutFn, finalizeClosureFn, analyzeClosurePhotoFn } from "@/lib/closure-flow.functions";
 import type { ChecklistTemplate, ChecklistTemplateItem, ChecklistTemplatePhoto } from "@/types/checklists";
 
@@ -86,6 +86,8 @@ const minutesTo = (date: Date, hhmm: string) => {
 
 export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted }: Props) {
   const [step, setStep] = useState<Step>(1);
+  const [phase, setPhase] = useState<ChecklistPhase | null>("closing");
+  const [firstNameMe, setFirstNameMe] = useState<string | null>(null);
   const [template, setTemplate] = useState<ChecklistTemplate | null>(null);
   const [items, setItems] = useState<ChecklistTemplateItem[]>([]);
   const [photos, setPhotos] = useState<ChecklistTemplatePhoto[]>([]);
@@ -111,10 +113,22 @@ export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted
     setClockedOutAt(shift.clocked_out_at ?? null);
     (async () => {
       try {
-        const tpl = await findApplicableTemplate({ studioId: shift.studio_id ?? null, businessRole: shift.business_role });
+        // Detect closure phase (closing | transition | null)
+        const detected = await detectChecklistMoment({ shiftId: shift.id, side: "clock_out" });
+        setPhase(detected);
+        // Initial step: closing → 1 (recap), transition → 2 (items), null → 4 (QR only)
+        setStep(detected === null ? 4 : detected === "transition" ? 2 : 1);
+
+        // Cache the user's first name for the transition handoff notification
+        const { data: me } = await supabase.from("profiles").select("first_name").eq("id", userId).maybeSingle();
+        setFirstNameMe((me as any)?.first_name ?? null);
+
+        const tpl = detected
+          ? await findApplicableTemplate({ studioId: shift.studio_id ?? null, businessRole: shift.business_role, phase: detected })
+          : null;
         if (tpl) {
           setTemplate(tpl);
-          const subId = await getOrCreateSubmission(userId, shift.id, tpl.id);
+          const subId = await getOrCreateSubmission(userId, shift.id, tpl.id, detected!);
           setSubmissionId(subId);
           const [{ data: its }, { data: phs }, { data: subItems }, { data: subPhotos }] = await Promise.all([
             supabase.from("checklist_template_items").select("*").eq("template_id", tpl.id).order("order_index"),
@@ -143,12 +157,12 @@ export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted
           setTemplate(null); setItems([]); setPhotos([]); setSubmissionId(null);
         }
 
-        if (shift.studio_id) {
+        // Closure questions only for the full 'closing' phase
+        if (detected === "closing" && shift.studio_id) {
           const { data: qs } = await supabase.from("closure_questions")
             .select("id,question_text,response_type,is_required,order_index")
             .eq("studio_id", shift.studio_id).order("order_index");
           setClosureQuestions((qs ?? []) as any);
-          // load existing responses
           if (qs && qs.length) {
             const { data: subId } = await supabase.from("checklist_submissions")
               .select("id").eq("shift_id", shift.id).eq("user_id", userId).maybeSingle();
@@ -318,7 +332,13 @@ export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted
       const r = await validateClockOut({ data: { shiftId: shift.id, qrCode: code, lat, lng } });
       setClockedOutAt(r.completedAt ?? new Date().toISOString());
       toast.success("Pointage de sortie validé");
-      setStep(5);
+      // Closing → questions step ; transition/null → finalize directly
+      if (phase === "closing") {
+        setStep(5);
+      } else {
+        setStep(6);
+        await runFinalize();
+      }
     } catch (e: any) {
       toast.error("Validation refusée", { description: e?.message ?? "Code invalide" });
     } finally {
@@ -342,6 +362,10 @@ export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted
       }).filter((r) => r.stars != null || r.yesno != null || r.text != null);
       const result = await finalizeClosure({ data: { shiftId: shift.id, submissionId, responses } });
       setRecap(result as Recap);
+      // If we were doing a transition, notify the next employee picking up the shift
+      if (phase === "transition") {
+        notifyTransitionIncoming({ fromShiftId: shift.id, fromUserFirstName: firstNameMe }).catch(() => {});
+      }
       onCompleted?.();
     } catch (e: any) {
       console.error(e);
@@ -350,6 +374,7 @@ export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted
       setFinalizing(false);
     }
   };
+
 
   // ─── Render ──────────────────────────────────────────────────────────────
   return (

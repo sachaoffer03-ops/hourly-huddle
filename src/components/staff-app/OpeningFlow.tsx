@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, Check, Camera, PartyPopper, Loader2, MessageSquareQuote } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { findApplicableTemplate, getOrCreateSubmission, uploadSubmissionPhoto } from "@/lib/checklists.helpers";
+import { findApplicableTemplate, getOrCreateSubmission, uploadSubmissionPhoto, detectChecklistMoment, type ChecklistPhase } from "@/lib/checklists.helpers";
 import type { ChecklistTemplate, ChecklistTemplateItem, ChecklistTemplatePhoto } from "@/types/checklists";
 
 export interface OpeningShiftRow {
@@ -30,6 +30,7 @@ type Step = 1 | 2 | 3 | 4;
 
 export function OpeningFlow({ open, onClose, shift, userId, studios, firstName, clockedInAt, minutesLate = 0 }: Props) {
   const [loading, setLoading] = useState(true);
+  const [phase, setPhase] = useState<ChecklistPhase | null>(null);
   const [template, setTemplate] = useState<ChecklistTemplate | null>(null);
   const [items, setItems] = useState<ChecklistTemplateItem[]>([]);
   const [photos, setPhotos] = useState<ChecklistTemplatePhoto[]>([]);
@@ -46,32 +47,39 @@ export function OpeningFlow({ open, onClose, shift, userId, studios, firstName, 
     setLoading(true);
     (async () => {
       try {
-        const tpl = await findApplicableTemplate({
-          studioId: shift.studio_id ?? null,
-          businessRole: shift.business_role,
-          phase: "opening",
-        });
-        if (tpl) {
-          setTemplate(tpl);
-          const subId = await getOrCreateSubmission(userId, shift.id, tpl.id, "opening");
-          setSubmissionId(subId);
-          const [{ data: its }, { data: phs }, { data: subItems }, { data: subPhotos }] = await Promise.all([
-            supabase.from("checklist_template_items").select("*").eq("template_id", tpl.id).order("order_index"),
-            supabase.from("checklist_template_photos").select("*").eq("template_id", tpl.id).order("order_index"),
-            supabase.from("checklist_submission_items").select("template_item_id,is_checked").eq("submission_id", subId),
-            supabase.from("checklist_submission_photos").select("template_photo_id,photo_url").eq("submission_id", subId),
-          ]);
-          setItems((its ?? []) as any);
-          setPhotos((phs ?? []) as any);
-          const im: Record<string, boolean> = {};
-          (subItems ?? []).forEach((r: any) => { im[r.template_item_id] = r.is_checked; });
-          setItemStates(im);
-          const pm: Record<string, { url: string | null; status: "idle" | "uploading" | "done" }> = {};
-          (phs ?? []).forEach((p: any) => {
-            const sp = (subPhotos ?? []).find((s: any) => s.template_photo_id === p.id);
-            pm[p.id] = { url: sp?.photo_url ?? null, status: sp?.photo_url ? "done" : "idle" };
+        // Detect phase (opening | transition | null) for this clock-in
+        const detected = await detectChecklistMoment({ shiftId: shift.id, side: "clock_in" });
+        setPhase(detected);
+        if (detected) {
+          const tpl = await findApplicableTemplate({
+            studioId: shift.studio_id ?? null,
+            businessRole: shift.business_role,
+            phase: detected,
           });
-          setPhotoStates(pm);
+          if (tpl) {
+            setTemplate(tpl);
+            const subId = await getOrCreateSubmission(userId, shift.id, tpl.id, detected);
+            setSubmissionId(subId);
+            const [{ data: its }, { data: phs }, { data: subItems }, { data: subPhotos }] = await Promise.all([
+              supabase.from("checklist_template_items").select("*").eq("template_id", tpl.id).order("order_index"),
+              supabase.from("checklist_template_photos").select("*").eq("template_id", tpl.id).order("order_index"),
+              supabase.from("checklist_submission_items").select("template_item_id,is_checked").eq("submission_id", subId),
+              supabase.from("checklist_submission_photos").select("template_photo_id,photo_url").eq("submission_id", subId),
+            ]);
+            setItems((its ?? []) as any);
+            setPhotos((phs ?? []) as any);
+            const im: Record<string, boolean> = {};
+            (subItems ?? []).forEach((r: any) => { im[r.template_item_id] = r.is_checked; });
+            setItemStates(im);
+            const pm: Record<string, { url: string | null; status: "idle" | "uploading" | "done" }> = {};
+            (phs ?? []).forEach((p: any) => {
+              const sp = (subPhotos ?? []).find((s: any) => s.template_photo_id === p.id);
+              pm[p.id] = { url: sp?.photo_url ?? null, status: sp?.photo_url ? "done" : "idle" };
+            });
+            setPhotoStates(pm);
+          } else {
+            setTemplate(null); setItems([]); setPhotos([]); setSubmissionId(null);
+          }
         } else {
           setTemplate(null); setItems([]); setPhotos([]); setSubmissionId(null);
         }
@@ -114,6 +122,10 @@ export function OpeningFlow({ open, onClose, shift, userId, studios, firstName, 
   const hasChecklist = !!template && items.length > 0;
   const hasPhotos = !!template && photos.length > 0;
   const totalSteps: Step = (hasPhotos ? 3 : hasChecklist ? 2 : 1) as Step;
+  const checklistTitle = phase === "transition"
+    ? `Transition ${shift.business_role}`
+    : `Ouverture ${shift.business_role}`;
+  const ctaStart = phase === "transition" ? "Commencer la transition →" : "Commencer ma checklist d'ouverture →";
 
   const itemsBlocked = items.some((i) => i.is_required && !itemStates[i.id]);
   const photosBlocked = photos.some((p) => p.is_required && photoStates[p.id]?.status !== "done");
@@ -260,7 +272,7 @@ export function OpeningFlow({ open, onClose, shift, userId, studios, firstName, 
                 className="w-full rounded-md py-3 disabled:opacity-50"
                 style={{ fontSize: 14, fontWeight: 500, backgroundColor: "var(--coral)", color: "var(--coral-text)" }}
               >
-                {hasChecklist ? "Commencer ma checklist d'ouverture →" : "Commencer mon service →"}
+                {hasChecklist ? ctaStart : "Commencer mon service →"}
               </button>
             </div>
           </>
@@ -270,10 +282,10 @@ export function OpeningFlow({ open, onClose, shift, userId, studios, firstName, 
               Étape 2 sur {totalSteps}
             </div>
             <div style={{ fontSize: 22, fontWeight: 500, marginTop: 4, letterSpacing: "-0.01em" }}>
-              Checklist d'ouverture
+              {checklistTitle}
             </div>
             <div style={{ fontSize: 12, color: "var(--muted-foreground)", marginTop: 6 }}>
-              Coche chaque tâche réalisée avant d'ouvrir.
+              {phase === "transition" ? "Coche chaque tâche de relève avant de reprendre le poste." : "Coche chaque tâche réalisée avant d'ouvrir."}
             </div>
 
             <div className="mt-5 flex flex-col gap-2">
