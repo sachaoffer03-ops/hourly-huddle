@@ -933,32 +933,53 @@ function DuplicateButton({ items, currentRoleId, studioId, phase = "closing" }: 
         if (fresh && fresh.length > 0) freshItems = fresh as any[];
       }
 
-      // 3) Trouver/créer le template cible
-      let { data: tpl } = await supabase
+      // 3) Trouver/créer le template cible — via SELECT-then-insert protégé par l'index unique
+      let { data: tplRows } = await supabase
         .from("checklist_templates")
         .select("id")
         .eq("studio_id", studioId)
         .eq("business_role_id", target)
         .eq("phase", phase)
-        .maybeSingle();
+        .order("created_at", { ascending: true })
+        .limit(1);
+      let tpl: any = tplRows && tplRows.length > 0 ? tplRows[0] : null;
       if (!tpl) {
         const { data: created, error: cErr } = await supabase.from("checklist_templates").insert({
           studio_id: studioId, business_role_id: target, name: phase === "opening" ? "Ouverture" : phase === "transition" ? "Transition" : "Clôture", phase, is_active: true, is_blocking: true,
         } as any).select("id").single();
-        if (cErr) { toast.error(cErr.message); return; }
-        tpl = created as any;
+        if (cErr) {
+          // Conflit unique → relire
+          const { data: again } = await supabase
+            .from("checklist_templates").select("id")
+            .eq("studio_id", studioId).eq("business_role_id", target).eq("phase", phase)
+            .order("created_at", { ascending: true }).limit(1);
+          tpl = again && again.length > 0 ? again[0] : null;
+        } else {
+          tpl = created;
+        }
       }
-      if (!tpl) return;
+      if (!tpl) { toast.error("Impossible de créer le template cible"); return; }
 
-      // 4) Insérer les rows
+      // 3b) Trouver le plus grand order_index existant dans le template cible
+      const { data: lastRows } = await supabase
+        .from("checklist_template_items")
+        .select("order_index")
+        .eq("template_id", tpl.id)
+        .order("order_index", { ascending: false })
+        .limit(1);
+      const startIdx = ((lastRows?.[0] as any)?.order_index ?? -1) + 1;
+
+      // 4) Insérer les rows (append en fin de checklist cible)
       const rows = freshItems.map((it, idx) => ({
-        template_id: (tpl as any).id, label: it.label, description: it.description, is_required: it.is_required, order_index: idx,
+        template_id: tpl.id, label: it.label, description: it.description, is_required: it.is_required, order_index: startIdx + idx,
       }));
       if (rows.length > 0) {
         const { error } = await supabase.from("checklist_template_items").insert(rows as any);
         if (error) { toast.error(error.message); return; }
       }
-      toast.success(`Checklist dupliquée (${rows.length} item${rows.length > 1 ? "s" : ""})`);
+      // Invalider le cache pour que le poste cible relise depuis la DB
+      templateEnsureCache.delete(`${studioId}::${target}::${phase}`);
+      toast.success(`Checklist dupliquée (${rows.length} item${rows.length > 1 ? "s" : ""}). Ouvre l'onglet "${roles.find(r=>r.id===target)?.name ?? "cible"}" pour vérifier.`);
       setOpen(false);
       setTarget("");
       flashSaved();
