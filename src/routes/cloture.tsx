@@ -1473,10 +1473,12 @@ function SortableQuestion({ q, onChanged, onDeleted }: { q: any; onChanged?: (pa
   const [text, setText] = useState(q.question_text);
   useEffect(() => setText(q.question_text), [q.question_text]);
 
-  const saveText = useDebouncedCallback(async (v: string) => {
+  const saveText = async (v: string) => {
+    if (v === q.question_text) return;
     const { error } = await supabase.from("closure_questions" as any).update({ question_text: v } as any).eq("id", q.id);
-    if (error) toast.error(error.message); else flashSaved();
-  }, 500);
+    if (error) toast.error(`Erreur : ${error.message}`); else { flashSaved(); toast.success("✓ Question enregistrée"); }
+  };
+
 
   const setType = async (v: string) => {
     onChanged?.({ response_type: v });
