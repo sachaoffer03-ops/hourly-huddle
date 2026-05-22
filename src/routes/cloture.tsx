@@ -729,17 +729,8 @@ function useTemplate(studioId: string, roleId: string, phase: ChecklistPhase = "
 
   useEffect(() => { ensure(); }, [ensure]);
 
-  useEffect(() => {
-    if (!template?.id) return;
-    const ch = supabase
-      .channel(`tpl-${template.id}-${Math.random()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "checklist_templates", filter: `id=eq.${template.id}` }, async () => {
-        const { data } = await supabase.from("checklist_templates").select("*").eq("id", template.id).maybeSingle();
-        if (data) setTemplate(data);
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [template?.id]);
+  // NOTE: no realtime — admin edits stay authoritative until they save / reload.
+
 
   return { template, loading, reload: ensure, setTemplate };
 }
