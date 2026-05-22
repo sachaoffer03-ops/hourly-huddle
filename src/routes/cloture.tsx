@@ -889,6 +889,25 @@ function DuplicateButton({ items, currentRoleId, studioId, phase = "closing" }: 
     if (!target || busy) return;
     setBusy(true);
     try {
+      // 1) Forcer la persistance des champs en cours d'édition (blur l'élément actif)
+      //    + laisser le temps au debounce de flush
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      await new Promise((r) => setTimeout(r, 600));
+
+      // 2) Relire les items source à jour depuis la DB (au cas où le state parent
+      //    serait obsolète, on duplique toujours la dernière version persistée)
+      const sourceTplId = items[0]?.template_id;
+      let freshItems = items;
+      if (sourceTplId) {
+        const { data: fresh } = await supabase
+          .from("checklist_template_items")
+          .select("*")
+          .eq("template_id", sourceTplId)
+          .order("order_index");
+        if (fresh && fresh.length > 0) freshItems = fresh as any[];
+      }
+
+      // 3) Trouver/créer le template cible
       let { data: tpl } = await supabase
         .from("checklist_templates")
         .select("id")
@@ -904,14 +923,16 @@ function DuplicateButton({ items, currentRoleId, studioId, phase = "closing" }: 
         tpl = created as any;
       }
       if (!tpl) return;
-      const rows = items.map((it, idx) => ({
+
+      // 4) Insérer les rows
+      const rows = freshItems.map((it, idx) => ({
         template_id: (tpl as any).id, label: it.label, description: it.description, is_required: it.is_required, order_index: idx,
       }));
       if (rows.length > 0) {
         const { error } = await supabase.from("checklist_template_items").insert(rows as any);
         if (error) { toast.error(error.message); return; }
       }
-      toast.success("Checklist dupliquée");
+      toast.success(`Checklist dupliquée (${rows.length} item${rows.length > 1 ? "s" : ""})`);
       setOpen(false);
       setTarget("");
       flashSaved();
