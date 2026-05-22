@@ -4,7 +4,8 @@ import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import {
   DoorClosed, Clock, Camera, QrCode, MessageSquare, Plus, Trash2, GripVertical,
-  Pencil, Check, X, Sparkles, Lock, RefreshCw, Upload, Settings as SettingsIcon, BarChart3, Sunrise,
+  Pencil, Check, X, Sparkles, Lock, RefreshCw, Upload, Settings as SettingsIcon, BarChart3,
+  Sunrise, ArrowRightLeft, Sunset, ChevronDown, ChevronRight, ListChecks,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
@@ -20,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { NotationTab } from "@/components/cloture/NotationTab";
+import type { ChecklistPhase } from "@/lib/checklists.helpers";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
   type DragEndEvent,
@@ -30,7 +32,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 const clotureSearchSchema = z.object({
-  tab: fallback(z.enum(["config", "opening", "notation"]), "config").default("config"),
+  tab: fallback(z.enum(["config", "checklists", "notation"]), "config").default("config"),
 });
 
 export const Route = createFileRoute("/cloture")({
@@ -118,6 +120,14 @@ function ClotureePage() {
 
   const flash = useSavedFlash();
 
+  // Legacy redirect: ?tab=opening was the old standalone opening tab; now lives under Checklists
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get("tab") === "opening") {
+      navigate({ search: (prev: any) => ({ ...prev, tab: "checklists" }) });
+    }
+  }, [navigate]);
+
   // Notify admin of overdue clock-outs on page load (silent fire-and-forget)
   const notifyOverdue = useServerFn(notifyOverdueClockOutsFn);
   useEffect(() => {
@@ -141,7 +151,7 @@ function ClotureePage() {
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 500, marginBottom: 2 }}>Clôture</h1>
           <p style={{ fontSize: 13, color: "var(--muted-foreground)", maxWidth: 720 }}>
-            Configure le parcours de clôture des shifts et comment ces actions impactent le score des employés.
+            Configure le parcours de pointage, les checklists par moment de service, et la notation.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -155,7 +165,7 @@ function ClotureePage() {
           >
             ✓ Enregistré
           </span>
-          {tab === "config" && (
+          {(tab === "config" || tab === "checklists") && (
             <Select value={studioId ?? ""} onValueChange={(v) => setStudioId(v)}>
               <SelectTrigger className="w-[200px]"><SelectValue placeholder="Studio" /></SelectTrigger>
               <SelectContent>
@@ -170,7 +180,7 @@ function ClotureePage() {
 
       <Tabs
         value={tab}
-        onValueChange={(v) => navigate({ search: (prev: any) => ({ ...prev, tab: v as "config" | "opening" | "notation" }) })}
+        onValueChange={(v) => navigate({ search: (prev: any) => ({ ...prev, tab: v as "config" | "checklists" | "notation" }) })}
         className="w-full"
       >
         <TabsList className="mb-5">
@@ -178,9 +188,9 @@ function ClotureePage() {
             <SettingsIcon size={14} strokeWidth={1.8} />
             Configuration
           </TabsTrigger>
-          <TabsTrigger value="opening" className="gap-2">
-            <Sunrise size={14} strokeWidth={1.8} />
-            Ouverture
+          <TabsTrigger value="checklists" className="gap-2">
+            <ListChecks size={14} strokeWidth={1.8} />
+            Checklists
           </TabsTrigger>
           <TabsTrigger value="notation" className="gap-2">
             <BarChart3 size={14} strokeWidth={1.8} />
@@ -194,28 +204,17 @@ function ClotureePage() {
           ) : (
             <div className="flex flex-col gap-5">
               <ClockOutSection studio={studio} />
-              <ChecklistsSection studioId={studio.id} phase="closing" />
-              <PhotosSection studioId={studio.id} phase="closing" />
               <QrSection studio={studio} />
               <QuestionsSection studioId={studio.id} />
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="opening" className="mt-0">
+        <TabsContent value="checklists" className="mt-0">
           {!studio ? (
-            <EmptyCard text="Sélectionne un studio pour configurer l'ouverture." />
+            <EmptyCard text="Sélectionne un studio pour configurer les checklists." />
           ) : (
-            <div className="flex flex-col gap-5">
-              <div className="rounded-lg border p-5" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
-                <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Checklist d'ouverture</div>
-                <div style={{ fontSize: 12, color: "var(--muted-foreground)", maxWidth: 700, lineHeight: 1.5 }}>
-                  Ce que tes employés doivent faire dès leur arrivée au studio, juste après le scan du QR, avant de commencer leur service.
-                </div>
-              </div>
-              <ChecklistsSection studioId={studio.id} phase="opening" />
-              <PhotosSection studioId={studio.id} phase="opening" />
-            </div>
+            <ChecklistsTab studioId={studio.id} />
           )}
         </TabsContent>
 
@@ -233,6 +232,158 @@ function EmptyCard({ text }: { text: string }) {
       {text}
     </div>
   );
+}
+
+// ============================================================
+// CHECKLISTS TAB — 3 phases empilées par poste
+// ============================================================
+
+const PHASE_META: Record<ChecklistPhase, { label: string; icon: any; color: string; bg: string; desc: string }> = {
+  opening:    { label: "Ouverture",  icon: Sunrise,        color: "var(--coral-dark)", bg: "var(--coral-light)",                     desc: "Premier shift de la journée sur ce poste." },
+  transition: { label: "Transition", icon: ArrowRightLeft, color: "#4338CA",            bg: "color-mix(in oklab, #4338CA 12%, white)", desc: "Quand un employé prend le relais d'un autre sur le même poste." },
+  closing:    { label: "Fermeture",  icon: Sunset,         color: "var(--success-text)", bg: "var(--success-bg)",                     desc: "Dernier shift de la journée sur ce poste." },
+};
+
+function ChecklistsTab({ studioId }: { studioId: string }) {
+  const { roles } = useBusinessRoles({ onlyActive: true });
+  const [activeRoleId, setActiveRoleId] = useState<string | null>(null);
+  useEffect(() => { if (!activeRoleId && roles.length > 0) setActiveRoleId(roles[0].id); }, [roles, activeRoleId]);
+  const activeRole = roles.find((r) => r.id === activeRoleId) ?? null;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div
+        className="rounded-lg px-4 py-3 flex items-start gap-3"
+        style={{ backgroundColor: "color-mix(in oklab, #60a5fa 10%, white)", fontSize: 12, lineHeight: 1.6 }}
+      >
+        <Sparkles size={14} style={{ color: "#1d4ed8", marginTop: 2, flexShrink: 0 }} />
+        <div>
+          Configure une checklist par poste et par moment du service (ouverture, transition, fermeture). Le système détecte automatiquement à chaque pointage quelle checklist appliquer. Crée une checklist de transition si plusieurs employés s'enchaînent sur ce poste dans la journée. Les photos sont analysées par l'IA pour vérifier ce qu'on ne peut pas constater verbalement.
+        </div>
+      </div>
+
+      <div className="rounded-lg border p-4" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
+        <div className="flex flex-wrap gap-1.5 mb-1">
+          {roles.map((r) => {
+            const isActive = r.id === activeRoleId;
+            const st = getRoleStyle(r.name);
+            return (
+              <button
+                key={r.id}
+                onClick={() => setActiveRoleId(r.id)}
+                className="rounded-md px-3 py-1.5 flex items-center gap-2 transition-all"
+                style={{
+                  fontSize: 12, fontWeight: 500,
+                  backgroundColor: isActive ? st.bg : "transparent",
+                  color: isActive ? st.text : "var(--muted-foreground)",
+                  border: `1px solid ${isActive ? st.dot : "var(--border)"}`,
+                }}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: st.dot }} />
+                {r.name}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {activeRole && (
+        <div className="flex flex-col gap-3">
+          {(["opening", "transition", "closing"] as ChecklistPhase[]).map((phase) => (
+            <PhaseAccordion
+              key={`${activeRole.id}-${phase}`}
+              studioId={studioId}
+              roleId={activeRole.id}
+              roleName={activeRole.name}
+              phase={phase}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PhaseAccordion({ studioId, roleId, roleName, phase }: { studioId: string; roleId: string; roleName: string; phase: ChecklistPhase }) {
+  const [open, setOpen] = useState(phase === "opening");
+  const [counts, setCounts] = useState<{ items: number; photos: number } | null>(null);
+  const meta = PHASE_META[phase];
+
+  // Lazy count: lit le template + counts items/photos sans monter l'éditeur
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: tpl } = await supabase
+        .from("checklist_templates")
+        .select("id")
+        .eq("studio_id", studioId)
+        .eq("business_role_id", roleId)
+        .eq("phase", phase)
+        .maybeSingle();
+      if (cancelled) return;
+      if (!tpl) { setCounts({ items: 0, photos: 0 }); return; }
+      const [{ count: ic }, { count: pc }] = await Promise.all([
+        supabase.from("checklist_template_items").select("id", { count: "exact", head: true }).eq("template_id", (tpl as any).id),
+        supabase.from("checklist_template_photos").select("id", { count: "exact", head: true }).eq("template_id", (tpl as any).id),
+      ]);
+      if (!cancelled) setCounts({ items: ic ?? 0, photos: pc ?? 0 });
+    })();
+    return () => { cancelled = true; };
+  }, [studioId, roleId, phase, open]);
+
+  const Icon = meta.icon;
+  const badge = counts
+    ? (counts.items === 0 && counts.photos === 0
+        ? "Vide"
+        : `${counts.items} item${counts.items > 1 ? "s" : ""} · ${counts.photos} photo${counts.photos > 1 ? "s" : ""}`)
+    : "…";
+
+  return (
+    <section className="rounded-lg border" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full px-5 py-4 flex items-center gap-3 text-left"
+      >
+        <div className="rounded-md p-2 flex items-center justify-center" style={{ backgroundColor: meta.bg }}>
+          <Icon size={16} strokeWidth={1.8} style={{ color: meta.color }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span style={{ fontSize: 14, fontWeight: 500 }}>{meta.label}</span>
+            <span
+              className="rounded-full px-2 py-0.5"
+              style={{ fontSize: 10, fontWeight: 500, backgroundColor: counts && (counts.items > 0 || counts.photos > 0) ? meta.bg : "var(--muted)", color: counts && (counts.items > 0 || counts.photos > 0) ? meta.color : "var(--muted-foreground)" }}
+            >
+              {badge}
+            </span>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 2 }}>{meta.desc}</div>
+        </div>
+        {open ? <ChevronDown size={16} style={{ color: "var(--muted-foreground)" }} /> : <ChevronRight size={16} style={{ color: "var(--muted-foreground)" }} />}
+      </button>
+      {open && (
+        <div className="border-t p-5 flex flex-col gap-6" style={{ borderColor: "var(--border)" }}>
+          <div>
+            <div style={{ fontSize: 12, color: "var(--muted-foreground)", fontWeight: 500, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+              Items à cocher
+            </div>
+            <ChecklistEditor studioId={studioId} roleId={roleId} roleName={roleName} phase={phase} />
+          </div>
+          <div className="border-t pt-5" style={{ borderColor: "var(--border)" }}>
+            <div style={{ fontSize: 12, color: "var(--muted-foreground)", fontWeight: 500, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+              Photos & analyse IA
+            </div>
+            <InlinePhotosEditor studioId={studioId} roleId={roleId} roleName={roleName} phase={phase} />
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// Inline version of PhotosSection — no card wrapper, no role tabs (parent already scopes by role).
+function InlinePhotosEditor({ studioId, roleId, roleName, phase }: { studioId: string; roleId: string; roleName: string; phase: ChecklistPhase }) {
+  return <PhotosEditor studioId={studioId} roleId={roleId} roleName={roleName} phase={phase} />;
 }
 
 function SectionCard({ icon: Icon, title, subtitle, right, children }: {
@@ -423,7 +574,7 @@ function ClockOutSection({ studio }: { studio: any }) {
 // SECTION B — CHECKLISTS PER ROLE
 // ============================================================
 
-function ChecklistsSection({ studioId, phase = "closing" }: { studioId: string; phase?: "opening" | "closing" }) {
+function ChecklistsSection({ studioId, phase = "closing" }: { studioId: string; phase?: ChecklistPhase }) {
   const { roles } = useBusinessRoles({ onlyActive: true });
   const [activeRoleId, setActiveRoleId] = useState<string | null>(null);
   useEffect(() => {
@@ -466,7 +617,7 @@ function ChecklistsSection({ studioId, phase = "closing" }: { studioId: string; 
   );
 }
 
-function useTemplate(studioId: string, roleId: string, phase: "opening" | "closing" = "closing") {
+function useTemplate(studioId: string, roleId: string, phase: ChecklistPhase = "closing") {
   const [template, setTemplate] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -489,7 +640,7 @@ function useTemplate(studioId: string, roleId: string, phase: "opening" | "closi
       .insert({
         studio_id: studioId,
         business_role_id: roleId,
-        name: phase === "opening" ? "Ouverture" : "Clôture",
+        name: phase === "opening" ? "Ouverture" : phase === "transition" ? "Transition" : "Clôture",
         phase,
         is_active: true,
         is_blocking: true,
@@ -519,7 +670,7 @@ function useTemplate(studioId: string, roleId: string, phase: "opening" | "closi
   return { template, loading, reload: ensure, setTemplate };
 }
 
-function ChecklistEditor({ studioId, roleId, roleName, phase = "closing" }: { studioId: string; roleId: string; roleName: string; phase?: "opening" | "closing" }) {
+function ChecklistEditor({ studioId, roleId, roleName, phase = "closing" }: { studioId: string; roleId: string; roleName: string; phase?: ChecklistPhase }) {
   const { template, loading } = useTemplate(studioId, roleId, phase);
   const [items, setItems] = useState<any[]>([]);
   const [photos, setPhotos] = useState<any[]>([]);
@@ -658,7 +809,7 @@ function SortableItem({ item, photos, onDeleted }: { item: any; photos: any[]; o
   );
 }
 
-function DuplicateButton({ items, currentRoleId, studioId, phase = "closing" }: { items: any[]; currentRoleId: string; studioId: string; phase?: "opening" | "closing" }) {
+function DuplicateButton({ items, currentRoleId, studioId, phase = "closing" }: { items: any[]; currentRoleId: string; studioId: string; phase?: ChecklistPhase }) {
   const { roles } = useBusinessRoles({ onlyActive: true });
   const [open, setOpen] = useState(false);
   const [target, setTarget] = useState<string>("");
@@ -677,7 +828,7 @@ function DuplicateButton({ items, currentRoleId, studioId, phase = "closing" }: 
         .maybeSingle();
       if (!tpl) {
         const { data: created, error: cErr } = await supabase.from("checklist_templates").insert({
-          studio_id: studioId, business_role_id: target, name: phase === "opening" ? "Ouverture" : "Clôture", phase, is_active: true, is_blocking: true,
+          studio_id: studioId, business_role_id: target, name: phase === "opening" ? "Ouverture" : phase === "transition" ? "Transition" : "Clôture", phase, is_active: true, is_blocking: true,
         } as any).select("id").single();
         if (cErr) { toast.error(cErr.message); return; }
         tpl = created as any;
@@ -742,7 +893,7 @@ function DuplicateButton({ items, currentRoleId, studioId, phase = "closing" }: 
 // SECTION C — PHOTOS & AI
 // ============================================================
 
-function PhotosSection({ studioId, phase = "closing" }: { studioId: string; phase?: "opening" | "closing" }) {
+function PhotosSection({ studioId, phase = "closing" }: { studioId: string; phase?: ChecklistPhase }) {
   const { roles } = useBusinessRoles({ onlyActive: true });
   const [roleId, setRoleId] = useState<string | null>(null);
   useEffect(() => { if (!roleId && roles.length > 0) setRoleId(roles[0].id); }, [roles, roleId]);
@@ -777,7 +928,7 @@ function PhotosSection({ studioId, phase = "closing" }: { studioId: string; phas
   );
 }
 
-function PhotosEditor({ studioId, roleId, roleName, phase = "closing" }: { studioId: string; roleId: string; roleName: string; phase?: "opening" | "closing" }) {
+function PhotosEditor({ studioId, roleId, roleName, phase = "closing" }: { studioId: string; roleId: string; roleName: string; phase?: ChecklistPhase }) {
   const { template, loading, setTemplate } = useTemplate(studioId, roleId, phase);
   const [photos, setPhotos] = useState<any[]>([]);
   const [editing, setEditing] = useState<any | null>(null);
