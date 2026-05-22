@@ -20,6 +20,7 @@ import { Route as ReglagesRouteImport } from './routes/reglages'
 import { Route as RapportsRouteImport } from './routes/rapports'
 import { Route as PointageRouteImport } from './routes/pointage'
 import { Route as PlanningRouteImport } from './routes/planning'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as FormationRouteImport } from './routes/formation'
 import { Route as FeedbacksRouteImport } from './routes/feedbacks'
@@ -99,6 +100,11 @@ const PointageRoute = PointageRouteImport.update({
 const PlanningRoute = PlanningRouteImport.update({
   id: '/planning',
   path: '/planning',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -239,6 +245,7 @@ export interface FileRoutesByFullPath {
   '/feedbacks': typeof FeedbacksRoute
   '/formation': typeof FormationRouteWithChildren
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/planning': typeof PlanningRouteWithChildren
   '/pointage': typeof PointageRoute
   '/rapports': typeof RapportsRoute
@@ -277,6 +284,7 @@ export interface FileRoutesByTo {
   '/feedbacks': typeof FeedbacksRoute
   '/formation': typeof FormationRouteWithChildren
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/planning': typeof PlanningRouteWithChildren
   '/pointage': typeof PointageRoute
   '/rapports': typeof RapportsRoute
@@ -315,6 +323,7 @@ export interface FileRoutesById {
   '/feedbacks': typeof FeedbacksRoute
   '/formation': typeof FormationRouteWithChildren
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/planning': typeof PlanningRouteWithChildren
   '/pointage': typeof PointageRoute
   '/rapports': typeof RapportsRoute
@@ -355,6 +364,7 @@ export interface FileRouteTypes {
     | '/feedbacks'
     | '/formation'
     | '/login'
+    | '/notifications'
     | '/planning'
     | '/pointage'
     | '/rapports'
@@ -393,6 +403,7 @@ export interface FileRouteTypes {
     | '/feedbacks'
     | '/formation'
     | '/login'
+    | '/notifications'
     | '/planning'
     | '/pointage'
     | '/rapports'
@@ -430,6 +441,7 @@ export interface FileRouteTypes {
     | '/feedbacks'
     | '/formation'
     | '/login'
+    | '/notifications'
     | '/planning'
     | '/pointage'
     | '/rapports'
@@ -469,6 +481,7 @@ export interface RootRouteChildren {
   FeedbacksRoute: typeof FeedbacksRoute
   FormationRoute: typeof FormationRouteWithChildren
   LoginRoute: typeof LoginRoute
+  NotificationsRoute: typeof NotificationsRoute
   PlanningRoute: typeof PlanningRouteWithChildren
   PointageRoute: typeof PointageRoute
   RapportsRoute: typeof RapportsRoute
@@ -568,6 +581,13 @@ declare module '@tanstack/react-router' {
       path: '/planning'
       fullPath: '/planning'
       preLoaderRoute: typeof PlanningRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -798,6 +818,7 @@ const rootRouteChildren: RootRouteChildren = {
   FeedbacksRoute: FeedbacksRoute,
   FormationRoute: FormationRouteWithChildren,
   LoginRoute: LoginRoute,
+  NotificationsRoute: NotificationsRoute,
   PlanningRoute: PlanningRouteWithChildren,
   PointageRoute: PointageRoute,
   RapportsRoute: RapportsRoute,
@@ -822,13 +843,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
