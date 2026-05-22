@@ -414,6 +414,21 @@ export const resetDemoEnvironment = createServerFn({ method: "POST" })
     if (shiftsErr) throw new Error(`shifts passés: ${shiftsErr.message}`);
     log.push(`${pastShifts.length} shifts passés clôturés`);
 
+    // 6b. Handoff fictif sur le dernier shift terminé de Clara
+    const { data: lastShift } = await supabaseAdmin
+      .from("shifts").select("id").eq("user_id", demoUserId)
+      .not("clocked_out_at", "is", null)
+      .order("shift_date", { ascending: false }).order("end_time", { ascending: false })
+      .limit(1).maybeSingle();
+    if (lastShift?.id) {
+      await supabaseAdmin.from("shift_handoffs").insert({
+        shift_id: (lastShift as any).id,
+        author_id: demoUserId,
+        message: "Tout est en ordre, j'ai laissé la liste de courses sur le frigo.",
+      });
+      log.push("Handoff de démo créé sur le dernier shift de Clara");
+    }
+
     // 7. 5 shifts futurs (dont 1 imminent)
     const now = new Date();
     const imminentStart = new Date(now.getTime() + 15 * 60_000);
