@@ -422,7 +422,7 @@ function ClockOutSection({ studio }: { studio: any }) {
 // SECTION B — CHECKLISTS PER ROLE
 // ============================================================
 
-function ChecklistsSection({ studioId, phase = "closing" }: { studioId: string; phase?: "opening" | "closing" }) {
+function ChecklistsSection({ studioId, phase = "closing" }: { studioId: string; phase?: ChecklistPhase }) {
   const { roles } = useBusinessRoles({ onlyActive: true });
   const [activeRoleId, setActiveRoleId] = useState<string | null>(null);
   useEffect(() => {
@@ -465,7 +465,7 @@ function ChecklistsSection({ studioId, phase = "closing" }: { studioId: string; 
   );
 }
 
-function useTemplate(studioId: string, roleId: string, phase: "opening" | "closing" = "closing") {
+function useTemplate(studioId: string, roleId: string, phase: ChecklistPhase = "closing") {
   const [template, setTemplate] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -518,7 +518,7 @@ function useTemplate(studioId: string, roleId: string, phase: "opening" | "closi
   return { template, loading, reload: ensure, setTemplate };
 }
 
-function ChecklistEditor({ studioId, roleId, roleName, phase = "closing" }: { studioId: string; roleId: string; roleName: string; phase?: "opening" | "closing" }) {
+function ChecklistEditor({ studioId, roleId, roleName, phase = "closing" }: { studioId: string; roleId: string; roleName: string; phase?: ChecklistPhase }) {
   const { template, loading } = useTemplate(studioId, roleId, phase);
   const [items, setItems] = useState<any[]>([]);
   const [photos, setPhotos] = useState<any[]>([]);
@@ -657,7 +657,7 @@ function SortableItem({ item, photos, onDeleted }: { item: any; photos: any[]; o
   );
 }
 
-function DuplicateButton({ items, currentRoleId, studioId, phase = "closing" }: { items: any[]; currentRoleId: string; studioId: string; phase?: "opening" | "closing" }) {
+function DuplicateButton({ items, currentRoleId, studioId, phase = "closing" }: { items: any[]; currentRoleId: string; studioId: string; phase?: ChecklistPhase }) {
   const { roles } = useBusinessRoles({ onlyActive: true });
   const [open, setOpen] = useState(false);
   const [target, setTarget] = useState<string>("");
@@ -741,7 +741,7 @@ function DuplicateButton({ items, currentRoleId, studioId, phase = "closing" }: 
 // SECTION C — PHOTOS & AI
 // ============================================================
 
-function PhotosSection({ studioId, phase = "closing" }: { studioId: string; phase?: "opening" | "closing" }) {
+function PhotosSection({ studioId, phase = "closing" }: { studioId: string; phase?: ChecklistPhase }) {
   const { roles } = useBusinessRoles({ onlyActive: true });
   const [roleId, setRoleId] = useState<string | null>(null);
   useEffect(() => { if (!roleId && roles.length > 0) setRoleId(roles[0].id); }, [roles, roleId]);
@@ -776,7 +776,7 @@ function PhotosSection({ studioId, phase = "closing" }: { studioId: string; phas
   );
 }
 
-function PhotosEditor({ studioId, roleId, roleName, phase = "closing" }: { studioId: string; roleId: string; roleName: string; phase?: "opening" | "closing" }) {
+function PhotosEditor({ studioId, roleId, roleName, phase = "closing" }: { studioId: string; roleId: string; roleName: string; phase?: ChecklistPhase }) {
   const { template, loading, setTemplate } = useTemplate(studioId, roleId, phase);
   const [photos, setPhotos] = useState<any[]>([]);
   const [editing, setEditing] = useState<any | null>(null);
