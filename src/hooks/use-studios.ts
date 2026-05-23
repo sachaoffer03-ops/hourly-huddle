@@ -32,6 +32,15 @@ export interface StudioRow {
   opening_hours: DayHours[];
   role_hours: Record<string, RoleSchedule>;
   created_at: string;
+  // Pointage / QR
+  geofencing_enabled?: boolean;
+  geofencing_radius_m?: number;
+  lat?: number | null;
+  lng?: number | null;
+  clock_in_grace_period_min?: number;
+  clock_out_grace_period_min?: number;
+  clock_out_button_appears_before_min?: number;
+  qr_renewal_seconds?: number;
 }
 
 const DEFAULT_WEEK: DayHours[] = [
