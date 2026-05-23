@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { createContent, updateContent } from "@/lib/formation.functions";
 import type { ContentRow, ContentType } from "./types";
 import { TYPE_LABEL } from "./types";
+import { ContentPreview, PreviewFrame } from "./ContentPreview";
 
 interface Props {
   open: boolean;
