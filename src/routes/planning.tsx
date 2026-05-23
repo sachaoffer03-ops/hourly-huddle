@@ -1021,7 +1021,14 @@ function PlanningCalendarPage() {
           {holes.length > 0 && (
             <>
               <span style={{ color: "var(--muted-foreground)" }}>·</span>
-              <Link to="/trous" style={{ color: "var(--coral-dark)", fontWeight: 500, textDecoration: "underline" }}>
+              <Link
+                to="/trous"
+                search={{
+                  studios: Array.from(selectedStudios).map((s) => s.replace(/^Skult\s+/i, "")).join(","),
+                  week: weekStart.toISOString().slice(0, 10),
+                }}
+                style={{ color: "var(--coral-dark)", fontWeight: 500, textDecoration: "underline" }}
+              >
                 {holes.length} trous à combler
               </Link>
             </>

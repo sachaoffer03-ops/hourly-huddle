@@ -8,9 +8,18 @@ import { getRoleStyle, hhmm, fullName } from "@/lib/staff-helpers";
 import { useBusinessRoles } from "@/hooks/use-business-roles";
 import { sendProposals, cancelProposals } from "@/lib/proposals.functions";
 
+interface TrousSearch {
+  studios?: string;
+  week?: string;
+}
+
 export const Route = createFileRoute("/trous")({
   component: TrousPage,
   head: () => ({ meta: [{ title: "Trous à combler — Kadence" }] }),
+  validateSearch: (search: Record<string, unknown>): TrousSearch => ({
+    studios: typeof search.studios === "string" ? search.studios : undefined,
+    week: typeof search.week === "string" ? search.week : undefined,
+  }),
 });
 
 interface Hole {
@@ -88,9 +97,47 @@ function TrousPage() {
     return () => { supabase.removeChannel(ch1); supabase.removeChannel(ch2); };
   }, []);
 
+
+  const search = Route.useSearch();
+  const studioFilter = useMemo(
+    () => (search.studios ? new Set(search.studios.split(",").map((s: string) => s.trim()).filter(Boolean)) : null),
+    [search.studios],
+  );
+  const weekFilter = search.week;
+  const weekRange = useMemo(() => {
+    if (!weekFilter) return null;
+    const start = weekFilter;
+    const d = new Date(weekFilter + "T00:00:00");
+    if (isNaN(d.getTime())) return null;
+    d.setDate(d.getDate() + 6);
+    const end = d.toISOString().slice(0, 10);
+    return { start, end };
+  }, [weekFilter]);
+
+  // Resolve studio ids matching name filter
+  const studioIdsFilter = useMemo(() => {
+    if (!studioFilter) return null;
+    const ids = new Set<string>();
+    studios.forEach((name, id) => {
+      const short = name.replace(/^Skult\s+/i, "").toLowerCase();
+      if (studioFilter.has(name) || studioFilter.has(short) || studioFilter.has(name.toLowerCase())) {
+        ids.add(id);
+      }
+    });
+    return ids;
+  }, [studios, studioFilter]);
+
+  const scoped = useMemo(() => {
+    return holes.filter((h) => {
+      if (studioIdsFilter && (!h.studio_id || !studioIdsFilter.has(h.studio_id))) return false;
+      if (weekRange && (h.shift_date < weekRange.start || h.shift_date > weekRange.end)) return false;
+      return true;
+    });
+  }, [holes, studioIdsFilter, weekRange]);
+
   const filtered = useMemo(
-    () => holes.filter((h) => filterRole === "tous" || h.business_role === filterRole),
-    [holes, filterRole],
+    () => scoped.filter((h) => filterRole === "tous" || h.business_role === filterRole),
+    [scoped, filterRole],
   );
 
   const proposalsByShift = useMemo(() => {
@@ -146,11 +193,27 @@ function TrousPage() {
         </div>
       </div>
 
+      {(studioFilter || weekRange) && (
+        <div className="rounded-xl border mb-4 px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap"
+          style={{ borderColor: "var(--coral)", backgroundColor: "var(--coral-light)" }}>
+          <div className="flex items-center gap-2 flex-wrap" style={{ fontSize: 12, color: "var(--coral-dark)" }}>
+            <span style={{ fontWeight: 500 }}>Filtre actif :</span>
+            {studioFilter && <span>studios {Array.from(studioFilter).join(", ")}</span>}
+            {studioFilter && weekRange && <span>·</span>}
+            {weekRange && <span>semaine du {new Date(weekRange.start + "T00:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} au {new Date(weekRange.end + "T00:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</span>}
+          </div>
+          <Link to="/trous" search={{}} className="rounded-md px-2.5 py-1 inline-flex items-center gap-1"
+            style={{ fontSize: 11, fontWeight: 500, backgroundColor: "#fff", color: "var(--coral-dark)", border: "0.5px solid var(--coral)" }}>
+            <X size={11} /> Voir tous les trous
+          </Link>
+        </div>
+      )}
+
       <div className="flex items-center gap-2 flex-wrap mb-4">
         <span style={{ fontSize: 11, color: "var(--muted-foreground)", fontWeight: 500, marginRight: 4 }}>Rôle</span>
         {[{ value: "tous", label: "Tous" }, ...allRoles.map((r) => ({ value: r, label: r }))].map((opt) => {
           const a = filterRole === opt.value;
-          const count = opt.value === "tous" ? holes.length : holes.filter((h) => h.business_role === opt.value).length;
+          const count = opt.value === "tous" ? scoped.length : scoped.filter((h) => h.business_role === opt.value).length;
           const rc = opt.value !== "tous" ? getRoleStyle(opt.value) : null;
           return (
             <button key={opt.value} onClick={() => setFilterRole(opt.value)} className="rounded-full px-2.5 py-1 flex items-center gap-1.5"
