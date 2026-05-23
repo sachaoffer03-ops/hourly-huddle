@@ -1317,20 +1317,16 @@ function PhotoEditModal({ photo, isNew, onClose, onSaved, onDeleted }: {
           </label>
           <div>
             <label style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Photo de référence</label>
-            <div className="mt-1 flex items-center gap-2">
+            <PhotoReferencePreview path={photo.reference_photo_url} pendingFile={pendingFile} />
+            <div className="mt-2 flex items-center gap-2">
               <button
                 onClick={() => fileRef.current?.click()}
                 disabled={uploading}
                 className="rounded-md border px-3 py-1.5 flex items-center gap-1.5"
                 style={{ fontSize: 12, borderColor: "var(--border)" }}
               >
-                <Upload size={13} /> {uploading ? "Upload…" : "Choisir une image"}
+                <Upload size={13} /> {uploading ? "Upload…" : (photo.reference_photo_url || pendingFile ? "Remplacer" : "Choisir une image")}
               </button>
-              {(photo.reference_photo_url || pendingFile) && (
-                <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
-                  ✓ {pendingFile ? pendingFile.name : "déjà uploadée"}
-                </span>
-              )}
             </div>
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => {
               const f = e.target.files?.[0]; if (f) chooseFile(f);
