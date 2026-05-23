@@ -96,6 +96,11 @@ export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted
   const [photoStates, setPhotoStates] = useState<Record<string, PhotoState>>({});
   const [closureQuestions, setClosureQuestions] = useState<ClosureQuestion[]>([]);
   const [questionResponses, setQuestionResponses] = useState<Record<string, { stars?: number; yesno?: boolean; text?: string }>>({});
+  // "Avant de partir" — handoff/feedback/rating
+  const [handoffMessage, setHandoffMessage] = useState("");
+  const [adminReportMessage, setAdminReportMessage] = useState("");
+  const [selfRating, setSelfRating] = useState<number>(0);
+  const [selfRatingComment, setSelfRatingComment] = useState("");
   const [recap, setRecap] = useState<Recap | null>(null);
   const [finalizing, setFinalizing] = useState(false);
   const [clockOutLoading, setClockOutLoading] = useState(false);
@@ -104,6 +109,7 @@ export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted
   const validateClockOut = useServerFn(validateClockOutFn);
   const finalizeClosure = useServerFn(finalizeClosureFn);
   const analyzeClosurePhoto = useServerFn(analyzeClosurePhotoFn);
+
 
   // ─── Load template + closure questions when shift opens ──────────────────
   useEffect(() => {
