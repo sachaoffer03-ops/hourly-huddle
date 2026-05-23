@@ -1143,34 +1143,65 @@ function PhotosEditor({ studioId, roleId, roleName, phase = "closing" }: { studi
   );
 }
 
+function useSignedRef(path: string | null | undefined) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!path) { setUrl(null); return; }
+    supabase.storage.from("checklist-photos").createSignedUrl(path, 3600).then(({ data }) => {
+      if (!cancelled) setUrl(data?.signedUrl ?? null);
+    });
+    return () => { cancelled = true; };
+  }, [path]);
+  return url;
+}
+
 function PhotoCard({ photo, onEdit }: { photo: any; onEdit: () => void }) {
+  const refUrl = useSignedRef(photo.reference_photo_url);
   const toggle = async () => {
     const { error } = await supabase.from("checklist_template_photos").update({ is_required: !photo.is_required } as any).eq("id", photo.id);
     if (error) toast.error(error.message); else flashSaved();
   };
   return (
     <div className="rounded-lg border p-3" style={{ backgroundColor: "var(--background)", borderColor: "var(--border)" }}>
-      <div className="flex items-start justify-between gap-2 mb-1.5">
-        <div style={{ fontSize: 13, fontWeight: 500 }}>{photo.label}</div>
-        <button onClick={onEdit} style={{ color: "var(--muted-foreground)" }}><Pencil size={13} /></button>
+      <div className="flex gap-3 mb-1.5">
+        <button
+          onClick={onEdit}
+          className="flex-shrink-0 w-16 h-16 rounded border overflow-hidden flex items-center justify-center"
+          style={{ borderColor: "var(--border)", backgroundColor: "var(--muted)" }}
+          title="Modifier la photo de référence"
+        >
+          {refUrl ? (
+            <img src={refUrl} alt={photo.label} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-[9px] text-center leading-tight px-1" style={{ color: "var(--muted-foreground)" }}>Pas de réf.</span>
+          )}
+        </button>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div style={{ fontSize: 13, fontWeight: 500 }} className="truncate">{photo.label}</div>
+            <button onClick={onEdit} style={{ color: "var(--muted-foreground)" }}><Pencil size={13} /></button>
+          </div>
+          {photo.description && (
+            <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 4, lineHeight: 1.4 }} className="line-clamp-2">{photo.description}</div>
+          )}
+          <button
+            onClick={toggle}
+            className="mt-1.5 rounded-full px-2 py-0.5"
+            style={{
+              fontSize: 10, fontWeight: 500,
+              backgroundColor: photo.is_required ? "var(--coral-light)" : "var(--muted)",
+              color: photo.is_required ? "var(--coral-text)" : "var(--muted-foreground)",
+            }}
+          >
+            {photo.is_required ? "Obligatoire" : "Optionnelle"}
+          </button>
+        </div>
       </div>
-      {photo.description && (
-        <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 8, lineHeight: 1.4 }}>{photo.description}</div>
-      )}
-      <button
-        onClick={toggle}
-        className="rounded-full px-2 py-0.5"
-        style={{
-          fontSize: 10, fontWeight: 500,
-          backgroundColor: photo.is_required ? "var(--coral-light)" : "var(--muted)",
-          color: photo.is_required ? "var(--coral-text)" : "var(--muted-foreground)",
-        }}
-      >
-        {photo.is_required ? "Obligatoire" : "Optionnelle"}
-      </button>
     </div>
   );
 }
+
 
 function PhotoEditModal({ photo, isNew, onClose, onSaved, onDeleted }: {
   photo: any; isNew: boolean; onClose: () => void;
