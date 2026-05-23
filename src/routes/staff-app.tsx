@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { toast } from "sonner";
 import {
-  Home, Calendar, User, ChevronRight, Clock, GraduationCap, ArrowLeft, CheckSquare,
+  Home, Calendar, User, ChevronRight, ChevronLeft, Clock, GraduationCap, ArrowLeft, CheckSquare,
   AlertCircle, Replace, Inbox, MessageCircle, CalendarCheck, CheckCircle2, Phone,
   MapPin, Cake, CreditCard, Hash, Mail, Bell, Sparkles, QrCode
 } from "lucide-react";
