@@ -18,6 +18,7 @@ import {
   Trash2,
   X,
   Check,
+  QrCode,
 } from "lucide-react";
 import {
   roleColors,
@@ -340,6 +341,25 @@ function StudiosPage() {
         >
           + Nouveau studio
         </button>
+        <div className="ml-auto flex items-center gap-2">
+          {currentRow && (
+            <button
+              onClick={() => window.open(`/display/${currentRow.id}`, "_blank")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors"
+              style={{
+                fontSize: 12,
+                fontWeight: 500,
+                color: "var(--coral-text)",
+                backgroundColor: "var(--coral)",
+                marginBottom: 6,
+              }}
+              title={`Ouvre l'écran QR pour ${currentRow.name}`}
+            >
+              <QrCode size={14} />
+              Afficher le QR
+            </button>
+          )}
+        </div>
       </div>
 
       {showNewModal && (
