@@ -481,9 +481,16 @@ function StudiosPage() {
             />
           )}
           {activeSubTab === 1 && (
+            <PointageTab
+              row={currentRow}
+              onPatch={(patch) => queueInfoPatch(currentRow.id, patch)}
+              onCommit={() => flushPatch(currentRow.id)}
+            />
+          )}
+          {activeSubTab === 2 && (
             <StaffingTemplatesEditor lockedStudioName={studio} />
           )}
-          {activeSubTab === 2 && <ExceptionsTab studio={studio} />}
+          {activeSubTab === 3 && <ExceptionsTab studio={studio} />}
         </>
       ) : null}
 
