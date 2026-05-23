@@ -313,7 +313,7 @@ export const resetDemoEnvironment = createServerFn({ method: "POST" })
     const templateId = closingTpl.id;
     log.push(closingTpl.created ? "Template checklist Barista créé (6 items + 3 zones photo)" : "Template checklist Barista déjà présent");
 
-    const openTpl = await ensureTemplate({
+    const openTplRes = await ensureTemplate({
       name: "Démo — Ouverture matin Barista",
       description: "Checklist à faire en arrivant le matin",
       phase: "opening",
