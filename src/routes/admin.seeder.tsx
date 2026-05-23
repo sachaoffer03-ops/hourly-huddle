@@ -34,6 +34,24 @@ function SeederPage() {
   const [rolesResult, setRolesResult] = useState<any>(null);
   const [rolesErr, setRolesErr] = useState("");
 
+  const validateTrainings = useServerFn(validateAllRequiredTrainingsForEmployees);
+  const [trainState, setTrainState] = useState<"idle" | "running" | "done" | "error">("idle");
+  const [trainResult, setTrainResult] = useState<any>(null);
+  const [trainErr, setTrainErr] = useState("");
+
+  const handleValidateTrainings = async () => {
+    if (!confirm("Valider toutes les formations obligatoires pour tous les employés (non-admins) ?")) return;
+    setTrainState("running"); setTrainErr(""); setTrainResult(null);
+    try {
+      const r = await validateTrainings();
+      setTrainResult(r);
+      setTrainState("done");
+    } catch (e: any) {
+      setTrainErr(e?.message || "Erreur");
+      setTrainState("error");
+    }
+  };
+
   const handleGiveRoles = async () => {
     if (!confirm("Donner TOUS les rôles métier actifs à TOUS les employés (non-admins) ?")) return;
     setRolesState("running"); setRolesErr(""); setRolesResult(null);
