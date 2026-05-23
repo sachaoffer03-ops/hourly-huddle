@@ -70,7 +70,7 @@ function SeederPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-3xl mx-auto">
-      <Link to="/planning/generate" className="flex items-center gap-1 mb-4" style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
+      <Link to="/planning" className="flex items-center gap-1 mb-4" style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
         <ArrowLeft size={12} /> Retour
       </Link>
       <Link to="/admin/migrate-studios" className="inline-block mb-4 ml-3" style={{ fontSize: 12, color: "var(--primary)" }}>
