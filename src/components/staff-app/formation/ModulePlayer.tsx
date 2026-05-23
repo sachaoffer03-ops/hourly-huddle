@@ -145,7 +145,15 @@ export function ModulePlayer({ module, firstName, initials, reviewMode, onBack, 
           {!canNext() && currentContent?.type === "video" && !reviewMode && "Regarde 90% pour continuer"}
           {!canNext() && currentContent?.type === "text" && !reviewMode && "Lis jusqu'au bout pour continuer"}
         </div>
-        <button onClick={() => setStep(Math.min(totalSteps - 1, step + 1))} disabled={!canNext() && !reviewMode}
+        <button
+          onClick={() => {
+            if (step === totalSteps - 1) {
+              onModuleComplete();
+            } else {
+              setStep(Math.min(totalSteps - 1, step + 1));
+            }
+          }}
+          disabled={!canNext() && !reviewMode}
           className="flex items-center gap-1 px-4 py-2 rounded-md disabled:opacity-30"
           style={{ fontSize: 13, fontWeight: 500, backgroundColor: canNext() || reviewMode ? "var(--foreground)" : "var(--muted)", color: canNext() || reviewMode ? "var(--card)" : "var(--muted-foreground)" }}>
           {canNext() && !reviewMode ? <Check size={14} /> : null}
