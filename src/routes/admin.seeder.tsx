@@ -188,6 +188,37 @@ function SeederPage() {
         )}
       </div>
 
+      <div className="mb-4">
+        <button
+          onClick={handleValidateTrainings}
+          disabled={trainState === "running"}
+          className="w-full rounded-xl px-6 py-4 flex items-center justify-center gap-3 transition"
+          style={{
+            fontSize: 14, fontWeight: 500,
+            backgroundColor: trainState === "running" ? "var(--muted)" : "var(--card)",
+            color: "var(--foreground)",
+            cursor: trainState === "running" ? "wait" : "pointer",
+            border: "0.5px solid var(--border)",
+          }}
+        >
+          {trainState === "running" ? <Loader2 size={18} className="animate-spin" /> : <GraduationCap size={18} />}
+          {trainState === "running" ? "Validation en cours…" : "Valider toutes les formations obligatoires pour tous les employés démo"}
+        </button>
+        {trainState === "error" && (
+          <div className="mt-3 rounded-xl border p-3" style={{ borderColor: "var(--danger-border, #ef4444)", backgroundColor: "var(--danger-bg, #fef2f2)", fontSize: 12 }}>
+            <span style={{ fontFamily: "monospace", color: "var(--danger-text, #b91c1c)" }}>{trainErr}</span>
+          </div>
+        )}
+        {trainState === "done" && trainResult && (
+          <div className="mt-3 rounded-xl border p-3 flex items-center gap-2" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", fontSize: 13 }}>
+            <Check size={14} style={{ color: "var(--success-text, #16a34a)" }} />
+            <span>{trainResult.employees} employé(s) · {trainResult.required_courses} formation(s) obligatoire(s) · <strong>{trainResult.validated}</strong> validation(s) ajoutée(s)</span>
+          </div>
+        )}
+      </div>
+
+
+
 
       <button
         onClick={handleClick}
