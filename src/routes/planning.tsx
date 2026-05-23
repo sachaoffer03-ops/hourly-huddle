@@ -962,25 +962,29 @@ function PlanningCalendarPage() {
         </span>
       </div>
 
-      {/* Banners */}
+      {/* Banner publication — CTA principal */}
       {(draftCount > 0 || conflictCount > 0) && (
-        <div className="rounded-xl border mb-3 px-4 py-3 flex items-center justify-between gap-3 flex-wrap"
-          style={{ borderColor: "var(--coral)", backgroundColor: "var(--coral-light)" }}>
-          <div className="flex items-center gap-2" style={{ fontSize: 12 }}>
-            <FileEdit size={14} style={{ color: "var(--coral-dark)" }} />
-            <span style={{ fontWeight: 500, color: "var(--coral-dark)" }}>
-              {draftCount > 0 && `${draftCount} shift${draftCount > 1 ? "s" : ""} en brouillon`}
-              {draftCount > 0 && conflictCount > 0 && " · "}
-              {conflictCount > 0 && `${conflictCount} conflit${conflictCount > 1 ? "s" : ""} détecté${conflictCount > 1 ? "s" : ""}`}
-            </span>
-            {draftCount > 0 && (
-              <span style={{ fontSize: 11, color: "var(--coral-dark)", opacity: 0.8 }}>· non visibles par les employés</span>
-            )}
+        <div className="rounded-xl border mb-3 px-5 py-4 flex items-center justify-between gap-4 flex-wrap"
+          style={{ borderColor: "var(--coral)", backgroundColor: "var(--coral-light)", borderWidth: 1.5 }}>
+          <div className="flex items-center gap-3" style={{ fontSize: 13 }}>
+            <FileEdit size={18} style={{ color: "var(--coral-dark)" }} />
+            <div className="flex flex-col gap-0.5">
+              <span style={{ fontWeight: 600, color: "var(--coral-dark)", fontSize: 14 }}>
+                {draftCount > 0 && `${draftCount} shift${draftCount > 1 ? "s" : ""} en brouillon`}
+                {draftCount > 0 && conflictCount > 0 && " · "}
+                {conflictCount > 0 && `${conflictCount} conflit${conflictCount > 1 ? "s" : ""} détecté${conflictCount > 1 ? "s" : ""}`}
+              </span>
+              {draftCount > 0 && (
+                <span style={{ fontSize: 11, color: "var(--coral-dark)", opacity: 0.85 }}>
+                  Non visibles par les employés — publie pour les notifier
+                </span>
+              )}
+            </div>
           </div>
           {draftCount > 0 && (
-            <button onClick={handlePublish} className="rounded-md px-3 py-1.5 transition-colors"
-              style={{ fontSize: 11, fontWeight: 500, backgroundColor: "var(--coral)", color: "#fff" }}>
-              Publier la semaine
+            <button onClick={handlePublish} className="rounded-lg px-5 py-2.5 transition-transform hover:scale-[1.02]"
+              style={{ fontSize: 13, fontWeight: 600, backgroundColor: "var(--coral)", color: "#fff", boxShadow: "0 4px 12px -2px color-mix(in oklab, var(--coral) 50%, transparent)" }}>
+              Publier la semaine →
             </button>
           )}
         </div>
