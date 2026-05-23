@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ChevronDown, ChevronRight, Plus, Pencil, Trash2, Video, FileText, Image as ImageIcon, HelpCircle, ArrowUp, ArrowDown } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Pencil, Trash2, Video, FileText, Image as ImageIcon, HelpCircle, ArrowUp, ArrowDown, Eye } from "lucide-react";
 import { toast } from "sonner";
 import {
   createSection, updateSection, deleteSection, reorderSections,
