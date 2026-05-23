@@ -276,6 +276,7 @@ function EmployeeDetailPage() {
 
           <WorkedHoursAdminCard userId={emp.id} hourlyRate={emp.hourly_rate} />
           <ClockedShiftsTable userId={emp.id} />
+          <EmployeeProposalsCard userId={emp.id} studios={studios} />
 
 
           <div className="rounded-xl border p-5" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
