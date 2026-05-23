@@ -28,6 +28,24 @@ function SeederPage() {
   const [linkResult, setLinkResult] = useState<any>(null);
   const [linkErr, setLinkErr] = useState("");
 
+  const giveRoles = useServerFn(giveAllRolesToAllEmployees);
+  const [rolesState, setRolesState] = useState<"idle" | "running" | "done" | "error">("idle");
+  const [rolesResult, setRolesResult] = useState<any>(null);
+  const [rolesErr, setRolesErr] = useState("");
+
+  const handleGiveRoles = async () => {
+    if (!confirm("Donner TOUS les rôles métier actifs à TOUS les employés (non-admins) ?")) return;
+    setRolesState("running"); setRolesErr(""); setRolesResult(null);
+    try {
+      const r = await giveRoles();
+      setRolesResult(r);
+      setRolesState("done");
+    } catch (e: any) {
+      setRolesErr(e?.message || "Erreur");
+      setRolesState("error");
+    }
+  };
+
   const handleLinkAll = async () => {
     if (!confirm("Rattacher tous les employés (non-admins) à TOUS les studios ?")) return;
     setLinkState("running"); setLinkErr(""); setLinkResult(null);
