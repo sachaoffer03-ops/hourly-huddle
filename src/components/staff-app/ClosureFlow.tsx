@@ -338,12 +338,12 @@ export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted
       const r = await validateClockOut({ data: { shiftId: shift.id, qrCode: code, lat, lng } });
       setClockedOutAt(r.completedAt ?? new Date().toISOString());
       toast.success("Pointage de sortie validé");
-      // Closing → questions step ; transition/null → finalize directly
-      if (phase === "closing") {
-        setStep(5);
-      } else {
+      // Phase null (rare) → finalize direct ; sinon → écran "Avant de partir" (step 5)
+      if (phase === null) {
         setStep(6);
         await runFinalize();
+      } else {
+        setStep(5);
       }
     } catch (e: any) {
       toast.error("Validation refusée", { description: e?.message ?? "Code invalide" });
@@ -351,6 +351,7 @@ export function ClosureFlow({ open, onClose, shift, userId, studios, onCompleted
       setClockOutLoading(false);
     }
   };
+
 
   // ─── Finalize (entry of step 6) ──────────────────────────────────────────
   const runFinalize = async () => {
