@@ -202,6 +202,7 @@ export function SectionsBuilder({ courseId, sections, onChange }: Props) {
                           <HelpCircle size={12} style={{ color: "#8B5CF6" }} />
                           <span style={{ fontSize: 12, flex: 1 }}>Quiz · {mod.quiz.questions.length} question{mod.quiz.questions.length !== 1 ? "s" : ""}</span>
                           <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>≥ {mod.quiz.passing_score}%</span>
+                          <IconBtn onClick={() => setPreviewing({ title: `Quiz · ${mod.title}`, kind: "quiz", data: mod.quiz })}><Eye size={11} /></IconBtn>
                           <IconBtn onClick={() => setEditingQuiz({ moduleId: mod.id, existing: mod.quiz })}><Pencil size={11} /></IconBtn>
                         </div>
                       )}
