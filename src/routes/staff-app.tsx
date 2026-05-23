@@ -257,7 +257,7 @@ function AccueilTab({ profile, studios, studioClockOut, userId, onOpenNotifs, on
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div
-            className="rounded-full flex items-center justify-center"
+            className="rounded-full flex items-center justify-center overflow-hidden"
             style={{
               width: 40, height: 40,
               backgroundColor: "var(--coral-light)",
@@ -266,7 +266,9 @@ function AccueilTab({ profile, studios, studioClockOut, userId, onOpenNotifs, on
               fontSize: 14, fontWeight: 500,
             }}
           >
-            {initial}
+            {profile?.avatar_url
+              ? <img src={profile.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              : initial}
           </div>
           <div>
             <div style={{ fontSize: 11, color: "var(--muted-foreground)", lineHeight: 1.2 }}>Bonjour</div>
