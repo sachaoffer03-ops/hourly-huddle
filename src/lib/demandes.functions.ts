@@ -278,7 +278,7 @@ export const getDemandesData = createServerFn({ method: "POST" })
       supabaseAdmin.from("profiles").select("id, first_name, last_name, avatar_url, status"),
       supabaseAdmin.from("shifts").select("id, shift_date, start_time, end_time, business_role, studio_id, user_id"),
       supabaseAdmin.from("shift_proposals")
-        .select("id, user_id, status, sent_at, responded_at, replacement_request_id")
+        .select("id, shift_id, user_id, status, sent_at, responded_at, replacement_request_id")
         .not("replacement_request_id", "is", null),
     ]);
 
