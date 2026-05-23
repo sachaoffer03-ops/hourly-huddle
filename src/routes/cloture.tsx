@@ -1156,6 +1156,30 @@ function useSignedRef(path: string | null | undefined) {
   return url;
 }
 
+function PhotoReferencePreview({ path, pendingFile }: { path: string | null | undefined; pendingFile: File | null }) {
+  const signed = useSignedRef(pendingFile ? null : path);
+  const [localUrl, setLocalUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!pendingFile) { setLocalUrl(null); return; }
+    const u = URL.createObjectURL(pendingFile);
+    setLocalUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [pendingFile]);
+  const url = localUrl ?? signed;
+  if (!url) {
+    return (
+      <div className="mt-1 rounded border flex items-center justify-center" style={{ height: 120, borderColor: "var(--border)", backgroundColor: "var(--muted)", fontSize: 11, color: "var(--muted-foreground)" }}>
+        Aucune image de référence
+      </div>
+    );
+  }
+  return (
+    <div className="mt-1 rounded border overflow-hidden" style={{ borderColor: "var(--border)", backgroundColor: "var(--muted)" }}>
+      <img src={url} alt="référence" className="w-full object-contain" style={{ maxHeight: 220 }} />
+    </div>
+  );
+}
+
 function PhotoCard({ photo, onEdit }: { photo: any; onEdit: () => void }) {
   const refUrl = useSignedRef(photo.reference_photo_url);
   const toggle = async () => {
