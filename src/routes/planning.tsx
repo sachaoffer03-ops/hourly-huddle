@@ -711,7 +711,7 @@ function PlanningCalendarPage() {
     }
   };
 
-  const draftCount = useMemo(() => studioShifts.filter((s) => s.isDraft).length, [studioShifts]);
+  const draftCount = useMemo(() => studioShifts.filter((s) => s.unpublished).length, [studioShifts]);
   const conflictCount = useMemo(() => studioShifts.filter((s) => s.conflict).length, [studioShifts]);
   const [publishOpen, setPublishOpen] = useState(false);
 
