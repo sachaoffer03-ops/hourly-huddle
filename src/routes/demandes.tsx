@@ -337,12 +337,20 @@ function DemandesPage() {
                       )}
                     </div>
 
-                    {/* Replacement search — only for cancel + has shift */}
-                    {req.type === "cancel" && hasShift && (
+                    {/* Replacement search — available for any type with a shift */}
+                    {hasShift && (
                       <div className="rounded-lg p-4 mb-3" style={{ backgroundColor: "var(--card)", border: "0.5px solid var(--border)" }}>
-                        <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 10 }}>Chercher un remplaçant (optionnel)</div>
+                        <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 10 }}>
+                          {pendingProps.length > 0 ? "Recherche de remplaçant en cours" : "Trouver un remplaçant (optionnel)"}
+                        </div>
                         <p style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 10, lineHeight: 1.5 }}>
-                          Vous pouvez envoyer la proposition à d'autres employés. Si quelqu'un accepte, le shift lui est transféré automatiquement.
+                          {pendingProps.length > 0
+                            ? "Si un employé accepte, le shift lui sera transféré automatiquement et la demande sera marquée acceptée. Vous pouvez aussi annuler les propositions pour reprendre la main."
+                            : req.type === "cancel"
+                              ? "Envoyez la proposition à d'autres employés. Si quelqu'un accepte, le shift lui est transféré automatiquement."
+                              : req.type === "time_change"
+                                ? "Si vous trouvez un remplaçant, le shift d'origine sera transféré (vous pourrez ensuite proposer un autre créneau à l'employé)."
+                                : "Si vous trouvez un remplaçant, le shift lui sera transféré automatiquement."}
                         </p>
 
                         {reqProps.length > 0 && (
@@ -378,77 +386,102 @@ function DemandesPage() {
                                 );
                               })}
                             </div>
+                            {pendingProps.length > 0 && (
+                              <button
+                                onClick={async () => {
+                                  setBusy(true);
+                                  try {
+                                    await cancelFn({ data: { proposalIds: pendingProps.map((p) => p.id) } });
+                                    toast("Propositions annulées");
+                                    loadAll();
+                                  } catch (e: any) { toast.error(e.message || "Erreur"); }
+                                  finally { setBusy(false); }
+                                }}
+                                disabled={busy}
+                                className="mt-2 rounded-md px-3 py-1.5"
+                                style={{ fontSize: 11, fontWeight: 500, border: "0.5px solid var(--border)" }}
+                              >
+                                Annuler toutes les propositions en attente
+                              </button>
+                            )}
                           </div>
                         )}
 
-                        <div className="flex items-center gap-2 mb-2 rounded-md px-2 py-1.5" style={{ border: "0.5px solid var(--border)" }}>
-                          <Search size={12} style={{ color: "var(--muted-foreground)" }} />
-                          <input
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Rechercher un employé"
-                            style={{ fontSize: 12, outline: "none", background: "transparent", flex: 1 }}
-                          />
-                        </div>
-                        <div className="rounded-md mb-3 max-h-44 overflow-y-auto" style={{ border: "0.5px solid var(--border)" }}>
-                          {filteredEmps.length === 0 ? (
-                            <div className="py-3 text-center" style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Aucun employé</div>
-                          ) : filteredEmps.map((e) => {
-                            const isSel = sel.has(e.id);
-                            return (
-                              <label key={e.id} className="flex items-center gap-2 px-3 py-1.5 cursor-pointer" style={{ fontSize: 12, borderBottom: "0.5px solid var(--border)" }}>
-                                <input type="checkbox" checked={isSel} onChange={() => toggleSelect(req.id, e.id)} />
-                                <span>{e.first_name} {e.last_name}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
+                        {pendingProps.length === 0 && (
+                          <>
+                            <div className="flex items-center gap-2 mb-2 rounded-md px-2 py-1.5" style={{ border: "0.5px solid var(--border)" }}>
+                              <Search size={12} style={{ color: "var(--muted-foreground)" }} />
+                              <input
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Rechercher un employé"
+                                style={{ fontSize: 12, outline: "none", background: "transparent", flex: 1 }}
+                              />
+                            </div>
+                            <div className="rounded-md mb-3 max-h-44 overflow-y-auto" style={{ border: "0.5px solid var(--border)" }}>
+                              {filteredEmps.length === 0 ? (
+                                <div className="py-3 text-center" style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Aucun employé</div>
+                              ) : filteredEmps.map((e) => {
+                                const isSel = sel.has(e.id);
+                                return (
+                                  <label key={e.id} className="flex items-center gap-2 px-3 py-1.5 cursor-pointer" style={{ fontSize: 12, borderBottom: "0.5px solid var(--border)" }}>
+                                    <input type="checkbox" checked={isSel} onChange={() => toggleSelect(req.id, e.id)} />
+                                    <span>{e.first_name} {e.last_name}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
 
-                        <button onClick={() => sendProposals(req.id)} disabled={busy || sel.size === 0}
-                          className="rounded-md px-4 py-2 flex items-center gap-1.5"
-                          style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)", opacity: sel.size === 0 ? 0.4 : 1 }}>
-                          <Send size={12} /> Envoyer la proposition ({sel.size})
-                        </button>
+                            <button onClick={() => sendProposals(req.id)} disabled={busy || sel.size === 0}
+                              className="rounded-md px-4 py-2 flex items-center gap-1.5"
+                              style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)", opacity: sel.size === 0 ? 0.4 : 1 }}>
+                              <Send size={12} /> Envoyer la proposition ({sel.size})
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
 
-                    {/* Action bar */}
-                    <div className="rounded-lg p-4" style={{ backgroundColor: "var(--card)", border: "0.5px solid var(--border)" }}>
-                      <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 8 }}>
-                        {req.type === "cancel" && hasShift && "Accepter libère le shift. Refuser ferme la demande."}
-                        {req.type === "time_change" && "Accepter met à jour les horaires du shift."}
-                        {req.type === "unavailable" && "Accepter enregistre l'indisponibilité et libère les shifts assignés sur la période."}
-                        {req.type === "cancel" && !hasShift && "Aucun shift à libérer — répondez directement."}
+                    {/* Action bar — hidden when active replacement search is in progress */}
+                    {pendingProps.length === 0 && (
+                      <div className="rounded-lg p-4" style={{ backgroundColor: "var(--card)", border: "0.5px solid var(--border)" }}>
+                        <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 8 }}>
+                          {req.type === "cancel" && hasShift && "Accepter libère le shift. Refuser ferme la demande."}
+                          {req.type === "time_change" && "Accepter met à jour les horaires du shift."}
+                          {req.type === "unavailable" && "Accepter enregistre l'indisponibilité et libère les shifts assignés sur la période."}
+                          {req.type === "cancel" && !hasShift && "Aucun shift à libérer — répondez directement."}
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {req.type === "cancel" && (
+                            <button onClick={() => acceptCancel(req)} disabled={busy}
+                              className="rounded-md px-4 py-2 flex items-center gap-1.5"
+                              style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)" }}>
+                              <Check size={14} /> Accepter l'annulation
+                            </button>
+                          )}
+                          {req.type === "time_change" && (
+                            <button onClick={() => openTimeChange(req)} disabled={busy}
+                              className="rounded-md px-4 py-2 flex items-center gap-1.5"
+                              style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)" }}>
+                              <Check size={14} /> Accepter le changement
+                            </button>
+                          )}
+                          {req.type === "unavailable" && (
+                            <button onClick={() => acceptUnavail(req)} disabled={busy}
+                              className="rounded-md px-4 py-2 flex items-center gap-1.5"
+                              style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)" }}>
+                              <Check size={14} /> Enregistrer l'indispo
+                            </button>
+                          )}
+                          <button onClick={() => openRefuse(req)} disabled={busy}
+                            className="rounded-md px-4 py-2 flex items-center gap-1.5"
+                            style={{ fontSize: 12, fontWeight: 500, border: "0.5px solid var(--border)" }}>
+                            <X size={14} /> Refuser
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {req.type === "cancel" && (
-                          <button onClick={() => acceptCancel(req)} disabled={busy}
-                            className="rounded-md px-4 py-2 flex items-center gap-1.5"
-                            style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)" }}>
-                            <Check size={14} /> Accepter l'annulation
-                          </button>
-                        )}
-                        {req.type === "time_change" && (
-                          <button onClick={() => openTimeChange(req)} disabled={busy}
-                            className="rounded-md px-4 py-2 flex items-center gap-1.5"
-                            style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)" }}>
-                            <Check size={14} /> Accepter le changement
-                          </button>
-                        )}
-                        {req.type === "unavailable" && (
-                          <button onClick={() => acceptUnavail(req)} disabled={busy}
-                            className="rounded-md px-4 py-2 flex items-center gap-1.5"
-                            style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)" }}>
-                            <Check size={14} /> Enregistrer l'indispo
-                          </button>
-                        )}
-                        <button onClick={() => openRefuse(req)} disabled={busy}
-                          className="rounded-md px-4 py-2 flex items-center gap-1.5"
-                          style={{ fontSize: 12, fontWeight: 500, border: "0.5px solid var(--border)" }}>
-                          <X size={14} /> Refuser
-                        </button>
-                      </div>
-                    </div>
+                    )}
+
                   </div>
                 )}
               </div>
