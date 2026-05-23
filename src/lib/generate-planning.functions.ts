@@ -1015,7 +1015,7 @@ async function runEngine(ctx: EngineCtx) {
   return {
     status,
     coverage_rate: +coverage.toFixed(4),
-    shifts_generated: dryRun ? finalShifts.length : inserted,
+    shifts_generated: finalShifts.filter((sh) => sh.user_id !== null).length,
     total_slots_needed: totalSlotsNeeded,
     total_slots_covered: totalSlotsCovered,
     holes,
