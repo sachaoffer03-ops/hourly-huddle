@@ -35,6 +35,7 @@ function SeedDemoPage() {
   const regenEmp = useServerFn(regenerateEmployee);
   const regenAvails = useServerFn(regenerateJuneAvailabilities);
   const regenChecklists = useServerFn(regenerateChecklists);
+  const purgeOthers = useServerFn(purgeNonDemoEmployees);
 
   const [status, setStatus] = useState<DemoStatus | null>(null);
   const [loading, setLoading] = useState(true);
