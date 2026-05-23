@@ -46,6 +46,7 @@ import { Route as AdminDiagnosticRouteImport } from './routes/admin.diagnostic'
 import { Route as AdminDataDiagnosticRouteImport } from './routes/admin.data-diagnostic'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as StaffChecklistShiftIdRouteImport } from './routes/staff.checklist.$shiftId'
+import { Route as ApiPublicStudioQrStudioIdRouteImport } from './routes/api/public/studio-qr.$studioId'
 
 const TrousRoute = TrousRouteImport.update({
   id: '/trous',
@@ -232,6 +233,12 @@ const StaffChecklistShiftIdRoute = StaffChecklistShiftIdRouteImport.update({
   path: '/checklist/$shiftId',
   getParentRoute: () => StaffRoute,
 } as any)
+const ApiPublicStudioQrStudioIdRoute =
+  ApiPublicStudioQrStudioIdRouteImport.update({
+    id: '/api/public/studio-qr/$studioId',
+    path: '/api/public/studio-qr/$studioId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -271,6 +278,7 @@ export interface FileRoutesByFullPath {
   '/staff/$id': typeof StaffIdRoute
   '/staff/': typeof StaffIndexRoute
   '/staff/checklist/$shiftId': typeof StaffChecklistShiftIdRoute
+  '/api/public/studio-qr/$studioId': typeof ApiPublicStudioQrStudioIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -309,6 +317,7 @@ export interface FileRoutesByTo {
   '/staff/$id': typeof StaffIdRoute
   '/staff': typeof StaffIndexRoute
   '/staff/checklist/$shiftId': typeof StaffChecklistShiftIdRoute
+  '/api/public/studio-qr/$studioId': typeof ApiPublicStudioQrStudioIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -349,6 +358,7 @@ export interface FileRoutesById {
   '/staff/$id': typeof StaffIdRoute
   '/staff/': typeof StaffIndexRoute
   '/staff/checklist/$shiftId': typeof StaffChecklistShiftIdRoute
+  '/api/public/studio-qr/$studioId': typeof ApiPublicStudioQrStudioIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -390,6 +400,7 @@ export interface FileRouteTypes {
     | '/staff/$id'
     | '/staff/'
     | '/staff/checklist/$shiftId'
+    | '/api/public/studio-qr/$studioId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -428,6 +439,7 @@ export interface FileRouteTypes {
     | '/staff/$id'
     | '/staff'
     | '/staff/checklist/$shiftId'
+    | '/api/public/studio-qr/$studioId'
   id:
     | '__root__'
     | '/'
@@ -467,6 +479,7 @@ export interface FileRouteTypes {
     | '/staff/$id'
     | '/staff/'
     | '/staff/checklist/$shiftId'
+    | '/api/public/studio-qr/$studioId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -502,6 +515,7 @@ export interface RootRouteChildren {
   AdminQaTestSuiteRoute: typeof AdminQaTestSuiteRoute
   AdminSeedRoute: typeof AdminSeedRoute
   AdminSeederRoute: typeof AdminSeederRoute
+  ApiPublicStudioQrStudioIdRoute: typeof ApiPublicStudioQrStudioIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -765,6 +779,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffChecklistShiftIdRouteImport
       parentRoute: typeof StaffRoute
     }
+    '/api/public/studio-qr/$studioId': {
+      id: '/api/public/studio-qr/$studioId'
+      path: '/api/public/studio-qr/$studioId'
+      fullPath: '/api/public/studio-qr/$studioId'
+      preLoaderRoute: typeof ApiPublicStudioQrStudioIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -839,6 +860,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminQaTestSuiteRoute: AdminQaTestSuiteRoute,
   AdminSeedRoute: AdminSeedRoute,
   AdminSeederRoute: AdminSeederRoute,
+  ApiPublicStudioQrStudioIdRoute: ApiPublicStudioQrStudioIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
