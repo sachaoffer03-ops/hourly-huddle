@@ -98,7 +98,7 @@ export const sendProposals = createServerFn({ method: "POST" })
       type: "shift_proposal",
       title: "📨 Proposition de shift à accepter",
       body: `${shift.business_role} · ${dateLabel} · ${String(shift.start_time).slice(0,5)}–${String(shift.end_time).slice(0,5)}`,
-      link: `/staff-app?tab=accueil&proposals=1`,
+      link: `/staff-app/propositions`,
       priority: "normal",
       category: "shift",
     }));
