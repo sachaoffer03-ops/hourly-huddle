@@ -56,6 +56,7 @@ export const Route = createFileRoute("/studios")({
 
 const subTabs = [
   "Informations",
+  "Pointage",
   "Besoins en staff",
   "Exceptions",
 ] as const;
