@@ -1292,7 +1292,12 @@ function PhotoEditModal({ photo, isNew, onClose, onSaved, onDeleted }: {
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent>
-        <DialogHeader><DialogTitle>{isNew ? "Nouvelle zone photo" : "Modifier la zone"}</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>{isNew ? "Nouvelle zone photo" : "Modifier la zone"}</DialogTitle>
+          <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 4, lineHeight: 1.5 }}>
+            Le <b>nom</b> et la <b>description</b> seront affichés à l'employé au moment de prendre la photo (ex : « Frigo — prends-le en photo bien rangé »).
+          </div>
+        </DialogHeader>
         <div className="flex flex-col gap-3">
           <div>
             <label style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Nom</label>
