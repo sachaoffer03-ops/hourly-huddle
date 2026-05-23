@@ -839,7 +839,7 @@ function ChecklistEditor({ studioId, roleId, roleName, phase = "closing" }: { st
   );
 }
 
-function SortableItem({ item, photos, onDeleted }: { item: any; photos: any[]; onDeleted?: () => void }) {
+function SortableItem({ item, onDeleted }: { item: any; photos?: any[]; onDeleted?: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -857,15 +857,7 @@ function SortableItem({ item, photos, onDeleted }: { item: any; photos: any[]; o
     if (error) toast.error(`Erreur : ${error.message}`); else flashSaved();
   }, [item.id]);
 
-  // Auto-save débounce — évite de perdre les modifs si l'utilisateur clique
-  // sur « Dupliquer » ou change de poste avant d'avoir blur le champ.
   const debouncedSave = useDebouncedCallback(saveLabel, 500);
-
-  const setPhoto = async (v: string) => {
-    const photo_zone_id = v === "__none__" ? null : v;
-    const { error } = await supabase.from("checklist_template_items").update({ photo_zone_id } as any).eq("id", item.id);
-    if (error) toast.error(error.message); else flashSaved();
-  };
 
   const remove = async () => {
     onDeleted?.();
@@ -890,21 +882,13 @@ function SortableItem({ item, photos, onDeleted }: { item: any; photos: any[]; o
         className="flex-1 px-2 py-1 rounded"
         style={{ fontSize: 13, backgroundColor: "transparent", border: "none", outline: "none" }}
       />
-      {photos.length > 0 && (
-        <Select value={item.photo_zone_id ?? "__none__"} onValueChange={setPhoto}>
-          <SelectTrigger className="w-[180px] h-8"><SelectValue placeholder="Lier une photo…" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__">Aucune photo liée</SelectItem>
-            {photos.map((p) => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      )}
       <button onClick={remove} className="rounded p-1 hover:bg-muted" style={{ color: "var(--muted-foreground)" }}>
         <X size={14} />
       </button>
     </div>
   );
 }
+
 
 function DuplicateButton({ items, currentRoleId, studioId, phase = "closing" }: { items: any[]; currentRoleId: string; studioId: string; phase?: ChecklistPhase }) {
   const { roles } = useBusinessRoles({ onlyActive: true });
