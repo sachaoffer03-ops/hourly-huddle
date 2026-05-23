@@ -100,9 +100,43 @@ export function ProposalsSheet({ open, onClose, studios, proposals, reload }: {
     }
   };
 
+  // History (proposals that are no longer actionable: responded, expired, or shift taken by someone else)
+  const [history, setHistory] = useState<ProposalView[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth.user?.id;
+      if (!uid) return;
+      setUserId(uid);
+      const { data } = await supabase
+        .from("shift_proposals")
+        .select("id,status,sent_at,replacement_request_id,shift:shifts(id,shift_date,start_time,end_time,business_role,studio_id,user_id)")
+        .eq("user_id", uid)
+        .order("sent_at", { ascending: false })
+        .limit(15);
+      const pendingIds = new Set(proposals.map(p => p.id));
+      const hist = (data || []).filter((p: any) => p.shift && !pendingIds.has(p.id)) as ProposalView[];
+      setHistory(hist);
+    })();
+  }, [open, proposals]);
+
+  const statusLabel = (p: ProposalView): { label: string; bg: string; color: string } => {
+    if (p.status === "accepted") return { label: "Acceptée", bg: "var(--success-bg)", color: "var(--success-text)" };
+    if (p.status === "declined") return { label: "Refusée", bg: "var(--muted)", color: "var(--muted-foreground)" };
+    if (p.status === "expired") return { label: "Expirée", bg: "var(--muted)", color: "var(--muted-foreground)" };
+    if (p.status === "cancelled") return { label: "Annulée", bg: "var(--muted)", color: "var(--muted-foreground)" };
+    // pending mais shift déjà pris
+    if (p.shift.user_id && p.shift.user_id !== userId && !p.replacement_request_id) {
+      return { label: "Trop tard — déjà pris", bg: "var(--warning-bg)", color: "var(--warning-text)" };
+    }
+    return { label: "En attente", bg: "var(--warning-bg)", color: "var(--warning-text)" };
+  };
+
   return (
     <Sheet open={open} onClose={onClose} title="Propositions de shift">
-      {proposals.length === 0 ? (
+      {proposals.length === 0 && history.length === 0 ? (
         <div className="px-2 py-8 text-center" style={{ fontSize: 13, color: "var(--muted-foreground)" }}>
           Aucune proposition pour le moment.
         </div>
@@ -138,8 +172,37 @@ export function ProposalsSheet({ open, onClose, studios, proposals, reload }: {
               </div>
             );
           })}
+
+          {history.length > 0 && (
+            <>
+              <div className="mt-3 mb-1" style={{ fontSize: 11, fontWeight: 500, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Historique
+              </div>
+              {history.map((p) => {
+                const sname = p.shift.studio_id ? (studios[p.shift.studio_id] || "—") : "—";
+                const dateLabel = new Date(p.shift.shift_date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+                const s = statusLabel(p);
+                return (
+                  <div key={p.id} className="rounded-md px-3 py-2.5 flex items-center justify-between gap-3" style={{ backgroundColor: "#fff", border: "0.5px solid var(--border)" }}>
+                    <div className="min-w-0">
+                      <div style={{ fontSize: 13, fontWeight: 500, textTransform: "capitalize" }}>
+                        {dateLabel} · {String(p.shift.start_time).slice(0,5)}–{String(p.shift.end_time).slice(0,5)}
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 2 }}>
+                        {p.shift.business_role} · {sname.replace("Skult ", "")} · envoyée {elapsed(p.sent_at)}
+                      </div>
+                    </div>
+                    <span className="rounded-full px-2 py-0.5 shrink-0" style={{ fontSize: 10, fontWeight: 500, backgroundColor: s.bg, color: s.color }}>
+                      {s.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </>
+          )}
         </div>
       )}
     </Sheet>
   );
 }
+
