@@ -276,6 +276,16 @@ export function SectionsBuilder({ courseId, sections, onChange }: Props) {
           onSubmit={promptDlg.onSubmit}
         />
       )}
+
+      {previewing && (
+        <PreviewModal
+          open
+          onOpenChange={(v) => !v && setPreviewing(null)}
+          title={previewing.title}
+          kind={previewing.kind}
+          data={previewing.data}
+        />
+      )}
     </div>
   );
 }
