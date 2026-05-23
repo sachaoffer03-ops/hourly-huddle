@@ -1032,19 +1032,12 @@ function PlanningCalendarPage() {
               {count} {role}
             </span>
           ))}
-          <button
-            onClick={handlePublish}
-            disabled={published}
-            className="rounded-md px-3 py-1.5 transition-colors"
-            style={{
-              fontSize: 11, fontWeight: 500,
-              backgroundColor: published ? "var(--success-bg)" : "var(--foreground)",
-              color: published ? "var(--success-text)" : "var(--card)",
-              cursor: published ? "default" : "pointer",
-            }}
-          >
-            {published ? "✓ Publié" : "Publier la semaine"}
-          </button>
+          {published && (
+            <span className="rounded-md px-3 py-1.5"
+              style={{ fontSize: 11, fontWeight: 500, backgroundColor: "var(--success-bg)", color: "var(--success-text)" }}>
+              ✓ Publié
+            </span>
+          )}
         </div>
       </div>
 
