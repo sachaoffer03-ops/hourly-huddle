@@ -820,9 +820,9 @@ export const regenerateChecklists = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const studio = await ensureStudio();
-    await purgeAllDemoChecklistTemplates();
-    await createAllChecklistTemplates(studio.id);
-    return { ok: true, count: CHECKLISTS.length };
+    await purgeAllDemoChecklistTemplates(studio.id);
+    const r = await createAllChecklistTemplates(studio.id);
+    return { ok: r.failed.length === 0, count: r.ok, failed: r.failed };
   });
 
 export const cleanupAllDemoData = createServerFn({ method: "POST" })
