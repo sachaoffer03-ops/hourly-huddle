@@ -537,25 +537,6 @@ function AccueilTab({ profile, studios, studioClockOut, userId, onOpenNotifs, on
       {/* Notifications formation */}
       <FormationNotifBanner onGoFormation={onGoFormation} />
 
-      {/* Bandeau propositions de shift */}
-      {proposals.length > 0 && (
-        <button
-          onClick={() => setProposalsOpen(true)}
-          className="w-full rounded-xl px-4 py-4 mb-3 flex items-center gap-3 text-left"
-          style={{ backgroundColor: "var(--coral-light)", border: "1px solid var(--coral)" }}
-        >
-          <div className="rounded-lg flex items-center justify-center" style={{ width: 40, height: 40, backgroundColor: "var(--coral)", color: "#fff" }}>
-            <Inbox size={18} />
-          </div>
-          <div className="flex-1">
-            <div style={{ fontSize: 13, fontWeight: 500, color: "var(--coral-dark)" }}>
-              {proposals.length} proposition{proposals.length > 1 ? "s" : ""} de shift
-            </div>
-            <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>Touchez pour accepter ou refuser</div>
-          </div>
-          <ChevronRight size={16} style={{ color: "var(--coral-dark)" }} />
-        </button>
-      )}
 
       {/* Encart proposition de shift — ultra visible */}
       {proposals.length > 0 && (
