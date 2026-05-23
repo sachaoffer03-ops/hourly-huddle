@@ -850,6 +850,44 @@ export const cleanupAllDemoData = createServerFn({ method: "POST" })
     return { ok: true, deletedProfiles };
   });
 
+// Supprime TOUS les profils sauf les 5 démo + les profils protégés (is_protected=true)
+export const purgeNonDemoEmployees = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ confirm: z.literal("DELETE") }).parse(input))
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+
+    const { data: toDelete } = await supabaseAdmin
+      .from("profiles")
+      .select("id, email")
+      .eq("is_protected", false)
+      .not("email", "like", DEMO_EMAIL_PATTERN);
+
+    let deleted = 0;
+    const failed: { email: string; error: string }[] = [];
+    for (const p of toDelete ?? []) {
+      try {
+        await deleteEmployeeFully(p.id);
+        deleted++;
+      } catch (e: any) {
+        failed.push({ email: p.email, error: e?.message ?? String(e) });
+      }
+    }
+
+    // Auth orphans (sans profile, non-demo, non-protégés)
+    const { data: allAuth } = await supabaseAdmin.auth.admin.listUsers({ perPage: 200 });
+    const { data: keepProfiles } = await supabaseAdmin.from("profiles").select("id");
+    const keepIds = new Set((keepProfiles ?? []).map((p: any) => p.id));
+    for (const u of allAuth?.users ?? []) {
+      if (keepIds.has(u.id)) continue;
+      if (u.email?.endsWith(".demo@kadence.test")) continue;
+      await supabaseAdmin.auth.admin.deleteUser(u.id).catch(() => {});
+    }
+
+    return { ok: failed.length === 0, deleted, failed };
+  });
+
 // Kept for compatibility — generates a testable shift for Clara if she exists
 export const renewTestableShift = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
