@@ -4,7 +4,7 @@ import { Send, Clock, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet } from "@/components/staff-app/shared";
-import { acceptProposal, declineProposal, acceptReplacementProposal } from "@/lib/proposals.functions";
+import { acceptProposal, declineProposal, acceptReplacementProposal, getMyPendingProposals } from "@/lib/proposals.functions";
 
 interface ProposalView {
   id: string;
