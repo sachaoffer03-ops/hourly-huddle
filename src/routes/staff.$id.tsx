@@ -115,6 +115,12 @@ function EmployeeDetailPage() {
   useEffect(() => {
     fetchUnviewed({ data: { userId: id } }).then(r => setUnviewedDocs(r.count)).catch(() => setUnviewedDocs(0));
   }, [id, tab]);
+  useEffect(() => {
+    if (edit === 1) {
+      setTab("profil");
+      toast.info("Mode édition — clique sur « Modifier » à côté du taux horaire", { duration: 4000 });
+    }
+  }, [edit]);
 
   const submitRating = async (shiftId: string) => {
     if (!user) return;
