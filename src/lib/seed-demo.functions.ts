@@ -583,59 +583,85 @@ async function insertJuneAvailabilities(userId: string, pattern: AvailPattern) {
   if (rows.length) await supabaseAdmin.from("availabilities").insert(rows);
 }
 
-async function purgeAllDemoChecklistTemplates() {
-  const { data: tpls } = await supabaseAdmin
-    .from("checklist_templates").select("id").like("name", "Démo%");
-  const ids = (tpls ?? []).map((t: any) => t.id);
+async function purgeAllDemoChecklistTemplates(studioId?: string) {
+  // Purge by studio if known (frees all slots), fallback to name-based "Démo%"
+  let ids: string[] = [];
+  if (studioId) {
+    const { data } = await supabaseAdmin
+      .from("checklist_templates").select("id").eq("studio_id", studioId);
+    ids = (data ?? []).map((t: any) => t.id);
+  } else {
+    const { data } = await supabaseAdmin
+      .from("checklist_templates").select("id").like("name", "Démo%");
+    ids = (data ?? []).map((t: any) => t.id);
+  }
   if (!ids.length) return;
   await supabaseAdmin.from("checklist_template_items").delete().in("template_id", ids);
   await supabaseAdmin.from("checklist_template_photos").delete().in("template_id", ids);
   await supabaseAdmin.from("checklist_templates").delete().in("id", ids);
 }
 
-async function createAllChecklistTemplates(studioId: string) {
+async function createAllChecklistTemplates(studioId: string): Promise<{ ok: number; failed: { name: string; error: string }[] }> {
+  let ok = 0;
+  const failed: { name: string; error: string }[] = [];
   for (const def of CHECKLISTS) {
-    const { data: br } = await supabaseAdmin
-      .from("business_roles").select("id").eq("name", def.role).maybeSingle();
-    const brId = br?.id ?? null;
-    const { data: tpl, error } = await supabaseAdmin.from("checklist_templates").insert({
-      studio_id: studioId,
-      business_role_id: brId,
-      name: def.name,
-      description: def.description,
-      phase: def.phase,
-      is_active: true,
-      is_blocking: def.phase === "closing",
-      analyze_with_ai: def.analyze_with_ai,
-      ai_validation_threshold: def.ai_validation_threshold,
-      ai_detection_hint: def.ai_detection_hint ?? null,
-      min_photos_required: def.min_photos_required,
-    } as any).select("id").single();
-    if (error) throw new Error(`template ${def.name}: ${error.message}`);
-    const tplId = tpl!.id;
-    // Photos
-    let photoMap = new Map<string, string>();
-    if (def.photos.length) {
-      const { data: photoRows } = await supabaseAdmin.from("checklist_template_photos").insert(
-        def.photos.map((p, i) => ({
-          template_id: tplId, label: p.label, description: p.description,
-          is_required: p.is_required, order_index: i,
+    try {
+      const { data: br } = await supabaseAdmin
+        .from("business_roles").select("id").eq("name", def.role).maybeSingle();
+      const brId = br?.id ?? null;
+
+      // Free the slot (studio_id, business_role_id, phase) — unique constraint
+      let q = supabaseAdmin.from("checklist_templates").select("id")
+        .eq("studio_id", studioId).eq("phase", def.phase);
+      q = brId ? q.eq("business_role_id", brId) : q.is("business_role_id", null);
+      const { data: existing } = await q;
+      const exIds = (existing ?? []).map((t: any) => t.id);
+      if (exIds.length) {
+        await supabaseAdmin.from("checklist_template_items").delete().in("template_id", exIds);
+        await supabaseAdmin.from("checklist_template_photos").delete().in("template_id", exIds);
+        await supabaseAdmin.from("checklist_templates").delete().in("id", exIds);
+      }
+
+      const { data: tpl, error } = await supabaseAdmin.from("checklist_templates").insert({
+        studio_id: studioId,
+        business_role_id: brId,
+        name: def.name,
+        description: def.description,
+        phase: def.phase,
+        is_active: true,
+        is_blocking: def.phase === "closing",
+        analyze_with_ai: def.analyze_with_ai,
+        ai_validation_threshold: def.ai_validation_threshold,
+        ai_detection_hint: def.ai_detection_hint ?? null,
+        min_photos_required: def.min_photos_required,
+      } as any).select("id").single();
+      if (error) throw new Error(error.message);
+      const tplId = tpl!.id;
+
+      let photoMap = new Map<string, string>();
+      if (def.photos.length) {
+        const { data: photoRows } = await supabaseAdmin.from("checklist_template_photos").insert(
+          def.photos.map((p, i) => ({
+            template_id: tplId, label: p.label, description: p.description,
+            is_required: p.is_required, order_index: i,
+          }))
+        ).select("id, label");
+        photoMap = new Map((photoRows ?? []).map((p: any) => [p.label, p.id]));
+      }
+      const photoIds = Array.from(photoMap.values());
+      await supabaseAdmin.from("checklist_template_items").insert(
+        def.items.map((label, i) => ({
+          template_id: tplId, label, order_index: i, is_required: true,
+          photo_zone_id: photoIds[i] ?? null,
         }))
-      ).select("id, label");
-      photoMap = new Map((photoRows ?? []).map((p: any) => [p.label, p.id]));
+      );
+      ok++;
+    } catch (e: any) {
+      console.error(`[seed-demo] template ${def.name} failed:`, e?.message);
+      failed.push({ name: def.name, error: e?.message ?? String(e) });
     }
-    // Items: si on a des photos, on associe le 1er item à la 1ère photo, etc., sinon null
-    const photoIds = Array.from(photoMap.values());
-    await supabaseAdmin.from("checklist_template_items").insert(
-      def.items.map((label, i) => ({
-        template_id: tplId,
-        label,
-        order_index: i,
-        is_required: true,
-        photo_zone_id: photoIds[i] ?? null,
-      }))
-    );
   }
+  return { ok, failed };
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -711,32 +737,44 @@ export const resetDemoEnvironment = createServerFn({ method: "POST" })
         await supabaseAdmin.auth.admin.deleteUser(u.id).catch(() => {});
       }
     }
-    await purgeAllDemoChecklistTemplates();
-    log.push("Templates checklist 'Démo%' purgés");
-
-    // 2. Studio + business roles + studio_business_roles
+    // 2. Studio + business roles
     const studio = await ensureStudio();
     log.push(`Studio configuré: ${studio.name}`);
     await ensureBusinessRoles(studio.id);
     log.push("Business roles configurés (Barista/Accueil/Host/Cuisine)");
 
-    // 3. Création des 5 employés
+    // Purge TOUS les templates du studio démo (libère tous les slots uniques)
+    await purgeAllDemoChecklistTemplates(studio.id);
+    log.push("Templates checklist du studio démo purgés");
+
+    // 3. Création des 5 employés (résilient : on continue sur erreur)
     const createdEmployees: { email: string; id: string }[] = [];
+    const failedEmployees: { email: string; error: string }[] = [];
     for (const cfg of EMPLOYEES) {
-      const { id } = await createOrUpdateEmployee(cfg, studio.id, userId);
-      createdEmployees.push({ email: cfg.email, id });
-      log.push(`Employé créé: ${cfg.first_name} ${cfg.last_name} (${cfg.contract})`);
+      try {
+        const { id } = await createOrUpdateEmployee(cfg, studio.id, userId);
+        createdEmployees.push({ email: cfg.email, id });
+        log.push(`Employé OK: ${cfg.first_name} ${cfg.last_name} (${cfg.contract})`);
+      } catch (e: any) {
+        console.error(`[seed-demo] employee ${cfg.email} failed:`, e?.message);
+        failedEmployees.push({ email: cfg.email, error: e?.message ?? String(e) });
+        log.push(`❌ Employé ${cfg.first_name}: ${e?.message ?? "erreur"}`);
+      }
     }
 
-    // 4. Checklists templates
-    await createAllChecklistTemplates(studio.id);
-    log.push(`${CHECKLISTS.length} templates checklist créés (3 phases × 4 rôles)`);
+    // 4. Checklists templates (résilient)
+    const tplResult = await createAllChecklistTemplates(studio.id);
+    log.push(`Templates: ${tplResult.ok}/${CHECKLISTS.length} OK${tplResult.failed.length ? ` (${tplResult.failed.length} erreur(s))` : ""}`);
+    for (const f of tplResult.failed) log.push(`❌ Template ${f.name}: ${f.error}`);
 
     return {
-      ok: true,
+      ok: failedEmployees.length === 0 && tplResult.failed.length === 0,
       log,
       duration_ms: Date.now() - t0,
       employees: createdEmployees,
+      failed_employees: failedEmployees,
+      templates_ok: tplResult.ok,
+      templates_failed: tplResult.failed,
       password: DEMO_PASSWORD,
     };
   });
@@ -782,9 +820,9 @@ export const regenerateChecklists = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const studio = await ensureStudio();
-    await purgeAllDemoChecklistTemplates();
-    await createAllChecklistTemplates(studio.id);
-    return { ok: true, count: CHECKLISTS.length };
+    await purgeAllDemoChecklistTemplates(studio.id);
+    const r = await createAllChecklistTemplates(studio.id);
+    return { ok: r.failed.length === 0, count: r.ok, failed: r.failed };
   });
 
 export const cleanupAllDemoData = createServerFn({ method: "POST" })
