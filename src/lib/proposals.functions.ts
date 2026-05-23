@@ -254,7 +254,7 @@ export const acceptReplacementProposal = createServerFn({ method: "POST" })
 
     const { data: req, error: e2 } = await supabaseAdmin
       .from("modification_requests")
-      .select("id, shift_id, user_id, status")
+      .select("id, shift_id, user_id, status, type, proposed_start_date, proposed_end_date, reason")
       .eq("id", prop.replacement_request_id)
       .single();
     if (e2) throw new Error(e2.message);
@@ -286,20 +286,47 @@ export const acceptReplacementProposal = createServerFn({ method: "POST" })
     await supabaseAdmin.from("shift_proposals")
       .update({ status: "accepted", responded_at: now })
       .eq("id", prop.id);
+    // Expire les autres propositions pour CE SHIFT uniquement (pas la requête entière)
     await supabaseAdmin.from("shift_proposals")
       .update({ status: "expired", responded_at: now })
-      .eq("replacement_request_id", req.id)
+      .eq("shift_id", prop.shift_id)
       .eq("status", "pending");
-
-    // Marque la demande de modification acceptée
-    await supabaseAdmin.from("modification_requests")
-      .update({ status: "accepted", resolved_at: now, admin_response: "Remplaçant trouvé automatiquement" })
-      .eq("id", req.id);
 
     const dateLabel = new Date(updated.shift_date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
     const body = `${updated.business_role} · ${dateLabel} · ${String(updated.start_time).slice(0,5)}–${String(updated.end_time).slice(0,5)}`;
 
-    // Notifie l'admin
+    // Pour une demande UNAVAILABLE : ne marquer accepted que si TOUS les shifts ont été couverts
+    let requestNowAccepted = false;
+    if (req.type === "unavailable" && req.proposed_start_date && req.proposed_end_date) {
+      const { count } = await supabaseAdmin
+        .from("shifts")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", req.user_id)
+        .neq("status", "cancelled")
+        .gte("shift_date", req.proposed_start_date)
+        .lte("shift_date", req.proposed_end_date);
+      if ((count ?? 0) === 0) {
+        await supabaseAdmin.from("modification_requests")
+          .update({ status: "accepted", resolved_at: now, admin_response: "Tous les shifts ont trouvé un remplaçant" })
+          .eq("id", req.id);
+        await supabaseAdmin.from("unavailability_periods").insert({
+          user_id: req.user_id,
+          start_date: req.proposed_start_date,
+          end_date: req.proposed_end_date,
+          reason: req.reason,
+          source_request_id: req.id,
+        });
+        requestNowAccepted = true;
+      }
+    } else {
+      // cancel/time_change : un seul shift → demande acceptée
+      await supabaseAdmin.from("modification_requests")
+        .update({ status: "accepted", resolved_at: now, admin_response: "Remplaçant trouvé automatiquement" })
+        .eq("id", req.id);
+      requestNowAccepted = true;
+    }
+
+    // Notifie l'admin qui a envoyé
     if (prop.sent_by) {
       await supabaseAdmin.from("notifications").insert({
         user_id: prop.sent_by,
@@ -313,14 +340,14 @@ export const acceptReplacementProposal = createServerFn({ method: "POST" })
     // Notifie l'employé d'origine
     await supabaseAdmin.from("notifications").insert({
       user_id: req.user_id,
-      type: "request_accepted",
-      title: "Demande acceptée",
-      body: `Un remplaçant a été trouvé. ${body}`,
+      type: requestNowAccepted ? "request_accepted" : "shift_replaced",
+      title: requestNowAccepted ? "Demande acceptée" : "Un shift a trouvé un remplaçant",
+      body: requestNowAccepted ? `Un remplaçant a été trouvé. ${body}` : body,
       link: employeeLink({ kind: "request", requestId: req.id }),
       category: "request",
     });
 
-    return { ok: true };
+    return { ok: true, requestAccepted: requestNowAccepted };
   });
 
 // ----- ANNULER (admin) -----
