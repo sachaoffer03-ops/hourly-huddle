@@ -193,11 +193,27 @@ function TrousPage() {
         </div>
       </div>
 
+      {(studioFilter || weekRange) && (
+        <div className="rounded-xl border mb-4 px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap"
+          style={{ borderColor: "var(--coral)", backgroundColor: "var(--coral-light)" }}>
+          <div className="flex items-center gap-2 flex-wrap" style={{ fontSize: 12, color: "var(--coral-dark)" }}>
+            <span style={{ fontWeight: 500 }}>Filtre actif :</span>
+            {studioFilter && <span>studios {Array.from(studioFilter).join(", ")}</span>}
+            {studioFilter && weekRange && <span>·</span>}
+            {weekRange && <span>semaine du {new Date(weekRange.start + "T00:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} au {new Date(weekRange.end + "T00:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</span>}
+          </div>
+          <Link to="/trous" search={{}} className="rounded-md px-2.5 py-1 inline-flex items-center gap-1"
+            style={{ fontSize: 11, fontWeight: 500, backgroundColor: "#fff", color: "var(--coral-dark)", border: "0.5px solid var(--coral)" }}>
+            <X size={11} /> Voir tous les trous
+          </Link>
+        </div>
+      )}
+
       <div className="flex items-center gap-2 flex-wrap mb-4">
         <span style={{ fontSize: 11, color: "var(--muted-foreground)", fontWeight: 500, marginRight: 4 }}>Rôle</span>
         {[{ value: "tous", label: "Tous" }, ...allRoles.map((r) => ({ value: r, label: r }))].map((opt) => {
           const a = filterRole === opt.value;
-          const count = opt.value === "tous" ? holes.length : holes.filter((h) => h.business_role === opt.value).length;
+          const count = opt.value === "tous" ? scoped.length : scoped.filter((h) => h.business_role === opt.value).length;
           const rc = opt.value !== "tous" ? getRoleStyle(opt.value) : null;
           return (
             <button key={opt.value} onClick={() => setFilterRole(opt.value)} className="rounded-full px-2.5 py-1 flex items-center gap-1.5"
