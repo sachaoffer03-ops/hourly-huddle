@@ -149,12 +149,15 @@ export const declineProposal = createServerFn({ method: "POST" })
   });
 
 // ----- ENVOYER PROPOSITIONS DE REMPLACEMENT (liées à une demande de modif) -----
+// Pour cancel/time_change : shiftId optionnel (on prend req.shift_id).
+// Pour unavailable : shiftId obligatoire (un envoi par shift de la période).
 export const sendReplacementProposals = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
     z.object({
       requestId: z.string().uuid(),
       userIds: z.array(z.string().uuid()).min(1).max(50),
+      shiftId: z.string().uuid().nullable().optional(),
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -163,17 +166,39 @@ export const sendReplacementProposals = createServerFn({ method: "POST" })
 
     const { data: req, error: e0 } = await supabaseAdmin
       .from("modification_requests")
-      .select("id, shift_id, user_id, status")
+      .select("id, shift_id, user_id, status, type, proposed_start_date, proposed_end_date")
       .eq("id", data.requestId)
       .single();
     if (e0) throw new Error(e0.message);
     if (req.status !== "pending") throw new Error("Cette demande n'est plus en attente");
-    if (!req.shift_id) throw new Error("Demande sans shift associé");
+
+    // Résolution du shift cible
+    let targetShiftId = data.shiftId ?? req.shift_id;
+    if (req.type === "unavailable" && !data.shiftId) {
+      throw new Error("shiftId requis pour une demande d'indisponibilité");
+    }
+    if (!targetShiftId) throw new Error("Aucun shift cible");
+
+    // Pour unavailable : vérifier que le shift appartient bien à l'employé et dans la période
+    if (req.type === "unavailable") {
+      const { data: sh } = await supabaseAdmin
+        .from("shifts")
+        .select("id, user_id, shift_date")
+        .eq("id", targetShiftId)
+        .single();
+      if (!sh) throw new Error("Shift introuvable");
+      if (sh.user_id !== req.user_id) throw new Error("Ce shift n'appartient pas à l'employé");
+      if (req.proposed_start_date && req.proposed_end_date) {
+        if (sh.shift_date < req.proposed_start_date || sh.shift_date > req.proposed_end_date) {
+          throw new Error("Shift hors période d'indisponibilité");
+        }
+      }
+    }
 
     const { data: shift, error: e1 } = await supabaseAdmin
       .from("shifts")
       .select("id, shift_date, start_time, end_time, business_role")
-      .eq("id", req.shift_id)
+      .eq("id", targetShiftId)
       .single();
     if (e1) throw new Error(e1.message);
 
@@ -181,7 +206,7 @@ export const sendReplacementProposals = createServerFn({ method: "POST" })
     if (filtered.length === 0) throw new Error("Sélectionnez au moins un autre employé");
 
     const rows = filtered.map((uid) => ({
-      shift_id: req.shift_id!,
+      shift_id: targetShiftId!,
       user_id: uid,
       sent_by: userId,
       status: "pending",
@@ -201,7 +226,7 @@ export const sendReplacementProposals = createServerFn({ method: "POST" })
       type: "shift_proposal",
       title: "Proposition de remplacement",
       body: `${shift.business_role} · ${dateLabel} · ${String(shift.start_time).slice(0,5)}–${String(shift.end_time).slice(0,5)}`,
-      link: `/staff-app?tab=accueil&shift=${req.shift_id}`,
+      link: `/staff-app?tab=accueil&shift=${targetShiftId}`,
       priority: "normal",
       category: "shift",
     }));
