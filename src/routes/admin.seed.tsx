@@ -11,6 +11,7 @@ import {
 import {
   getDemoStatus, resetDemoEnvironment, cleanupAllDemoData,
   regenerateEmployee, regenerateJuneAvailabilities, regenerateChecklists,
+  purgeNonDemoEmployees,
 } from "@/lib/seed-demo.functions";
 
 export const Route = createFileRoute("/admin/seed")({
