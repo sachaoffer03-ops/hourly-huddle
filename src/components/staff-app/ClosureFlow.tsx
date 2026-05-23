@@ -799,13 +799,29 @@ function Step4({ onSubmitCode, loading }: { onSubmitCode: (c: string) => void; l
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// Step 5 — Questions
+// Step 5 — "Avant de partir" : questions clôture + handoff + feedback admin + auto-rating
 // ────────────────────────────────────────────────────────────────────────────
-function Step5({ questions, responses, setResponses, submissionId }: {
+function Step5({
+  questions, responses, setResponses, submissionId,
+  handoffMessage, setHandoffMessage,
+  adminReportMessage, setAdminReportMessage,
+  selfRating, setSelfRating,
+  selfRatingComment, setSelfRatingComment,
+  phase,
+}: {
   questions: ClosureQuestion[];
   responses: Record<string, { stars?: number; yesno?: boolean; text?: string }>;
   setResponses: React.Dispatch<React.SetStateAction<Record<string, { stars?: number; yesno?: boolean; text?: string }>>>;
   submissionId: string | null;
+  handoffMessage: string;
+  setHandoffMessage: React.Dispatch<React.SetStateAction<string>>;
+  adminReportMessage: string;
+  setAdminReportMessage: React.Dispatch<React.SetStateAction<string>>;
+  selfRating: number;
+  setSelfRating: React.Dispatch<React.SetStateAction<number>>;
+  selfRatingComment: string;
+  setSelfRatingComment: React.Dispatch<React.SetStateAction<string>>;
+  phase: ChecklistPhase | null;
 }) {
   const update = (qid: string, patch: { stars?: number; yesno?: boolean; text?: string }) => {
     setResponses((prev) => ({ ...prev, [qid]: { ...prev[qid], ...patch } }));
@@ -813,57 +829,120 @@ function Step5({ questions, responses, setResponses, submissionId }: {
   return (
     <div className="px-5 py-5">
       <span className="inline-block rounded-full px-2.5 py-1 mb-3" style={{ fontSize: 10, fontWeight: 500, backgroundColor: "var(--coral-light)", color: "var(--coral-dark)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-        Dernière étape
+        Avant de partir
       </span>
-      <div style={{ fontSize: 20, fontWeight: 500 }}>Comment s'est passé ton shift ?</div>
+      <div style={{ fontSize: 20, fontWeight: 500 }}>Quelques infos avant de filer</div>
 
       <div className="mt-3 rounded-xl p-3" style={{ backgroundColor: "#EAF4FB", border: "0.5px solid #BCD8EC", fontSize: 12, color: "#1F4E6E", lineHeight: 1.5 }}>
-        100% confidentiel. Tes réponses ne sont visibles que par les managers. Elles ne sont jamais partagées avec le reste de l'équipe.
+        Tout est optionnel. Mais ces infos aident vraiment l'équipe et ton manager.
       </div>
 
-      <div className="mt-5 flex flex-col gap-4">
-        {questions.length === 0 ? (
-          <div className="rounded-xl px-4 py-6 text-center" style={{ backgroundColor: "#fff", border: "0.5px dashed rgba(0,0,0,0.15)", fontSize: 12, color: "var(--muted-foreground)" }}>
-            Aucune question pour ce studio.
-          </div>
-        ) : questions.map((q) => {
-          const r = responses[q.id] ?? {};
-          return (
-            <div key={q.id} className="rounded-xl border p-4" style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)" }}>
-              <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>
-                {q.question_text}
-                {q.is_required && <span style={{ color: "var(--coral-dark)", marginLeft: 4 }}>*</span>}
-              </div>
-              {q.response_type === "stars_1_5" && (
-                <div className="flex gap-1.5">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <button key={n} onClick={() => update(q.id, { stars: n })} className="p-1">
-                      <Star size={28} fill={n <= (r.stars ?? 0) ? "var(--coral)" : "transparent"} color={n <= (r.stars ?? 0) ? "var(--coral)" : "rgba(0,0,0,0.25)"} strokeWidth={1.4} />
-                    </button>
-                  ))}
-                </div>
-              )}
-              {q.response_type === "yes_no" && (
-                <div className="flex gap-2">
-                  <button onClick={() => update(q.id, { yesno: true })} className="flex-1 rounded-md py-2.5"
-                    style={{ fontSize: 13, fontWeight: 500, backgroundColor: r.yesno === true ? "var(--coral)" : "var(--muted)", color: r.yesno === true ? "var(--coral-text)" : "var(--foreground)" }}>Oui</button>
-                  <button onClick={() => update(q.id, { yesno: false })} className="flex-1 rounded-md py-2.5"
-                    style={{ fontSize: 13, fontWeight: 500, backgroundColor: r.yesno === false ? "var(--coral)" : "var(--muted)", color: r.yesno === false ? "var(--coral-text)" : "var(--foreground)" }}>Non</button>
-                </div>
-              )}
-              {q.response_type === "free_text" && (
-                <textarea value={r.text ?? ""} onChange={(e) => update(q.id, { text: e.target.value })}
-                  rows={3} placeholder="Tape ta réponse…"
-                  className="w-full rounded-md border px-3 py-2 outline-none resize-none"
-                  style={{ fontSize: 13, borderColor: "rgba(0,0,0,0.12)", backgroundColor: "#fff" }} />
-              )}
-            </div>
-          );
-        })}
+      {/* Section 1 — Handoff équipe suivante */}
+      <div className="mt-5 rounded-xl border p-4" style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)" }}>
+        <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 6 }}>Note pour l'équipe suivante</div>
+        <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 10, lineHeight: 1.5 }}>
+          Visible par la personne qui prend le poste après toi.
+        </div>
+        <textarea
+          value={handoffMessage}
+          onChange={(e) => setHandoffMessage(e.target.value.slice(0, 500))}
+          rows={3}
+          placeholder="Ex : machine OK, lait au frigo, journée tranquille"
+          className="w-full rounded-md border px-3 py-2 outline-none resize-none"
+          style={{ fontSize: 13, borderColor: "rgba(0,0,0,0.12)", backgroundColor: "#fff" }}
+        />
+        <div style={{ fontSize: 10, color: "var(--muted-foreground)", textAlign: "right", marginTop: 4 }}>{handoffMessage.length}/500</div>
       </div>
+
+      {/* Section 2 — Feedback admin privé */}
+      <div className="mt-4 rounded-xl border p-4" style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)" }}>
+        <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 6 }}>Quelque chose à signaler à l'admin ?</div>
+        <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 10, lineHeight: 1.5 }}>
+          Confidentiel — visible uniquement par les managers.
+        </div>
+        <textarea
+          value={adminReportMessage}
+          onChange={(e) => setAdminReportMessage(e.target.value.slice(0, 500))}
+          rows={3}
+          placeholder="Ex : machine à café qui fait un bruit bizarre, stock de lait bas…"
+          className="w-full rounded-md border px-3 py-2 outline-none resize-none"
+          style={{ fontSize: 13, borderColor: "rgba(0,0,0,0.12)", backgroundColor: "#fff" }}
+        />
+        <div style={{ fontSize: 10, color: "var(--muted-foreground)", textAlign: "right", marginTop: 4 }}>{adminReportMessage.length}/500</div>
+      </div>
+
+      {/* Section 3 — Auto-évaluation */}
+      <div className="mt-4 rounded-xl border p-4" style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)" }}>
+        <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 6 }}>Comment s'est passé ton shift ?</div>
+        <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 12, lineHeight: 1.5 }}>
+          Ton ressenti personnel. Visible par ton manager.
+        </div>
+        <div className="flex gap-1.5 mb-3">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button key={n} onClick={() => setSelfRating(selfRating === n ? 0 : n)} className="p-1">
+              <Star size={28} fill={n <= selfRating ? "var(--coral)" : "transparent"} color={n <= selfRating ? "var(--coral)" : "rgba(0,0,0,0.25)"} strokeWidth={1.4} />
+            </button>
+          ))}
+        </div>
+        <textarea
+          value={selfRatingComment}
+          onChange={(e) => setSelfRatingComment(e.target.value.slice(0, 200))}
+          rows={2}
+          placeholder="Un mot sur ton shift (optionnel)"
+          className="w-full rounded-md border px-3 py-2 outline-none resize-none"
+          style={{ fontSize: 13, borderColor: "rgba(0,0,0,0.12)", backgroundColor: "#fff" }}
+        />
+        <div style={{ fontSize: 10, color: "var(--muted-foreground)", textAlign: "right", marginTop: 4 }}>{selfRatingComment.length}/200</div>
+      </div>
+
+      {/* Questions admin (closing uniquement) */}
+      {phase === "closing" && questions.length > 0 && (
+        <div className="mt-6">
+          <div style={{ fontSize: 11, fontWeight: 500, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
+            Questions du studio
+          </div>
+          <div className="flex flex-col gap-4">
+            {questions.map((q) => {
+              const r = responses[q.id] ?? {};
+              return (
+                <div key={q.id} className="rounded-xl border p-4" style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)" }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>
+                    {q.question_text}
+                    {q.is_required && <span style={{ color: "var(--coral-dark)", marginLeft: 4 }}>*</span>}
+                  </div>
+                  {q.response_type === "stars_1_5" && (
+                    <div className="flex gap-1.5">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button key={n} onClick={() => update(q.id, { stars: n })} className="p-1">
+                          <Star size={28} fill={n <= (r.stars ?? 0) ? "var(--coral)" : "transparent"} color={n <= (r.stars ?? 0) ? "var(--coral)" : "rgba(0,0,0,0.25)"} strokeWidth={1.4} />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {q.response_type === "yes_no" && (
+                    <div className="flex gap-2">
+                      <button onClick={() => update(q.id, { yesno: true })} className="flex-1 rounded-md py-2.5"
+                        style={{ fontSize: 13, fontWeight: 500, backgroundColor: r.yesno === true ? "var(--coral)" : "var(--muted)", color: r.yesno === true ? "var(--coral-text)" : "var(--foreground)" }}>Oui</button>
+                      <button onClick={() => update(q.id, { yesno: false })} className="flex-1 rounded-md py-2.5"
+                        style={{ fontSize: 13, fontWeight: 500, backgroundColor: r.yesno === false ? "var(--coral)" : "var(--muted)", color: r.yesno === false ? "var(--coral-text)" : "var(--foreground)" }}>Non</button>
+                    </div>
+                  )}
+                  {q.response_type === "free_text" && (
+                    <textarea value={r.text ?? ""} onChange={(e) => update(q.id, { text: e.target.value })}
+                      rows={3} placeholder="Tape ta réponse…"
+                      className="w-full rounded-md border px-3 py-2 outline-none resize-none"
+                      style={{ fontSize: 13, borderColor: "rgba(0,0,0,0.12)", backgroundColor: "#fff" }} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 
 // ────────────────────────────────────────────────────────────────────────────
 // Step 6 — Bien joué !
