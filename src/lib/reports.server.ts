@@ -544,16 +544,27 @@ export async function getShiftDetail(args: { shiftId: string }) {
         photoUrl: photo?.photo_url ?? null,
       };
     }),
-    photos: templatePhotos.map((p: any) => {
+    photos: await Promise.all(templatePhotos.map(async (p: any) => {
       const row = photoMap.get(p.id);
+      const sign = async (path: string | null | undefined) => {
+        if (!path) return null;
+        if (path.startsWith("http")) return path;
+        const { data } = await supabaseAdmin.storage.from("checklist-photos").createSignedUrl(path, 3600);
+        return data?.signedUrl ?? null;
+      };
       return {
-        id: p.id, label: p.label,
-        url: row?.photo_url ?? null,
+        id: p.id,
+        submissionPhotoId: row?.id ?? null,
+        label: p.label,
+        url: await sign(row?.photo_url),
+        reference: await sign(p.reference_photo_url),
         status: row?.ai_validation_status ?? null,
         reason: row?.ai_validation_message ?? null,
-        reference: p.reference_photo_url ?? null,
+        overrideBy: row?.admin_override_by ?? null,
+        overrideAt: row?.admin_override_at ?? null,
+        overrideReason: row?.admin_override_reason ?? null,
       };
-    }),
+    })),
     closureResponses: questions.map((q: any) => {
       const r = respMap.get(q.id);
       return {
