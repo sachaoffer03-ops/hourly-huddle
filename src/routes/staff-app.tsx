@@ -5,8 +5,11 @@ import { toast } from "sonner";
 import {
   Home, Calendar, User, ChevronRight, ChevronLeft, Clock, GraduationCap, ArrowLeft, CheckSquare,
   AlertCircle, Replace, Inbox, MessageCircle, CalendarCheck, CheckCircle2, Phone,
-  MapPin, Cake, CreditCard, Hash, Mail, Bell, Sparkles, QrCode
+  MapPin, Cake, CreditCard, Hash, Mail, Bell, Sparkles, QrCode, CalendarDays
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import { roleColors, getQuotaStatus, type Role } from "@/lib/role-colors";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
