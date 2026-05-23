@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Sparkles, ArrowLeft, Check, AlertTriangle, ArrowRight, Loader2, ChefHat } from "lucide-react";
 import { seedFakeData, addKitchenWeekendStaff } from "@/lib/seed.functions";
+import { linkAllEmployeesToAllStudios } from "@/lib/data-repair.functions";
+import { Link2 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/seeder")({
   component: () => (<DevOnly label="Le seeder de données fictives"><SeederPage /></DevOnly>),
@@ -21,6 +23,24 @@ function SeederPage() {
   const [kitchenState, setKitchenState] = useState<"idle" | "running" | "done" | "error">("idle");
   const [kitchenResult, setKitchenResult] = useState<any>(null);
   const [kitchenErr, setKitchenErr] = useState("");
+
+  const linkAll = useServerFn(linkAllEmployeesToAllStudios);
+  const [linkState, setLinkState] = useState<"idle" | "running" | "done" | "error">("idle");
+  const [linkResult, setLinkResult] = useState<any>(null);
+  const [linkErr, setLinkErr] = useState("");
+
+  const handleLinkAll = async () => {
+    if (!confirm("Rattacher tous les employés (non-admins) à TOUS les studios ?")) return;
+    setLinkState("running"); setLinkErr(""); setLinkResult(null);
+    try {
+      const r = await linkAll();
+      setLinkResult(r);
+      setLinkState("done");
+    } catch (e: any) {
+      setLinkErr(e?.message || "Erreur");
+      setLinkState("error");
+    }
+  };
 
   const handleClick = async () => {
     if (!confirm("Cela va SUPPRIMER tous les profils existants (sauf admins et comptes marqués protégés) puis créer ~30 employés fictifs. Continuer ?")) return;
@@ -72,6 +92,35 @@ function SeederPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="mb-4">
+        <button
+          onClick={handleLinkAll}
+          disabled={linkState === "running"}
+          className="w-full rounded-xl px-6 py-4 flex items-center justify-center gap-3 transition"
+          style={{
+            fontSize: 14, fontWeight: 500,
+            backgroundColor: linkState === "running" ? "var(--muted)" : "var(--card)",
+            color: "var(--foreground)",
+            cursor: linkState === "running" ? "wait" : "pointer",
+            border: "0.5px solid var(--border)",
+          }}
+        >
+          {linkState === "running" ? <Loader2 size={18} className="animate-spin" /> : <Link2 size={18} />}
+          {linkState === "running" ? "Rattachement en cours…" : "Rattacher les 5 employés démo à TOUS les studios"}
+        </button>
+        {linkState === "error" && (
+          <div className="mt-3 rounded-xl border p-3" style={{ borderColor: "var(--danger-border, #ef4444)", backgroundColor: "var(--danger-bg, #fef2f2)", fontSize: 12 }}>
+            <span style={{ fontFamily: "monospace", color: "var(--danger-text, #b91c1c)" }}>{linkErr}</span>
+          </div>
+        )}
+        {linkState === "done" && linkResult && (
+          <div className="mt-3 rounded-xl border p-3 flex items-center gap-2" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", fontSize: 13 }}>
+            <Check size={14} style={{ color: "var(--success-text, #16a34a)" }} />
+            <span>{linkResult.employees} employé(s) · {linkResult.studios} studio(s) · <strong>{linkResult.links_added}</strong> lien(s) ajouté(s)</span>
+          </div>
+        )}
       </div>
 
       <button
