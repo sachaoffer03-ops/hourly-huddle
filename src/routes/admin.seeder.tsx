@@ -191,13 +191,6 @@ function SeederPage() {
             {kitchenResult.skipped.map((s: string, i: number) => (
               <div key={i} style={{ color: "var(--muted-foreground)", fontSize: 12, marginTop: 4 }}>· {s}</div>
             ))}
-            <button
-              onClick={() => navigate({ to: "/planning/generate" })}
-              className="mt-4 rounded-xl px-4 py-2 flex items-center gap-2"
-              style={{ fontSize: 13, fontWeight: 500, backgroundColor: "var(--primary)", color: "var(--primary-foreground)", border: "none" }}
-            >
-              Relancer une génération de planning <ArrowRight size={14} />
-            </button>
           </div>
         )}
       </div>
