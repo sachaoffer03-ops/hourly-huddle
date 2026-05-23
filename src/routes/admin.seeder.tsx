@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Sparkles, ArrowLeft, Check, AlertTriangle, ArrowRight, Loader2, ChefHat } from "lucide-react";
 import { seedFakeData, addKitchenWeekendStaff } from "@/lib/seed.functions";
+import { linkAllEmployeesToAllStudios } from "@/lib/data-repair.functions";
+import { Link2 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/seeder")({
   component: () => (<DevOnly label="Le seeder de données fictives"><SeederPage /></DevOnly>),
