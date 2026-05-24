@@ -129,7 +129,7 @@ export const createAvailability = createServerFn({ method: "POST" })
     }
 
     if (!admin && await isMonthLocked(supabase, data.avail_date)) {
-      throw new Error("Le planning de ce mois est publié — tu ne peux plus modifier tes dispos. Fais une demande de modification.");
+      throw new Error("Modifications fermées (deadline dépassée ou planning publié). Fais une demande de modification depuis l'accueil.");
     }
 
     const { s, e } = validateRangeShape(data.start_time, data.end_time);
@@ -174,7 +174,7 @@ export const updateAvailability = createServerFn({ method: "POST" })
     }
 
     if (!admin && await isMonthLocked(supabase, existing.avail_date)) {
-      throw new Error("Le planning de ce mois est publié — tu ne peux plus modifier tes dispos.");
+      throw new Error("Modifications fermées (deadline dépassée ou planning publié). Fais une demande de modification.");
     }
 
     const { s, e } = validateRangeShape(data.start_time, data.end_time);
@@ -210,7 +210,7 @@ export const deleteAvailability = createServerFn({ method: "POST" })
       throw new Error("Impossible de supprimer une dispo passée");
     }
     if (!admin && await isMonthLocked(supabase, existing.avail_date)) {
-      throw new Error("Le planning de ce mois est publié — tu ne peux plus modifier tes dispos.");
+      throw new Error("Modifications fermées (deadline dépassée ou planning publié). Fais une demande de modification.");
     }
 
     const { error } = await supabase.from("availabilities").delete().eq("id", data.id);
