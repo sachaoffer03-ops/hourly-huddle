@@ -225,14 +225,21 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
 
             <div>
               <label style={labelStyle}>Poste *</label>
-              <div className="flex flex-wrap gap-1 mt-2">
-                {BUSINESS_ROLES.map((r) => (
-                  <button key={r} type="button" onClick={() => setRole(r)}
-                    className="rounded-full px-2.5 py-1 transition-colors" style={chip(role === r)}>
-                    {r}
-                  </button>
-                ))}
-              </div>
+              {BUSINESS_ROLES.length === 0 ? (
+                <div className="mt-2 rounded-md px-3 py-2"
+                  style={{ fontSize: 12, color: "var(--muted-foreground)", border: "0.5px dashed var(--border)" }}>
+                  Sélectionne d'abord un studio configuré avec des rôles métier.
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {BUSINESS_ROLES.map((r: string) => (
+                    <button key={r} type="button" onClick={() => setRole(r)}
+                      className="rounded-full px-2.5 py-1 transition-colors" style={chip(role === r)}>
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-3 gap-3">
