@@ -35,7 +35,7 @@ export function StaffingTemplatesEditor({ lockedStudioName, hideHint }: Props) {
   const [studios, setStudios] = useState<Studio[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
-  const [studioId, setStudioId] = useState<string>("");
+  // studioId déclaré plus haut (avant le hook useStudioBusinessRoles)
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const reload = async () => {
