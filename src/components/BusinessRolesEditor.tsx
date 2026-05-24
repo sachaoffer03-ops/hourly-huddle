@@ -27,10 +27,10 @@ const PRESET_PALETTE = ["#3B82F6", "#F59E0B", "#10B981", "#EF4444", "#8B5CF6", "
 const randomPresetColor = () => PRESET_PALETTE[Math.floor(Math.random() * PRESET_PALETTE.length)];
 const isHexColor = (c: string) => /^#[0-9a-fA-F]{6}$/.test(c);
 
-export function BusinessRolesEditor() {
+export function BusinessRolesEditor({ lockedStudioId }: { lockedStudioId?: string } = {}) {
   const { studios, loading: studiosLoading } = useStudios();
   const { roles: allRoles, isLoading } = useBusinessRoles();
-  const [studioId, setStudioId] = useState<string | null>(null);
+  const [studioId, setStudioId] = useState<string | null>(lockedStudioId ?? null);
   const [studioRoleNames, setStudioRoleNames] = useState<string[]>([]);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [saving, setSaving] = useState(false);
@@ -40,9 +40,14 @@ export function BusinessRolesEditor() {
   const [newColor, setNewColor] = useState<string>(() => randomPresetColor());
   const [creating, setCreating] = useState(false);
 
-  // Sélectionne le 1er studio par défaut
+  // Si on est verrouillé sur un studio (mode embarqué dans la page Studio), suit la prop
   useEffect(() => {
-    if (!studioId && studios.length > 0) setStudioId(studios[0].id);
+    if (lockedStudioId) setStudioId(lockedStudioId);
+  }, [lockedStudioId]);
+
+  // Sélectionne le 1er studio par défaut (mode standalone)
+  useEffect(() => {
+    if (!lockedStudioId && !studioId && studios.length > 0) setStudioId(studios[0].id);
   }, [studios, studioId]);
 
   // Charge les rôles liés au studio sélectionné
@@ -280,22 +285,24 @@ export function BusinessRolesEditor() {
         </div>
       </div>
 
-      {/* Sélecteur de studio */}
-      <div className="rounded-xl border p-3 flex items-center gap-3 flex-wrap"
-        style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
-        <Building2 size={16} style={{ color: "var(--muted-foreground)" }} />
-        <div style={{ fontSize: 12, fontWeight: 500 }}>Studio</div>
-        <select
-          value={studioId ?? ""}
-          onChange={(e) => setStudioId(e.target.value || null)}
-          className="rounded-md px-2 py-1.5"
-          style={{ fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "var(--background)" }}
-        >
-          {studios.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
-      </div>
+      {/* Sélecteur de studio — masqué en mode verrouillé */}
+      {!lockedStudioId && (
+        <div className="rounded-xl border p-3 flex items-center gap-3 flex-wrap"
+          style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
+          <Building2 size={16} style={{ color: "var(--muted-foreground)" }} />
+          <div style={{ fontSize: 12, fontWeight: 500 }}>Studio</div>
+          <select
+            value={studioId ?? ""}
+            onChange={(e) => setStudioId(e.target.value || null)}
+            className="rounded-md px-2 py-1.5"
+            style={{ fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "var(--background)" }}
+          >
+            {studios.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="rounded-xl border p-5" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
