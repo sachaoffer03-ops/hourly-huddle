@@ -79,7 +79,18 @@ export function AIChatPanel() {
   };
 
   return (
-    <div className="flex flex-col h-full" style={{ height: "calc(100vh - 80px - env(safe-area-inset-bottom))" }}>
+    <div
+      className="flex flex-col fixed left-1/2 -translate-x-1/2"
+      style={{
+        top: 0,
+        bottom: "calc(80px + env(safe-area-inset-bottom))",
+        width: "100%",
+        maxWidth: 430,
+        backgroundColor: "#FAF8F4",
+        zIndex: 20,
+      }}
+    >
+
       {/* Header */}
       <div className="px-4 pt-5 pb-3" style={{ borderBottom: "0.5px solid rgba(0,0,0,0.06)", backgroundColor: "#fff" }}>
         <div className="flex items-center gap-2.5">
