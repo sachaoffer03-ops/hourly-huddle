@@ -34,7 +34,7 @@ import { Route as ActivationRouteImport } from './routes/activation'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StaffIndexRouteImport } from './routes/staff.index'
 import { Route as StaffIdRouteImport } from './routes/staff.$id'
-import { Route as StaffAppPropositionsRouteImport } from './routes/staff-app.propositions'
+import { Route as StaffAppPropositionsRouteImport } from './routes/staff-app_.propositions'
 import { Route as PlanningGenerateRouteImport } from './routes/planning.generate'
 import { Route as FormationCourseIdRouteImport } from './routes/formation.$courseId'
 import { Route as DisplayStudioIdRouteImport } from './routes/display.$studioId'
@@ -176,9 +176,9 @@ const StaffIdRoute = StaffIdRouteImport.update({
   getParentRoute: () => StaffRoute,
 } as any)
 const StaffAppPropositionsRoute = StaffAppPropositionsRouteImport.update({
-  id: '/propositions',
-  path: '/propositions',
-  getParentRoute: () => StaffAppRoute,
+  id: '/staff-app_/propositions',
+  path: '/staff-app/propositions',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PlanningGenerateRoute = PlanningGenerateRouteImport.update({
   id: '/generate',
@@ -273,7 +273,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signalements': typeof SignalementsRoute
   '/staff': typeof StaffRouteWithChildren
-  '/staff-app': typeof StaffAppRouteWithChildren
+  '/staff-app': typeof StaffAppRoute
   '/studios': typeof StudiosRoute
   '/trous': typeof TrousRoute
   '/admin/audit': typeof AdminAuditRoute
@@ -314,7 +314,7 @@ export interface FileRoutesByTo {
   '/regles-scoring': typeof ReglesScoringRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signalements': typeof SignalementsRoute
-  '/staff-app': typeof StaffAppRouteWithChildren
+  '/staff-app': typeof StaffAppRoute
   '/studios': typeof StudiosRoute
   '/trous': typeof TrousRoute
   '/admin/audit': typeof AdminAuditRoute
@@ -357,7 +357,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signalements': typeof SignalementsRoute
   '/staff': typeof StaffRouteWithChildren
-  '/staff-app': typeof StaffAppRouteWithChildren
+  '/staff-app': typeof StaffAppRoute
   '/studios': typeof StudiosRoute
   '/trous': typeof TrousRoute
   '/admin/audit': typeof AdminAuditRoute
@@ -372,7 +372,7 @@ export interface FileRoutesById {
   '/display/$studioId': typeof DisplayStudioIdRoute
   '/formation/$courseId': typeof FormationCourseIdRoute
   '/planning/generate': typeof PlanningGenerateRoute
-  '/staff-app/propositions': typeof StaffAppPropositionsRoute
+  '/staff-app_/propositions': typeof StaffAppPropositionsRoute
   '/staff/$id': typeof StaffIdRoute
   '/staff/': typeof StaffIndexRoute
   '/staff/checklist/$shiftId': typeof StaffChecklistShiftIdRoute
@@ -499,7 +499,7 @@ export interface FileRouteTypes {
     | '/display/$studioId'
     | '/formation/$courseId'
     | '/planning/generate'
-    | '/staff-app/propositions'
+    | '/staff-app_/propositions'
     | '/staff/$id'
     | '/staff/'
     | '/staff/checklist/$shiftId'
@@ -527,7 +527,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignalementsRoute: typeof SignalementsRoute
   StaffRoute: typeof StaffRouteWithChildren
-  StaffAppRoute: typeof StaffAppRouteWithChildren
+  StaffAppRoute: typeof StaffAppRoute
   StudiosRoute: typeof StudiosRoute
   TrousRoute: typeof TrousRoute
   AdminAuditRoute: typeof AdminAuditRoute
@@ -540,6 +540,7 @@ export interface RootRouteChildren {
   AdminSeedRoute: typeof AdminSeedRoute
   AdminSeederRoute: typeof AdminSeederRoute
   DisplayStudioIdRoute: typeof DisplayStudioIdRoute
+  StaffAppPropositionsRoute: typeof StaffAppPropositionsRoute
   ApiPublicStudioQrStudioIdRoute: typeof ApiPublicStudioQrStudioIdRoute
 }
 
@@ -720,12 +721,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffIdRouteImport
       parentRoute: typeof StaffRoute
     }
-    '/staff-app/propositions': {
-      id: '/staff-app/propositions'
-      path: '/propositions'
+    '/staff-app_/propositions': {
+      id: '/staff-app_/propositions'
+      path: '/staff-app/propositions'
       fullPath: '/staff-app/propositions'
       preLoaderRoute: typeof StaffAppPropositionsRouteImport
-      parentRoute: typeof StaffAppRoute
+      parentRoute: typeof rootRouteImport
     }
     '/planning/generate': {
       id: '/planning/generate'
@@ -866,18 +867,6 @@ const StaffRouteChildren: StaffRouteChildren = {
 
 const StaffRouteWithChildren = StaffRoute._addFileChildren(StaffRouteChildren)
 
-interface StaffAppRouteChildren {
-  StaffAppPropositionsRoute: typeof StaffAppPropositionsRoute
-}
-
-const StaffAppRouteChildren: StaffAppRouteChildren = {
-  StaffAppPropositionsRoute: StaffAppPropositionsRoute,
-}
-
-const StaffAppRouteWithChildren = StaffAppRoute._addFileChildren(
-  StaffAppRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivationRoute: ActivationRoute,
@@ -899,7 +888,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignalementsRoute: SignalementsRoute,
   StaffRoute: StaffRouteWithChildren,
-  StaffAppRoute: StaffAppRouteWithChildren,
+  StaffAppRoute: StaffAppRoute,
   StudiosRoute: StudiosRoute,
   TrousRoute: TrousRoute,
   AdminAuditRoute: AdminAuditRoute,
@@ -912,8 +901,19 @@ const rootRouteChildren: RootRouteChildren = {
   AdminSeedRoute: AdminSeedRoute,
   AdminSeederRoute: AdminSeederRoute,
   DisplayStudioIdRoute: DisplayStudioIdRoute,
+  StaffAppPropositionsRoute: StaffAppPropositionsRoute,
   ApiPublicStudioQrStudioIdRoute: ApiPublicStudioQrStudioIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

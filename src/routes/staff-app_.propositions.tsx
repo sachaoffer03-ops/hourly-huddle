@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { acceptProposal, declineProposal, acceptReplacementProposal, getMyPendingProposals } from "@/lib/proposals.functions";
 
-export const Route = createFileRoute("/staff-app/propositions")({
+export const Route = createFileRoute("/staff-app_/propositions")({
   component: PropositionsPage,
 });
 
