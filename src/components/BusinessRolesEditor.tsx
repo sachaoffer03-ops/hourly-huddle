@@ -10,7 +10,7 @@
 //   aucun studio, la ligne globale est aussi nettoyée pour rester cohérent.
 // - S'il n'y a pas de studios, on affiche un état vide invitant à en créer un.
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Trash2, Save, GripVertical, Info, Building2 } from "lucide-react";
+import { Plus, Trash2, Save, GripVertical, Info, Building2, X, Shuffle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { reloadBusinessRoles, useBusinessRoles, type BusinessRoleRow } from "@/hooks/use-business-roles";
@@ -22,6 +22,10 @@ interface Draft extends BusinessRoleRow {
   _new?: boolean;
   _origName?: string;
 }
+
+const PRESET_PALETTE = ["#3B82F6", "#F59E0B", "#10B981", "#EF4444", "#8B5CF6", "#EC4899", "#14B8A6", "#F97316"];
+const randomPresetColor = () => PRESET_PALETTE[Math.floor(Math.random() * PRESET_PALETTE.length)];
+const isHexColor = (c: string) => /^#[0-9a-fA-F]{6}$/.test(c);
 
 export function BusinessRolesEditor() {
   const { studios, loading: studiosLoading } = useStudios();
