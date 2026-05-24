@@ -37,6 +37,7 @@ import { Route as StaffIdRouteImport } from './routes/staff.$id'
 import { Route as StaffAppPropositionsRouteImport } from './routes/staff-app_.propositions'
 import { Route as PlanningGenerateRouteImport } from './routes/planning.generate'
 import { Route as FormationCourseIdRouteImport } from './routes/formation.$courseId'
+import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as DisplayStudioIdRouteImport } from './routes/display.$studioId'
 import { Route as AdminSeederRouteImport } from './routes/admin.seeder'
 import { Route as AdminSeedRouteImport } from './routes/admin.seed'
@@ -49,6 +50,9 @@ import { Route as AdminDiagnosticRouteImport } from './routes/admin.diagnostic'
 import { Route as AdminDataDiagnosticRouteImport } from './routes/admin.data-diagnostic'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as StaffChecklistShiftIdRouteImport } from './routes/staff.checklist.$shiftId'
+import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
+import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -194,6 +198,11 @@ const FormationCourseIdRoute = FormationCourseIdRouteImport.update({
   path: '/$courseId',
   getParentRoute: () => FormationRoute,
 } as any)
+const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
+  id: '/email/unsubscribe',
+  path: '/email/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DisplayStudioIdRoute = DisplayStudioIdRouteImport.update({
   id: '/display/$studioId',
   path: '/display/$studioId',
@@ -254,6 +263,23 @@ const StaffChecklistShiftIdRoute = StaffChecklistShiftIdRouteImport.update({
   path: '/checklist/$shiftId',
   getParentRoute: () => StaffRoute,
 } as any)
+const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
+  id: '/lovable/email/suppression',
+  path: '/lovable/email/suppression',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailTransactionalSendRoute =
+  LovableEmailTransactionalSendRouteImport.update({
+    id: '/lovable/email/transactional/send',
+    path: '/lovable/email/transactional/send',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -312,16 +338,20 @@ export interface FileRoutesByFullPath {
   '/admin/seed': typeof AdminSeedRoute
   '/admin/seeder': typeof AdminSeederRoute
   '/display/$studioId': typeof DisplayStudioIdRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/formation/$courseId': typeof FormationCourseIdRoute
   '/planning/generate': typeof PlanningGenerateRoute
   '/staff-app/propositions': typeof StaffAppPropositionsRoute
   '/staff/$id': typeof StaffIdRoute
   '/staff/': typeof StaffIndexRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/staff/checklist/$shiftId': typeof StaffChecklistShiftIdRoute
   '/api/public/studio-qr/$studioId': typeof ApiPublicStudioQrStudioIdRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -357,16 +387,20 @@ export interface FileRoutesByTo {
   '/admin/seed': typeof AdminSeedRoute
   '/admin/seeder': typeof AdminSeederRoute
   '/display/$studioId': typeof DisplayStudioIdRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/formation/$courseId': typeof FormationCourseIdRoute
   '/planning/generate': typeof PlanningGenerateRoute
   '/staff-app/propositions': typeof StaffAppPropositionsRoute
   '/staff/$id': typeof StaffIdRoute
   '/staff': typeof StaffIndexRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/staff/checklist/$shiftId': typeof StaffChecklistShiftIdRoute
   '/api/public/studio-qr/$studioId': typeof ApiPublicStudioQrStudioIdRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -404,16 +438,20 @@ export interface FileRoutesById {
   '/admin/seed': typeof AdminSeedRoute
   '/admin/seeder': typeof AdminSeederRoute
   '/display/$studioId': typeof DisplayStudioIdRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/formation/$courseId': typeof FormationCourseIdRoute
   '/planning/generate': typeof PlanningGenerateRoute
   '/staff-app_/propositions': typeof StaffAppPropositionsRoute
   '/staff/$id': typeof StaffIdRoute
   '/staff/': typeof StaffIndexRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/staff/checklist/$shiftId': typeof StaffChecklistShiftIdRoute
   '/api/public/studio-qr/$studioId': typeof ApiPublicStudioQrStudioIdRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -452,16 +490,20 @@ export interface FileRouteTypes {
     | '/admin/seed'
     | '/admin/seeder'
     | '/display/$studioId'
+    | '/email/unsubscribe'
     | '/formation/$courseId'
     | '/planning/generate'
     | '/staff-app/propositions'
     | '/staff/$id'
     | '/staff/'
+    | '/lovable/email/suppression'
     | '/staff/checklist/$shiftId'
     | '/api/public/studio-qr/$studioId'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -497,16 +539,20 @@ export interface FileRouteTypes {
     | '/admin/seed'
     | '/admin/seeder'
     | '/display/$studioId'
+    | '/email/unsubscribe'
     | '/formation/$courseId'
     | '/planning/generate'
     | '/staff-app/propositions'
     | '/staff/$id'
     | '/staff'
+    | '/lovable/email/suppression'
     | '/staff/checklist/$shiftId'
     | '/api/public/studio-qr/$studioId'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   id:
     | '__root__'
     | '/'
@@ -543,16 +589,20 @@ export interface FileRouteTypes {
     | '/admin/seed'
     | '/admin/seeder'
     | '/display/$studioId'
+    | '/email/unsubscribe'
     | '/formation/$courseId'
     | '/planning/generate'
     | '/staff-app_/propositions'
     | '/staff/$id'
     | '/staff/'
+    | '/lovable/email/suppression'
     | '/staff/checklist/$shiftId'
     | '/api/public/studio-qr/$studioId'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -590,11 +640,15 @@ export interface RootRouteChildren {
   AdminSeedRoute: typeof AdminSeedRoute
   AdminSeederRoute: typeof AdminSeederRoute
   DisplayStudioIdRoute: typeof DisplayStudioIdRoute
+  EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   StaffAppPropositionsRoute: typeof StaffAppPropositionsRoute
+  LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicStudioQrStudioIdRoute: typeof ApiPublicStudioQrStudioIdRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
+  LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
+  LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -795,6 +849,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FormationCourseIdRouteImport
       parentRoute: typeof FormationRoute
     }
+    '/email/unsubscribe': {
+      id: '/email/unsubscribe'
+      path: '/email/unsubscribe'
+      fullPath: '/email/unsubscribe'
+      preLoaderRoute: typeof EmailUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/display/$studioId': {
       id: '/display/$studioId'
       path: '/display/$studioId'
@@ -878,6 +939,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/staff/checklist/$shiftId'
       preLoaderRoute: typeof StaffChecklistShiftIdRouteImport
       parentRoute: typeof StaffRoute
+    }
+    '/lovable/email/suppression': {
+      id: '/lovable/email/suppression'
+      path: '/lovable/email/suppression'
+      fullPath: '/lovable/email/suppression'
+      preLoaderRoute: typeof LovableEmailSuppressionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/transactional/send': {
+      id: '/lovable/email/transactional/send'
+      path: '/lovable/email/transactional/send'
+      fullPath: '/lovable/email/transactional/send'
+      preLoaderRoute: typeof LovableEmailTransactionalSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
@@ -983,11 +1065,15 @@ const rootRouteChildren: RootRouteChildren = {
   AdminSeedRoute: AdminSeedRoute,
   AdminSeederRoute: AdminSeederRoute,
   DisplayStudioIdRoute: DisplayStudioIdRoute,
+  EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   StaffAppPropositionsRoute: StaffAppPropositionsRoute,
+  LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicStudioQrStudioIdRoute: ApiPublicStudioQrStudioIdRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
+  LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
+  LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
