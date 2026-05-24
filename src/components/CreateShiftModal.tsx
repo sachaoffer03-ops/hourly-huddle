@@ -57,6 +57,12 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
     });
   }, [open]);
 
+  // Aligne le rôle sélectionné avec les rôles du studio courant
+  useEffect(() => {
+    if (BUSINESS_ROLES.length === 0) { setRole(""); return; }
+    if (!role || !BUSINESS_ROLES.includes(role)) setRole(BUSINESS_ROLES[0]);
+  }, [BUSINESS_ROLES.join("|")]);
+
   const resetAll = () => {
     setStep("form");
     setNotes(""); setStartTime("10:00"); setEndTime("15:00");
