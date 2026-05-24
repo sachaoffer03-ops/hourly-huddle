@@ -29,7 +29,8 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
 
   // form state
   const [studioId, setStudioId] = useState("");
-  const [role, setRole] = useState<string>("Barista");
+  const { names: BUSINESS_ROLES } = useStudioBusinessRoles(studioId || null);
+  const [role, setRole] = useState<string>("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [startTime, setStartTime] = useState("10:00");
   const [endTime, setEndTime] = useState("15:00");
