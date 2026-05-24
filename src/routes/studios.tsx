@@ -833,11 +833,12 @@ function InformationsTab({
                 if (e.key === "Enter") submitNewRole();
               }}
               placeholder="Ex. Pâtissier"
-              className="flex-1 rounded-md px-2 py-1.5"
+              className="flex-1 rounded-md px-2 py-1.5 outline-none"
               style={{
                 fontSize: 12,
                 border: "0.5px solid var(--border)",
-                backgroundColor: "var(--card)",
+                backgroundColor: "var(--background)",
+                color: "var(--foreground)",
               }}
             />
             <button
