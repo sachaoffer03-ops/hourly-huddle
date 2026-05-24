@@ -156,6 +156,7 @@ function StudiosPage() {
   const [newStudioName, setNewStudioName] = useState("");
   const [newStudioKitchen, setNewStudioKitchen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<StudioRow | null>(null);
+  const [infoDrafts, setInfoDrafts] = useState<Record<string, Partial<StudioInfo>>>({});
 
   // Garde l'index dans les bornes quand la liste change
   useEffect(() => {
@@ -188,6 +189,10 @@ function StudiosPage() {
   }, [reload]);
 
   const queueInfoPatch = useCallback((id: string, infoPatch: Partial<StudioInfo>) => {
+    setInfoDrafts((prev) => ({
+      ...prev,
+      [id]: { ...(prev[id] ?? {}), ...infoPatch },
+    }));
     pendingPatchRef.current = { ...pendingPatchRef.current, ...infoPatchToRowPatch(infoPatch) };
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => flushPatch(id), 400);
@@ -324,6 +329,9 @@ function StudiosPage() {
   };
 
   const studioTabs = studios.map((s) => s.name);
+  const currentInfo = currentRow
+    ? { ...rowToInfo(currentRow), ...(infoDrafts[currentRow.id] ?? {}) }
+    : null;
 
   return (
     <div className="p-4 md:p-6">
@@ -487,7 +495,7 @@ function StudiosPage() {
         <>
           {activeSubTab === 0 && (
             <InformationsTab
-              info={rowToInfo(currentRow)}
+              info={currentInfo ?? rowToInfo(currentRow)}
               hasKitchen={currentRow.has_kitchen}
               onKitchenChange={(v) => updateKitchen(currentRow.id, v)}
               onChange={(patch) => queueInfoPatch(currentRow.id, patch)}
