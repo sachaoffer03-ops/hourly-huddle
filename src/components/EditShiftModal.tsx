@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { updateShift } from "@/lib/shifts.functions";
-import { useBusinessRoles } from "@/hooks/use-business-roles";
+import { useStudioBusinessRoles } from "@/hooks/use-studio-business-roles";
 
 type EmployeeOpt = {
   id: string;
@@ -32,13 +32,12 @@ const toHHMM = (t: string) => String(t).slice(0, 5);
 
 export function EditShiftModal({ shift, onClose, onSaved }: Props) {
   const updateShiftFn = useServerFn(updateShift);
-  const { roles: allRoles } = useBusinessRoles({ onlyActive: true });
+  const { names: studioRoles } = useStudioBusinessRoles(shift?.studioId || null);
   const [date, setDate] = useState(shift.shiftDate);
   const [start, setStart] = useState(toHHMM(shift.startTime));
   const [end, setEnd] = useState(toHHMM(shift.endTime));
   const [userId, setUserId] = useState<string>(shift.employeeId || "");
   const [role, setRole] = useState<string>(shift.role);
-  const [studioRoleNames, setStudioRoleNames] = useState<string[] | null>(null);
   const [employees, setEmployees] = useState<EmployeeOpt[]>([]);
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
@@ -76,25 +75,9 @@ export function EditShiftModal({ shift, onClose, onSaved }: Props) {
     })();
   }, []);
 
-  // Charge les rôles autorisés pour ce studio (table studio_business_roles).
-  // Si vide, fallback sur tous les rôles métier actifs.
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from("studio_business_roles")
-        .select("role")
-        .eq("studio_id", shift.studioId);
-      const list = (data ?? []).map((r: any) => r.role);
-      setStudioRoleNames(list.length > 0 ? list : null);
-    })();
-  }, [shift.studioId]);
-
-  const availableRoles = useMemo(() => {
-    const names = allRoles.map((r) => r.name);
-    if (!studioRoleNames) return names;
-    const set = new Set(studioRoleNames);
-    return names.filter((n) => set.has(n));
-  }, [allRoles, studioRoleNames]);
+  // Rôles autorisés = STRICTEMENT ceux du studio (pas de fallback global).
+  const availableRoles = studioRoles;
+  const hasNoRoles = availableRoles.length === 0;
 
   const eligible = useMemo(() => {
     return employees
@@ -210,13 +193,20 @@ export function EditShiftModal({ shift, onClose, onSaved }: Props) {
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
+              disabled={hasNoRoles}
               className="rounded-md px-3 py-2 outline-none"
-              style={{ fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "var(--background)" }}
+              style={{ fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "var(--background)", opacity: hasNoRoles ? 0.6 : 1 }}
             >
-              {!availableRoles.includes(role) && <option value={role}>{role}</option>}
-              {availableRoles.map((r) => (
-                <option key={r} value={r}>{r}</option>
-              ))}
+              {hasNoRoles ? (
+                <option value="">Aucun rôle configuré pour ce studio. Édite d'abord la config du studio.</option>
+              ) : (
+                <>
+                  {!availableRoles.includes(role) && <option value={role}>{role}</option>}
+                  {availableRoles.map((r: string) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </>
+              )}
             </select>
           </label>
 

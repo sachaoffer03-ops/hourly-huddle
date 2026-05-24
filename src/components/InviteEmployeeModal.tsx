@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { X, Copy, Check, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -14,7 +14,8 @@ interface Props {
 }
 
 export function InviteEmployeeModal({ open, onClose, onCreated }: Props) {
-  const { names: BUSINESS_ROLES } = useBusinessRoles({ onlyActive: true });
+  const { roles: allRoles } = useBusinessRoles({ onlyActive: true });
+  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
   const [studios, setStudios] = useState<Studio[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [activationUrl, setActivationUrl] = useState<string | null>(null);
@@ -42,6 +43,42 @@ export function InviteEmployeeModal({ open, onClose, onCreated }: Props) {
       });
     }
   }, [open]);
+
+  // Union des rôles ACTIFS configurés sur les studios cochés
+  const activeNames = useMemo(
+    () => new Set(allRoles.map((r) => r.name)),
+    [allRoles.map((r) => r.name).join("|")]
+  );
+
+  useEffect(() => {
+    if (studioIds.size === 0) { setAvailableRoles([]); return; }
+    let cancelled = false;
+    const studioIdsArr = Array.from(studioIds);
+    supabase
+      .from("studio_business_roles")
+      .select("role")
+      .in("studio_id", studioIdsArr)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error || !data) { setAvailableRoles([]); return; }
+        const namesSet = new Set<string>();
+        (data as any[]).forEach((row) => {
+          if (row.role && activeNames.has(row.role)) namesSet.add(row.role);
+        });
+        setAvailableRoles(Array.from(namesSet).sort());
+      });
+    return () => { cancelled = true; };
+  }, [Array.from(studioIds).sort().join("|"), activeNames]);
+
+  // Purge automatique des rôles cochés qui ne sont plus disponibles
+  useEffect(() => {
+    setRoles((prev) => {
+      const allowed = new Set(availableRoles);
+      const next = new Set<string>();
+      prev.forEach((r) => { if (allowed.has(r)) next.add(r); });
+      return next.size === prev.size ? prev : next;
+    });
+  }, [availableRoles]);
 
   const reset = () => {
     setFirstName(""); setLastName(""); setEmail(""); setPhone("");
@@ -170,23 +207,30 @@ export function InviteEmployeeModal({ open, onClose, onCreated }: Props) {
 
             <div>
               <label style={labelStyle}>Rôles métier *</label>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {BUSINESS_ROLES.map((r) => {
-                  const active = roles.has(r);
-                  return (
-                    <button key={r} type="button" onClick={() => toggleRole(r)}
-                      className="px-3 py-1.5 rounded-md border"
-                      style={{
-                        fontSize: 13, fontWeight: 500,
-                        backgroundColor: active ? "var(--foreground)" : "var(--card)",
-                        color: active ? "var(--card)" : "var(--foreground)",
-                        borderColor: active ? "var(--foreground)" : "var(--border)",
-                      }}>
-                      {r}
-                    </button>
-                  );
-                })}
-              </div>
+              {availableRoles.length === 0 ? (
+                <div className="mt-2 rounded-md px-3 py-2"
+                  style={{ fontSize: 12, color: "var(--muted-foreground)", border: "0.5px dashed var(--border)" }}>
+                  Sélectionne d'abord au moins un studio configuré avec des rôles.
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {availableRoles.map((r: string) => {
+                    const active = roles.has(r);
+                    return (
+                      <button key={r} type="button" onClick={() => toggleRole(r)}
+                        className="px-3 py-1.5 rounded-md border"
+                        style={{
+                          fontSize: 13, fontWeight: 500,
+                          backgroundColor: active ? "var(--foreground)" : "var(--card)",
+                          color: active ? "var(--card)" : "var(--foreground)",
+                          borderColor: active ? "var(--foreground)" : "var(--border)",
+                        }}>
+                        {r}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-2 pt-2">

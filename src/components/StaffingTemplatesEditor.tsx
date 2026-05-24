@@ -3,7 +3,7 @@ import { Plus, Trash2, Info, ChevronDown, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Dropdown } from "@/components/Dropdown";
-import { useBusinessRoles } from "@/hooks/use-business-roles";
+import { useStudioBusinessRoles } from "@/hooks/use-studio-business-roles";
 
 const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 const ALL_CONTRACTS = ["CDI", "Étudiant", "Flexi"] as const;
@@ -30,11 +30,12 @@ interface Props {
 }
 
 export function StaffingTemplatesEditor({ lockedStudioName, hideHint }: Props) {
-  const { names: ROLES } = useBusinessRoles({ onlyActive: true });
+  const [studioId, setStudioId] = useState<string>("");
+  const { names: ROLES } = useStudioBusinessRoles(studioId || null);
   const [studios, setStudios] = useState<Studio[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
-  const [studioId, setStudioId] = useState<string>("");
+  // studioId déclaré plus haut (avant le hook useStudioBusinessRoles)
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const reload = async () => {
@@ -143,6 +144,15 @@ export function StaffingTemplatesEditor({ lockedStudioName, hideHint }: Props) {
         <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 12 }}>
           {filtered.length} créneau{filtered.length > 1 ? "x" : ""} · {totalShifts} shift{totalShifts > 1 ? "s" : ""}/semaine
         </div>
+
+        {ROLES.length === 0 && studioId && (
+          <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: "var(--warn-bg, var(--muted))", border: "0.5px solid var(--border)" }}>
+            <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 4 }}>⚠️ Aucun rôle configuré pour ce studio.</div>
+            <div style={{ fontSize: 11, color: "var(--muted-foreground)", lineHeight: 1.5 }}>
+              Va dans l'onglet « Information » pour activer les rôles métier de ce studio avant de configurer les besoins de staff.
+            </div>
+          </div>
+        )}
 
         {filtered.length === 0 ? (
           <div className="rounded-lg p-6 text-center" style={{ backgroundColor: "var(--muted)" }}>
@@ -288,8 +298,9 @@ export function StaffingTemplatesEditor({ lockedStudioName, hideHint }: Props) {
         )}
 
         <button onClick={addRow}
+          disabled={ROLES.length === 0}
           className="mt-3 rounded-md px-3 py-2 flex items-center gap-2 transition-colors"
-          style={{ fontSize: 12, fontWeight: 500, border: "0.5px solid var(--border)" }}>
+          style={{ fontSize: 12, fontWeight: 500, border: "0.5px solid var(--border)", opacity: ROLES.length === 0 ? 0.5 : 1, cursor: ROLES.length === 0 ? "not-allowed" : "pointer" }}>
           <Plus size={13} /> Ajouter un besoin
         </button>
       </div>

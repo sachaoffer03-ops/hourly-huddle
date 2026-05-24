@@ -4,7 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { X, Send, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useBusinessRoles } from "@/hooks/use-business-roles";
+import { useStudioBusinessRoles } from "@/hooks/use-studio-business-roles";
 import { getRoleStyle, fullName } from "@/lib/staff-helpers";
 import { getEligibleEmployeesForShift, type EligibleEmployee } from "@/lib/shift-eligibility.functions";
 import { sendProposals } from "@/lib/proposals.functions";
@@ -20,7 +20,6 @@ interface Props {
 type Step = "form" | "recipients";
 
 export function CreateShiftModal({ open, onClose, onCreated }: Props) {
-  const { names: BUSINESS_ROLES } = useBusinessRoles({ onlyActive: true });
   const eligibilityFn = useServerFn(getEligibleEmployeesForShift);
   const sendFn = useServerFn(sendProposals);
 
@@ -30,7 +29,8 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
 
   // form state
   const [studioId, setStudioId] = useState("");
-  const [role, setRole] = useState<string>("Barista");
+  const { names: BUSINESS_ROLES } = useStudioBusinessRoles(studioId || null);
+  const [role, setRole] = useState<string>("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [startTime, setStartTime] = useState("10:00");
   const [endTime, setEndTime] = useState("15:00");
@@ -56,6 +56,12 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
       }
     });
   }, [open]);
+
+  // Aligne le rôle sélectionné avec les rôles du studio courant
+  useEffect(() => {
+    if (BUSINESS_ROLES.length === 0) { setRole(""); return; }
+    if (!role || !BUSINESS_ROLES.includes(role)) setRole(BUSINESS_ROLES[0]);
+  }, [BUSINESS_ROLES.join("|")]);
 
   const resetAll = () => {
     setStep("form");
@@ -219,14 +225,21 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
 
             <div>
               <label style={labelStyle}>Poste *</label>
-              <div className="flex flex-wrap gap-1 mt-2">
-                {BUSINESS_ROLES.map((r) => (
-                  <button key={r} type="button" onClick={() => setRole(r)}
-                    className="rounded-full px-2.5 py-1 transition-colors" style={chip(role === r)}>
-                    {r}
-                  </button>
-                ))}
-              </div>
+              {BUSINESS_ROLES.length === 0 ? (
+                <div className="mt-2 rounded-md px-3 py-2"
+                  style={{ fontSize: 12, color: "var(--muted-foreground)", border: "0.5px dashed var(--border)" }}>
+                  Sélectionne d'abord un studio configuré avec des rôles métier.
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {BUSINESS_ROLES.map((r: string) => (
+                    <button key={r} type="button" onClick={() => setRole(r)}
+                      className="rounded-full px-2.5 py-1 transition-colors" style={chip(role === r)}>
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-3 gap-3">
