@@ -193,13 +193,20 @@ export function EditShiftModal({ shift, onClose, onSaved }: Props) {
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
+              disabled={hasNoRoles}
               className="rounded-md px-3 py-2 outline-none"
-              style={{ fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "var(--background)" }}
+              style={{ fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "var(--background)", opacity: hasNoRoles ? 0.6 : 1 }}
             >
-              {!availableRoles.includes(role) && <option value={role}>{role}</option>}
-              {availableRoles.map((r) => (
-                <option key={r} value={r}>{r}</option>
-              ))}
+              {hasNoRoles ? (
+                <option value="">Aucun rôle configuré pour ce studio. Édite d'abord la config du studio.</option>
+              ) : (
+                <>
+                  {!availableRoles.includes(role) && <option value={role}>{role}</option>}
+                  {availableRoles.map((r: string) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </>
+              )}
             </select>
           </label>
 
