@@ -35,6 +35,10 @@ export function BusinessRolesEditor() {
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [saving, setSaving] = useState(false);
   const [loadingScope, setLoadingScope] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newColor, setNewColor] = useState<string>(() => randomPresetColor());
+  const [creating, setCreating] = useState(false);
 
   // Sélectionne le 1er studio par défaut
   useEffect(() => {
