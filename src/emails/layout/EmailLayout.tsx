@@ -96,7 +96,7 @@ const container: React.CSSProperties = {
 };
 
 const header: React.CSSProperties = {
-  backgroundColor: "#ffffff",
+  backgroundColor: "#FAFAF8",
   padding: "28px 24px",
   textAlign: "center",
   borderBottom: "1px solid #EAEAE5",
