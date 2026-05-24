@@ -15,6 +15,9 @@ import {
 export const KADENCE_LOGO_URL =
   "https://vqejayodpprbfgwaejmb.supabase.co/storage/v1/object/public/avatars/_brand/kadence-logo.png";
 
+export const SKULT_LOGO_URL =
+  "https://vqejayodpprbfgwaejmb.supabase.co/storage/v1/object/public/avatars/_brand%2Fskult-logo.jpg";
+
 interface EmailLayoutProps {
   children: React.ReactNode;
   studioName?: string;
@@ -48,9 +51,16 @@ export default function EmailLayout({
           <Section style={content}>{children}</Section>
 
           <Section style={footer}>
+            <Img
+              src={SKULT_LOGO_URL}
+              alt={studioName ?? "Skult Studios"}
+              width="72"
+              height="28"
+              style={skultLogoImg}
+            />
             <Text style={footerText}>
-              Cet email t'a été envoyé par Kadence pour{" "}
-              {studioName ?? "ton équipe"}.
+              Cet email t'a été envoyé via Kadence pour{" "}
+              {studioName ?? "Skult Studios"}.
             </Text>
             <Text style={footerText}>
               Si tu n'es plus concerné, contacte ton manager.
@@ -107,6 +117,14 @@ const footer: React.CSSProperties = {
   backgroundColor: "#FAFAFA",
   padding: "24px",
   textAlign: "center",
+};
+
+const skultLogoImg: React.CSSProperties = {
+  display: "block",
+  margin: "0 auto 12px",
+  height: "28px",
+  width: "auto",
+  opacity: 0.85,
 };
 
 const footerText: React.CSSProperties = {
