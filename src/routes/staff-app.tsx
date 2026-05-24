@@ -608,6 +608,14 @@ function AccueilTab({ profile, studios, studioClockOut, userId, onOpenNotifs, on
 
       <div style={{ fontSize: 13, fontWeight: 500, marginTop: 20, marginBottom: 8 }}>Actions rapides</div>
       <div className="grid grid-cols-2 gap-3 mb-3">
+        <QuickLink
+          icon={<Send size={18} />}
+          label="Propositions"
+          sub={proposals.length > 0 ? `${proposals.length} en attente` : "Aucune en attente"}
+          badge={proposals.length > 0 ? proposals.length : undefined}
+          highlight={proposals.length > 0}
+          onClick={() => navigate({ to: "/staff-app/propositions" })}
+        />
         <QuickLink icon={<AlertCircle size={18} />} label="Signaler" sub="Stock, matériel, hygiène" onClick={() => setSignalOpen(true)} />
         <QuickLink icon={<Replace size={18} />} label="Demande" sub="Échange, annulation…" onClick={() => setReqOpen(true)} />
         <QuickLink icon={<Inbox size={18} />} label="Mes demandes" sub="Suivi des réponses" onClick={() => setMyReqOpen(true)} />
