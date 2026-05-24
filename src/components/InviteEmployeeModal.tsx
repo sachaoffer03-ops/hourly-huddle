@@ -44,6 +44,42 @@ export function InviteEmployeeModal({ open, onClose, onCreated }: Props) {
     }
   }, [open]);
 
+  // Union des rôles ACTIFS configurés sur les studios cochés
+  const activeNames = useMemo(
+    () => new Set(allRoles.map((r) => r.name)),
+    [allRoles.map((r) => r.name).join("|")]
+  );
+
+  useEffect(() => {
+    if (studioIds.size === 0) { setAvailableRoles([]); return; }
+    let cancelled = false;
+    const studioIdsArr = Array.from(studioIds);
+    supabase
+      .from("studio_business_roles")
+      .select("role")
+      .in("studio_id", studioIdsArr)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error || !data) { setAvailableRoles([]); return; }
+        const namesSet = new Set<string>();
+        (data as any[]).forEach((row) => {
+          if (row.role && activeNames.has(row.role)) namesSet.add(row.role);
+        });
+        setAvailableRoles(Array.from(namesSet).sort());
+      });
+    return () => { cancelled = true; };
+  }, [Array.from(studioIds).sort().join("|"), activeNames]);
+
+  // Purge automatique des rôles cochés qui ne sont plus disponibles
+  useEffect(() => {
+    setRoles((prev) => {
+      const allowed = new Set(availableRoles);
+      const next = new Set<string>();
+      prev.forEach((r) => { if (allowed.has(r)) next.add(r); });
+      return next.size === prev.size ? prev : next;
+    });
+  }, [availableRoles]);
+
   const reset = () => {
     setFirstName(""); setLastName(""); setEmail(""); setPhone("");
     setContracts(new Set(["Étudiant"])); setRoles(new Set());
