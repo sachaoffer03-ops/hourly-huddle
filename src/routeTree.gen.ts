@@ -44,6 +44,7 @@ import { Route as AdminQaTestSuiteRouteImport } from './routes/admin.qa-test-sui
 import { Route as AdminMigrateStudiosRouteImport } from './routes/admin.migrate-studios'
 import { Route as AdminIntegrityReportRouteImport } from './routes/admin.integrity-report'
 import { Route as AdminHardcodingAuditRouteImport } from './routes/admin.hardcoding-audit'
+import { Route as AdminEmailPreviewRouteImport } from './routes/admin.email-preview'
 import { Route as AdminDiagnosticRouteImport } from './routes/admin.diagnostic'
 import { Route as AdminDataDiagnosticRouteImport } from './routes/admin.data-diagnostic'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
@@ -228,6 +229,11 @@ const AdminHardcodingAuditRoute = AdminHardcodingAuditRouteImport.update({
   path: '/admin/hardcoding-audit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminEmailPreviewRoute = AdminEmailPreviewRouteImport.update({
+  id: '/admin/email-preview',
+  path: '/admin/email-preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminDiagnosticRoute = AdminDiagnosticRouteImport.update({
   id: '/admin/diagnostic',
   path: '/admin/diagnostic',
@@ -298,6 +304,7 @@ export interface FileRoutesByFullPath {
   '/admin/audit': typeof AdminAuditRoute
   '/admin/data-diagnostic': typeof AdminDataDiagnosticRoute
   '/admin/diagnostic': typeof AdminDiagnosticRoute
+  '/admin/email-preview': typeof AdminEmailPreviewRoute
   '/admin/hardcoding-audit': typeof AdminHardcodingAuditRoute
   '/admin/integrity-report': typeof AdminIntegrityReportRoute
   '/admin/migrate-studios': typeof AdminMigrateStudiosRoute
@@ -342,6 +349,7 @@ export interface FileRoutesByTo {
   '/admin/audit': typeof AdminAuditRoute
   '/admin/data-diagnostic': typeof AdminDataDiagnosticRoute
   '/admin/diagnostic': typeof AdminDiagnosticRoute
+  '/admin/email-preview': typeof AdminEmailPreviewRoute
   '/admin/hardcoding-audit': typeof AdminHardcodingAuditRoute
   '/admin/integrity-report': typeof AdminIntegrityReportRoute
   '/admin/migrate-studios': typeof AdminMigrateStudiosRoute
@@ -388,6 +396,7 @@ export interface FileRoutesById {
   '/admin/audit': typeof AdminAuditRoute
   '/admin/data-diagnostic': typeof AdminDataDiagnosticRoute
   '/admin/diagnostic': typeof AdminDiagnosticRoute
+  '/admin/email-preview': typeof AdminEmailPreviewRoute
   '/admin/hardcoding-audit': typeof AdminHardcodingAuditRoute
   '/admin/integrity-report': typeof AdminIntegrityReportRoute
   '/admin/migrate-studios': typeof AdminMigrateStudiosRoute
@@ -435,6 +444,7 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/data-diagnostic'
     | '/admin/diagnostic'
+    | '/admin/email-preview'
     | '/admin/hardcoding-audit'
     | '/admin/integrity-report'
     | '/admin/migrate-studios'
@@ -479,6 +489,7 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/data-diagnostic'
     | '/admin/diagnostic'
+    | '/admin/email-preview'
     | '/admin/hardcoding-audit'
     | '/admin/integrity-report'
     | '/admin/migrate-studios'
@@ -524,6 +535,7 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/data-diagnostic'
     | '/admin/diagnostic'
+    | '/admin/email-preview'
     | '/admin/hardcoding-audit'
     | '/admin/integrity-report'
     | '/admin/migrate-studios'
@@ -570,6 +582,7 @@ export interface RootRouteChildren {
   AdminAuditRoute: typeof AdminAuditRoute
   AdminDataDiagnosticRoute: typeof AdminDataDiagnosticRoute
   AdminDiagnosticRoute: typeof AdminDiagnosticRoute
+  AdminEmailPreviewRoute: typeof AdminEmailPreviewRoute
   AdminHardcodingAuditRoute: typeof AdminHardcodingAuditRoute
   AdminIntegrityReportRoute: typeof AdminIntegrityReportRoute
   AdminMigrateStudiosRoute: typeof AdminMigrateStudiosRoute
@@ -831,6 +844,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminHardcodingAuditRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/email-preview': {
+      id: '/admin/email-preview'
+      path: '/admin/email-preview'
+      fullPath: '/admin/email-preview'
+      preLoaderRoute: typeof AdminEmailPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/diagnostic': {
       id: '/admin/diagnostic'
       path: '/admin/diagnostic'
@@ -955,6 +975,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminAuditRoute: AdminAuditRoute,
   AdminDataDiagnosticRoute: AdminDataDiagnosticRoute,
   AdminDiagnosticRoute: AdminDiagnosticRoute,
+  AdminEmailPreviewRoute: AdminEmailPreviewRoute,
   AdminHardcodingAuditRoute: AdminHardcodingAuditRoute,
   AdminIntegrityReportRoute: AdminIntegrityReportRoute,
   AdminMigrateStudiosRoute: AdminMigrateStudiosRoute,
