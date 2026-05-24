@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import {
   Home, Calendar, User, ChevronRight, ChevronLeft, Clock, GraduationCap, ArrowLeft, CheckSquare,
   AlertCircle, Replace, Inbox, MessageCircle, CalendarCheck, CheckCircle2, Phone,
-  MapPin, Cake, CreditCard, Hash, Mail, Bell, Sparkles, QrCode, CalendarDays
+  MapPin, Cake, CreditCard, Hash, Mail, Bell, Sparkles, QrCode, CalendarDays, Bot
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
@@ -20,7 +20,7 @@ import { EditProfileSheet, type EditableProfile } from "@/components/staff-app/E
 import { DisposSheet, disposKey } from "@/components/staff-app/DisposSheet";
 import { FormationPanel } from "@/components/staff-app/FormationPanel";
 import { FormationNotifBanner } from "@/components/staff-app/formation/FormationNotifBanner";
-import { ChatPanel } from "@/components/staff-app/ChatPanel";
+import { AIChatPanel } from "@/components/staff-app/AIChatPanel";
 import { useStaffNotifications } from "@/hooks/use-staff-notifications";
 import { ProposalsSheet, useProposals } from "@/components/staff-app/ProposalsSheet";
 import { Send } from "lucide-react";
@@ -138,7 +138,7 @@ function StaffAppPage() {
         {tab === "planning" && <PlanningTab studios={studios} userId={user.id} />}
         {tab === "pointage" && <PointageTab studios={studios} userId={user.id} />}
         {tab === "formation" && <FormationPanel userId={user.id} />}
-        {tab === "chat" && <ChatPanel meId={user.id} peerId={adminId} peerName={adminName} />}
+        {tab === "chat" && <AIChatPanel />}
         {tab === "profil" && <ProfilTab profile={profile} businessRoles={businessRoles} studios={studios} userId={user.id} onProfileChange={(patch) => setProfile((p) => p ? { ...p, ...patch } : p)} onNavigate={setTab} />}
       </div>
 
@@ -151,7 +151,7 @@ function StaffAppPage() {
           { id: "planning" as Tab, label: "Planning", icon: Calendar },
           { id: "pointage" as Tab, label: "Pointage", icon: Clock },
           { id: "formation" as Tab, label: "Formation", icon: GraduationCap },
-          { id: "chat" as Tab, label: "Chat", icon: MessageCircle },
+          { id: "chat" as Tab, label: "Assistant IA", icon: Bot },
           { id: "profil" as Tab, label: "Profil", icon: User },
         ]).map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} className="flex flex-col items-center gap-0.5 py-3 px-1" style={{ minHeight: 56, flex: 1 }}>
