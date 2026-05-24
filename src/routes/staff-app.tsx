@@ -668,12 +668,17 @@ function AccueilTab({ profile, studios, studioClockOut, userId, onOpenNotifs, on
   );
 }
 
-function QuickLink({ icon, label, sub, onClick }: { icon: React.ReactNode; label: string; sub: string; onClick?: () => void }) {
+function QuickLink({ icon, label, sub, onClick, badge, highlight }: { icon: React.ReactNode; label: string; sub: string; onClick?: () => void; badge?: number; highlight?: boolean }) {
   return (
-    <button onClick={onClick} className="rounded-xl border px-4 py-4 text-left" style={{ backgroundColor: "#fff", borderColor: "rgba(0,0,0,0.08)", cursor: "pointer" }}>
-      <div style={{ color: "var(--coral)", marginBottom: 8 }}>{icon}</div>
+    <button onClick={onClick} className="relative rounded-xl border px-4 py-4 text-left" style={{ backgroundColor: highlight ? "var(--coral-light)" : "#fff", borderColor: highlight ? "var(--coral)" : "rgba(0,0,0,0.08)", cursor: "pointer" }}>
+      <div style={{ color: highlight ? "var(--coral-dark)" : "var(--coral)", marginBottom: 8 }}>{icon}</div>
       <div style={{ fontSize: 13, fontWeight: 500 }}>{label}</div>
-      <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{sub}</div>
+      <div style={{ fontSize: 11, color: highlight ? "var(--coral-dark)" : "var(--muted-foreground)" }}>{sub}</div>
+      {badge !== undefined && badge > 0 && (
+        <span className="absolute rounded-full flex items-center justify-center" style={{ top: 10, right: 10, minWidth: 20, height: 20, padding: "0 6px", fontSize: 11, fontWeight: 600, backgroundColor: "var(--coral)", color: "#fff" }}>
+          {badge}
+        </span>
+      )}
     </button>
   );
 }
