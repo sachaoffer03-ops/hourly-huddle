@@ -57,6 +57,7 @@ export const Route = createFileRoute("/studios")({
 
 const subTabs = [
   "Informations",
+  "Rôles métier",
   "Besoins en staff",
   "Exceptions",
 ] as const;
@@ -509,9 +510,12 @@ function StudiosPage() {
             />
           )}
           {activeSubTab === 1 && (
+            <BusinessRolesEditor lockedStudioId={currentRow.id} />
+          )}
+          {activeSubTab === 2 && (
             <StaffingTemplatesEditor lockedStudioName={studio} />
           )}
-          {activeSubTab === 2 && <ExceptionsTab studio={studio} />}
+          {activeSubTab === 3 && <ExceptionsTab studio={studio} />}
         </>
       ) : null}
 
@@ -731,164 +735,7 @@ function InformationsTab({
         </div>
       </div>
 
-      {/* Postes actifs */}
-      <div
-        className="rounded-xl border p-5"
-        style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
-      >
-        <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Postes actifs</div>
-        <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 14 }}>
-          Rôles disponibles dans ce studio
-        </div>
-        <div className="flex flex-col gap-2">
-          {activeRoles.map((role) => (
-            <div
-              key={role}
-              className="flex items-center justify-between rounded-lg px-3 py-2"
-              style={{ backgroundColor: "var(--muted)" }}
-            >
-              <div className="flex items-center gap-2">
-                <span
-                  className="rounded-full"
-                  style={{ width: 8, height: 8, backgroundColor: roleColors[role].dot }}
-                />
-                <span style={{ fontSize: 13 }}>{role}</span>
-              </div>
-              <button
-                onClick={() => onToggleRole(role)}
-                className="rounded-md p-1"
-                style={{ color: "var(--muted-foreground)" }}
-                title="Retirer ce poste"
-              >
-                <X size={13} />
-              </button>
-            </div>
-          ))}
-          {customRoles.map((role) => (
-            <div
-              key={role}
-              className="flex items-center justify-between rounded-lg px-3 py-2"
-              style={{ backgroundColor: "var(--muted)" }}
-            >
-              <div className="flex items-center gap-2">
-                <span
-                  className="rounded-full"
-                  style={{ width: 8, height: 8, backgroundColor: "var(--muted-foreground)" }}
-                />
-                <span style={{ fontSize: 13 }}>{role}</span>
-                <span
-                  className="rounded-full px-1.5 py-0.5"
-                  style={{
-                    fontSize: 9,
-                    fontWeight: 500,
-                    color: "var(--muted-foreground)",
-                    border: "0.5px solid var(--border)",
-                  }}
-                >
-                  Personnalisé
-                </span>
-              </div>
-              <button
-                onClick={() => onRemoveCustomRole(role)}
-                className="rounded-md p-1"
-                style={{ color: "var(--muted-foreground)" }}
-                title="Supprimer ce poste"
-              >
-                <Trash2 size={13} />
-              </button>
-            </div>
-          ))}
-        </div>
-
-        {allRoles.filter((r) => !activeRoles.includes(r)).length > 0 && (
-          <div className="mt-3 pt-3" style={{ borderTop: "0.5px solid var(--border)" }}>
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 500,
-                color: "var(--muted-foreground)",
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-                marginBottom: 6,
-              }}
-            >
-              Ajouter un poste
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {allRoles
-                .filter((r) => !activeRoles.includes(r))
-                .map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => onToggleRole(r)}
-                    className="rounded-full px-2.5 py-1 flex items-center gap-1.5"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 500,
-                      border: "0.5px solid var(--border)",
-                      color: "var(--foreground)",
-                    }}
-                  >
-                    <Plus size={10} />
-                    <span
-                      className="rounded-full"
-                      style={{ width: 6, height: 6, backgroundColor: roleColors[r].dot }}
-                    />
-                    {r}
-                  </button>
-                ))}
-            </div>
-          </div>
-        )}
-
-        <div className="mt-3 pt-3" style={{ borderTop: "0.5px solid var(--border)" }}>
-          <div
-            style={{
-              fontSize: 10,
-              fontWeight: 500,
-              color: "var(--muted-foreground)",
-              textTransform: "uppercase",
-              letterSpacing: "0.06em",
-              marginBottom: 6,
-            }}
-          >
-            Créer un nouveau poste
-          </div>
-          <div className="flex items-center gap-1.5">
-            <input
-              value={newRole}
-              onChange={(e) => setNewRole(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") submitNewRole();
-              }}
-              placeholder="Ex. Pâtissier"
-              className="flex-1 rounded-md px-2 py-1.5 outline-none"
-              style={{
-                fontSize: 12,
-                border: "0.5px solid var(--border)",
-                backgroundColor: "var(--background)",
-                color: "var(--foreground)",
-              }}
-            />
-            <button
-              onClick={submitNewRole}
-              disabled={!newRole.trim()}
-              className="rounded-md px-2.5 py-1.5 flex items-center gap-1"
-              style={{
-                fontSize: 11,
-                fontWeight: 500,
-                backgroundColor: "var(--foreground)",
-                color: "var(--card)",
-                opacity: newRole.trim() ? 1 : 0.4,
-              }}
-            >
-              <Plus size={11} />
-              Créer
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+      {/* Bloc "Postes actifs" déplacé vers l'onglet "Rôles métier" — voir BusinessRolesEditor */}
 
     <div
       className="mt-4 rounded-xl border p-5 flex items-center justify-between"
