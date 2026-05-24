@@ -20,7 +20,6 @@ interface Props {
 type Step = "form" | "recipients";
 
 export function CreateShiftModal({ open, onClose, onCreated }: Props) {
-  const { names: BUSINESS_ROLES } = useBusinessRoles({ onlyActive: true });
   const eligibilityFn = useServerFn(getEligibleEmployeesForShift);
   const sendFn = useServerFn(sendProposals);
 
