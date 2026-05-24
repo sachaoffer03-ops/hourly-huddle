@@ -1,0 +1,1 @@
+UPDATE public.notifications SET link = '/staff-app/propositions' WHERE type = 'shift_proposal' AND link <> '/staff-app/propositions';
