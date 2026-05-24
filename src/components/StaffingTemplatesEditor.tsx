@@ -3,7 +3,7 @@ import { Plus, Trash2, Info, ChevronDown, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Dropdown } from "@/components/Dropdown";
-import { useBusinessRoles } from "@/hooks/use-business-roles";
+import { useStudioBusinessRoles } from "@/hooks/use-studio-business-roles";
 
 const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 const ALL_CONTRACTS = ["CDI", "Étudiant", "Flexi"] as const;
@@ -30,7 +30,8 @@ interface Props {
 }
 
 export function StaffingTemplatesEditor({ lockedStudioName, hideHint }: Props) {
-  const { names: ROLES } = useBusinessRoles({ onlyActive: true });
+  const [studioId, setStudioId] = useState<string>("");
+  const { names: ROLES } = useStudioBusinessRoles(studioId || null);
   const [studios, setStudios] = useState<Studio[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
