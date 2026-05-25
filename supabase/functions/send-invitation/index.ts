@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${lovableKey}` },
           body: JSON.stringify({
-            from: "Skult Studios <onboarding@resend.dev>",
+            from: "Skult Studios <invitations@notify.app.shyft.flashsite.fr>",
             to: [body.email],
             subject: "Bienvenue chez Skult Studios — activez votre compte",
             html,
