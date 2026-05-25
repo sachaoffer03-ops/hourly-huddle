@@ -105,6 +105,10 @@ Deno.serve(async (req) => {
           }),
         });
         emailSent = r.ok;
+        if (!r.ok) {
+          const errText = await r.text();
+          console.error("Email send failed:", r.status, errText);
+        }
       } catch (e) {
         console.error("Email send error:", e);
       }
