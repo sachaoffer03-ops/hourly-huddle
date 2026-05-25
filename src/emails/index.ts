@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 
 import InvitationEmployeEmail from "./employee/InvitationEmployeEmail";
+import BienvenueEmail from "./employee/BienvenueEmail";
 import ResetPasswordEmail from "./employee/ResetPasswordEmail";
 import ShiftAssigneEmail from "./employee/ShiftAssigneEmail";
 import PropositionShiftEmail from "./employee/PropositionShiftEmail";
@@ -39,6 +40,20 @@ export const EMAIL_REGISTRY: EmailTemplate[] = [
       firstName: "Léa",
       studioName: "Skult Châtelain",
       inviteUrl: "https://app.kadence.io/invite/abc123",
+    },
+  },
+  {
+    id: "bienvenue-employe",
+    name: "Bienvenue (compte activé)",
+    category: "employee",
+    description:
+      "Envoyé à l'employé juste après l'activation de son compte",
+    subject: "🎉 Bienvenue chez Skult Studios — Ton compte est activé",
+    component: BienvenueEmail,
+    mockData: {
+      firstName: "Léa",
+      studioName: "Skult Châtelain",
+      appUrl: "https://app.shyft.flashsite.fr/staff-app",
     },
   },
   {
