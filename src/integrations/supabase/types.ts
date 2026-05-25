@@ -2425,6 +2425,23 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_invitation_by_token: {
+        Args: { _token: string }
+        Returns: {
+          app_role: string
+          contract: Database["public"]["Enums"]["contract_type"]
+          contracts: Database["public"]["Enums"]["contract_type"][]
+          email: string
+          expires_at: string
+          first_name: string
+          id: string
+          last_name: string
+          phone: string
+          status: string
+          studio_id: string
+          studio_ids: string[]
+        }[]
+      }
       get_worked_hours: {
         Args: {
           period_end?: string
