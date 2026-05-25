@@ -256,6 +256,27 @@ function ActivationPage() {
       setDone(true);
       return toast.error(signInError.message);
     }
+
+    // Email de bienvenue à l'employé (fire-and-forget, ne bloque pas la redirection)
+    try {
+      const appUrl = isAdmin
+        ? "https://admin.shyft.flashsite.fr"
+        : "https://app.shyft.flashsite.fr/staff-app";
+      const { sendEmail } = await import("@/lib/email.functions");
+      void sendEmail({
+        data: {
+          templateId: "bienvenue-employe",
+          recipient: invitation.email,
+          data: {
+            firstName: invitation.first_name,
+            appUrl,
+          },
+        },
+      }).catch((e) => console.error("Welcome email failed:", e));
+    } catch (e) {
+      console.error("Welcome email dispatch error:", e);
+    }
+
     toast.success("Compte activé");
     navigate({ to: targetPath });
   };
