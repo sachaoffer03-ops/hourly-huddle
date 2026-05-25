@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 
 import InvitationEmployeEmail from "./employee/InvitationEmployeEmail";
+import BienvenueEmail from "./employee/BienvenueEmail";
 import ResetPasswordEmail from "./employee/ResetPasswordEmail";
 import ShiftAssigneEmail from "./employee/ShiftAssigneEmail";
 import PropositionShiftEmail from "./employee/PropositionShiftEmail";
