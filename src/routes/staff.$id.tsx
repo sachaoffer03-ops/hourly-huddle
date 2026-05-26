@@ -495,6 +495,35 @@ function EmployeeDetailPage() {
           <EmployeeFormationTab userId={emp.id} />
         </TabsContent>
       </Tabs>
+
+      {canEditProfile && (
+        <AdminEditEmployeeSheet
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          userId={emp.id}
+          initial={{
+            first_name: emp.first_name,
+            last_name: emp.last_name,
+            email: emp.email,
+            phone: emp.phone,
+            birth_date: emp.birth_date,
+            hire_date: emp.hire_date,
+            nationality: emp.nationality,
+            city: emp.city,
+            address: emp.address,
+            niss: emp.niss,
+            iban: emp.iban,
+            hourly_rate: emp.hourly_rate,
+            quota_max: emp.quota_max,
+            student_card_valid: emp.student_card_valid,
+            status: emp.status,
+            contracts: userContracts.length > 0 ? userContracts : (emp.contract ? [emp.contract] : []),
+            studio_ids: userStudioIds.length > 0 ? userStudioIds : (emp.studio_id ? [emp.studio_id] : []),
+            business_roles: businessRoles,
+          }}
+          onSaved={() => load()}
+        />
+      )}
     </div>
   );
 }
