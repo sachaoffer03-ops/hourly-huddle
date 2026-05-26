@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
-import { X, Send, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import { X, Send, AlertTriangle, ChevronDown, ChevronUp, UserCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useStudioBusinessRoles } from "@/hooks/use-studio-business-roles";
 import { getRoleStyle, fullName } from "@/lib/staff-helpers";
 import { getEligibleEmployeesForShift, type EligibleEmployee } from "@/lib/shift-eligibility.functions";
 import { sendProposals } from "@/lib/proposals.functions";
+import { assignShiftDirect } from "@/lib/shifts.functions";
 
 interface Studio { id: string; name: string }
 
@@ -22,6 +23,8 @@ type Step = "form" | "recipients";
 export function CreateShiftModal({ open, onClose, onCreated }: Props) {
   const eligibilityFn = useServerFn(getEligibleEmployeesForShift);
   const sendFn = useServerFn(sendProposals);
+  const assignFn = useServerFn(assignShiftDirect);
+
 
   const [studios, setStudios] = useState<Studio[]>([]);
   const [step, setStep] = useState<Step>("form");
@@ -173,6 +176,24 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
       setSubmitting(false);
     }
   };
+
+  const assignNow = async () => {
+    if (!shiftId || selected.size !== 1) return;
+    const uid = Array.from(selected)[0];
+    setSubmitting(true);
+    try {
+      await assignFn({ data: { shiftId, userId: uid } });
+      toast.success("Shift assigné directement");
+      onCreated?.();
+      resetAll();
+      onClose();
+    } catch (e: any) {
+      toast.error(e.message || "Erreur assignation");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
 
   if (!open) return null;
 
@@ -352,18 +373,30 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
               </>
             )}
 
-            <div className="flex justify-between gap-2 pt-2 border-t" style={{ borderColor: "var(--border)" }}>
+            <div className="flex justify-between gap-2 pt-2 border-t flex-wrap" style={{ borderColor: "var(--border)" }}>
               <button onClick={handleClose} className="rounded-md border px-4 py-2 mt-3"
                 style={{ fontSize: 13, fontWeight: 500, borderColor: "var(--border)" }}>
                 Fermer sans envoyer
               </button>
-              <button onClick={sendNow} disabled={selected.size === 0 || submitting}
-                className="rounded-md px-4 py-2 mt-3 flex items-center gap-1.5 disabled:opacity-40"
-                style={{ fontSize: 13, fontWeight: 500, backgroundColor: "var(--coral)", color: "#fff" }}>
-                <Send size={14} />
-                {submitting ? "Envoi…" : `Envoyer la proposition à ${selected.size}`}
-              </button>
+              <div className="flex gap-2 mt-3 flex-wrap">
+                <button
+                  onClick={assignNow}
+                  disabled={selected.size !== 1 || submitting}
+                  title={selected.size !== 1 ? "Sélectionnez exactement 1 employé pour l'assigner directement" : "Assigner directement sans envoyer de proposition"}
+                  className="rounded-md border px-4 py-2 flex items-center gap-1.5 disabled:opacity-40"
+                  style={{ fontSize: 13, fontWeight: 500, borderColor: "var(--foreground)", color: "var(--foreground)" }}>
+                  <UserCheck size={14} />
+                  {submitting ? "…" : "Assigner directement"}
+                </button>
+                <button onClick={sendNow} disabled={selected.size === 0 || submitting}
+                  className="rounded-md px-4 py-2 flex items-center gap-1.5 disabled:opacity-40"
+                  style={{ fontSize: 13, fontWeight: 500, backgroundColor: "var(--coral)", color: "#fff" }}>
+                  <Send size={14} />
+                  {submitting ? "Envoi…" : `Envoyer la proposition à ${selected.size}`}
+                </button>
+              </div>
             </div>
+
           </div>
         )}
       </div>

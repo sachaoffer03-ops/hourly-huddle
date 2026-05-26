@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { X } from "lucide-react";
+import { X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { updateShift } from "@/lib/shifts.functions";
+import { updateShift, deleteShift } from "@/lib/shifts.functions";
 import { useStudioBusinessRoles } from "@/hooks/use-studio-business-roles";
 
 type EmployeeOpt = {
@@ -26,12 +26,14 @@ interface Props {
   };
   onClose: () => void;
   onSaved: () => void;
+  onDeleted?: () => void;
 }
 
 const toHHMM = (t: string) => String(t).slice(0, 5);
 
-export function EditShiftModal({ shift, onClose, onSaved }: Props) {
+export function EditShiftModal({ shift, onClose, onSaved, onDeleted }: Props) {
   const updateShiftFn = useServerFn(updateShift);
+  const deleteShiftFn = useServerFn(deleteShift);
   const { names: studioRoles } = useStudioBusinessRoles(shift?.studioId || null);
   const [date, setDate] = useState(shift.shiftDate);
   const [start, setStart] = useState(toHHMM(shift.startTime));
@@ -119,6 +121,22 @@ export function EditShiftModal({ shift, onClose, onSaved }: Props) {
         },
       });
       toast.success("Shift modifié");
+      onSaved();
+      onClose();
+    } catch (e: any) {
+      toast.error(e.message ?? "Erreur");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("Supprimer définitivement ce shift ? L'employé sera notifié si le shift était publié.")) return;
+    setSaving(true);
+    try {
+      await deleteShiftFn({ data: { shiftId: shift.id } });
+      toast.success("Shift supprimé");
+      onDeleted?.();
       onSaved();
       onClose();
     } catch (e: any) {
@@ -263,7 +281,16 @@ export function EditShiftModal({ shift, onClose, onSaved }: Props) {
           </div>
         </div>
 
-        <div className="flex gap-2 px-5 py-3" style={{ borderTop: "0.5px solid var(--border)" }}>
+        <div className="flex gap-2 px-5 py-3 items-center" style={{ borderTop: "0.5px solid var(--border)" }}>
+          <button
+            onClick={handleDelete}
+            disabled={saving}
+            title="Supprimer ce shift"
+            className="rounded-md px-3 py-2 flex items-center gap-1.5"
+            style={{ fontSize: 12, fontWeight: 500, border: "0.5px solid var(--border)", color: "var(--danger-text)" }}
+          >
+            <Trash2 size={13} /> Supprimer
+          </button>
           <button
             onClick={onClose}
             className="flex-1 rounded-md px-3 py-2"
@@ -275,13 +302,7 @@ export function EditShiftModal({ shift, onClose, onSaved }: Props) {
             onClick={handleSave}
             disabled={saving}
             className="flex-1 rounded-md px-3 py-2"
-            style={{
-              fontSize: 12,
-              fontWeight: 500,
-              backgroundColor: "var(--coral)",
-              color: "#fff",
-              opacity: saving ? 0.6 : 1,
-            }}
+            style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--coral)", color: "#fff", opacity: saving ? 0.6 : 1 }}
           >
             {saving ? "Enregistrement…" : "Enregistrer"}
           </button>

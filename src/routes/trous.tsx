@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { UserPlus, ChevronDown, ChevronUp, Check, AlertTriangle, Send, Clock, X } from "lucide-react";
+import { UserPlus, UserCheck, ChevronDown, ChevronUp, Check, AlertTriangle, Send, Clock, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getRoleStyle, hhmm, fullName } from "@/lib/staff-helpers";
 import { useBusinessRoles } from "@/hooks/use-business-roles";
 import { sendProposals, cancelProposals } from "@/lib/proposals.functions";
+import { assignShiftDirect, deleteShift } from "@/lib/shifts.functions";
 
 interface TrousSearch {
   studios?: string;
@@ -55,6 +56,8 @@ function elapsedTone(sentAt: string): { bg: string; text: string } {
 function TrousPage() {
   const sendFn = useServerFn(sendProposals);
   const cancelFn = useServerFn(cancelProposals);
+  const assignFn = useServerFn(assignShiftDirect);
+  const deleteFn = useServerFn(deleteShift);
 
   const [holes, setHoles] = useState<Hole[]>([]);
   const [studios, setStudios] = useState<Map<string, string>>(new Map());
@@ -176,6 +179,41 @@ function TrousPage() {
       toast.error(e.message || "Erreur");
     }
   };
+
+  const assignDirect = async (shiftId: string) => {
+    const set = selected[shiftId];
+    if (!set || set.size !== 1) return;
+    const uid = Array.from(set)[0];
+    try {
+      await assignFn({ data: { shiftId, userId: uid } });
+      toast.success("Shift assigné directement");
+      setSelected((prev) => ({ ...prev, [shiftId]: new Set() }));
+      setExpanded(null);
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Erreur assignation");
+    }
+  };
+
+  const removeHole = async (shiftId: string) => {
+    if (!confirm("Supprimer ce trou ? Les propositions en cours seront annulées.")) return;
+    try {
+      // annule d'abord les propositions pending pour ce shift
+      const pendingIds = (proposalsByShift.get(shiftId) || [])
+        .filter((p) => p.status === "pending")
+        .map((p) => p.id);
+      if (pendingIds.length > 0) {
+        await cancelFn({ data: { proposalIds: pendingIds } });
+      }
+      await deleteFn({ data: { shiftId } });
+      toast.success("Trou supprimé");
+      setExpanded(null);
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Erreur suppression");
+    }
+  };
+
 
   const { names: allRoles } = useBusinessRoles({ onlyActive: true });
 
@@ -340,17 +378,34 @@ function TrousPage() {
                     )}
 
                     {/* Sélection */}
-                    <div className="mt-4 flex items-center justify-between">
+                    <div className="mt-4 flex items-center justify-between flex-wrap gap-2">
                       <div style={{ fontSize: 11, fontWeight: 500, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                         Choisir les destinataires
                       </div>
-                      {sel.size > 0 && (
-                        <button onClick={() => send(hole.id)} className="rounded-md px-3 py-1.5 flex items-center gap-1.5"
-                          style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--coral)", color: "#fff" }}>
-                          <Send size={12} /> Envoyer la proposition à {sel.size}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          onClick={() => removeHole(hole.id)}
+                          className="rounded-md px-2.5 py-1.5 flex items-center gap-1.5"
+                          style={{ fontSize: 11, fontWeight: 500, border: "0.5px solid var(--border)", color: "var(--danger-text)" }}
+                          title="Supprimer ce trou">
+                          <Trash2 size={12} /> Supprimer
                         </button>
-                      )}
+                        {sel.size === 1 && (
+                          <button onClick={() => assignDirect(hole.id)} className="rounded-md px-3 py-1.5 flex items-center gap-1.5"
+                            style={{ fontSize: 12, fontWeight: 500, border: "0.5px solid var(--foreground)", color: "var(--foreground)" }}
+                            title="Assigner directement sans envoyer de proposition">
+                            <UserCheck size={12} /> Assigner directement
+                          </button>
+                        )}
+                        {sel.size > 0 && (
+                          <button onClick={() => send(hole.id)} className="rounded-md px-3 py-1.5 flex items-center gap-1.5"
+                            style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--coral)", color: "#fff" }}>
+                            <Send size={12} /> Envoyer la proposition à {sel.size}
+                          </button>
+                        )}
+                      </div>
                     </div>
+
 
                     <div className="mt-2">
                       <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 6 }}>
