@@ -378,17 +378,34 @@ function TrousPage() {
                     )}
 
                     {/* Sélection */}
-                    <div className="mt-4 flex items-center justify-between">
+                    <div className="mt-4 flex items-center justify-between flex-wrap gap-2">
                       <div style={{ fontSize: 11, fontWeight: 500, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                         Choisir les destinataires
                       </div>
-                      {sel.size > 0 && (
-                        <button onClick={() => send(hole.id)} className="rounded-md px-3 py-1.5 flex items-center gap-1.5"
-                          style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--coral)", color: "#fff" }}>
-                          <Send size={12} /> Envoyer la proposition à {sel.size}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          onClick={() => removeHole(hole.id)}
+                          className="rounded-md px-2.5 py-1.5 flex items-center gap-1.5"
+                          style={{ fontSize: 11, fontWeight: 500, border: "0.5px solid var(--border)", color: "var(--danger-text)" }}
+                          title="Supprimer ce trou">
+                          <Trash2 size={12} /> Supprimer
                         </button>
-                      )}
+                        {sel.size === 1 && (
+                          <button onClick={() => assignDirect(hole.id)} className="rounded-md px-3 py-1.5 flex items-center gap-1.5"
+                            style={{ fontSize: 12, fontWeight: 500, border: "0.5px solid var(--foreground)", color: "var(--foreground)" }}
+                            title="Assigner directement sans envoyer de proposition">
+                            <UserCheck size={12} /> Assigner directement
+                          </button>
+                        )}
+                        {sel.size > 0 && (
+                          <button onClick={() => send(hole.id)} className="rounded-md px-3 py-1.5 flex items-center gap-1.5"
+                            style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--coral)", color: "#fff" }}>
+                            <Send size={12} /> Envoyer la proposition à {sel.size}
+                          </button>
+                        )}
+                      </div>
                     </div>
+
 
                     <div className="mt-2">
                       <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 6 }}>
