@@ -204,8 +204,8 @@ export function StaffingTemplatesEditor({ lockedStudioName, hideHint }: Props) {
                   const allowedContracts = t.allowed_contracts ?? [];
                   const hasAdvanced = allowedRoles.length > 0 || allowedContracts.length > 0;
                   return (
-                    <>
-                      <tr key={t.id}>
+                    <Fragment key={t.id}>
+                      <tr>
                         <td className="px-1">
                           <button onClick={() => toggleExpanded(t.id)}
                             className="rounded-md p-1 transition-colors"
@@ -214,6 +214,7 @@ export function StaffingTemplatesEditor({ lockedStudioName, hideHint }: Props) {
                             {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                           </button>
                         </td>
+
                         <td className="px-2 py-1">
                           <Dropdown value={DAYS[t.day_of_week]} options={DAYS} onChange={(v) => updateRow(t.id, { day_of_week: DAYS.indexOf(v) })} minWidth={120} />
                         </td>
