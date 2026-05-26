@@ -32,7 +32,10 @@ interface Props {
 
 export function StaffingTemplatesEditor({ lockedStudioName, hideHint }: Props) {
   const [studioId, setStudioId] = useState<string>("");
-  const { names: ROLES } = useStudioBusinessRoles(studioId || null);
+  const { names: STUDIO_ROLES } = useStudioBusinessRoles(studioId || null);
+  const { names: ALL_ROLE_NAMES } = useBusinessRoles({ onlyActive: true });
+  // Affiche tous les rôles actifs, en priorisant ceux liés au studio
+  const ROLES = Array.from(new Set([...STUDIO_ROLES, ...ALL_ROLE_NAMES]));
   const [studios, setStudios] = useState<Studio[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
