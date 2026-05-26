@@ -434,7 +434,7 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
                 <div className="mt-2 rounded-md px-2.5 py-1.5 flex items-center gap-1.5"
                   style={{ fontSize: 11, backgroundColor: "var(--warning-bg)", color: "var(--warning-text)" }}>
                   <AlertTriangle size={12} />
-                  {createdCount - 1} shifts récurrents créés en plus. À traiter dans <Link to="/trous" style={{ textDecoration: "underline" }}>/trous</Link>.
+                  Série complète : les {createdCount} shifts seront proposés ou assignés ensemble.
                 </div>
               )}
             </div>
