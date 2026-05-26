@@ -275,7 +275,7 @@ export const sendReplacementProposals = createServerFn({ method: "POST" })
     if (req.status !== "pending") throw new Error("Cette demande n'est plus en attente");
 
     // Résolution du shift cible
-    let targetShiftId = data.shiftId ?? req.shift_id;
+    const targetShiftId = data.shiftId ?? req.shift_id;
     if (req.type === "unavailable" && !data.shiftId) {
       throw new Error("shiftId requis pour une demande d'indisponibilité");
     }
