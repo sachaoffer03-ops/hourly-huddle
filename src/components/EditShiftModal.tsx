@@ -31,8 +31,9 @@ interface Props {
 
 const toHHMM = (t: string) => String(t).slice(0, 5);
 
-export function EditShiftModal({ shift, onClose, onSaved }: Props) {
+export function EditShiftModal({ shift, onClose, onSaved, onDeleted }: Props) {
   const updateShiftFn = useServerFn(updateShift);
+  const deleteShiftFn = useServerFn(deleteShift);
   const { names: studioRoles } = useStudioBusinessRoles(shift?.studioId || null);
   const [date, setDate] = useState(shift.shiftDate);
   const [start, setStart] = useState(toHHMM(shift.startTime));
