@@ -15,7 +15,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { EmployeeFormationTab } from "@/components/staff/EmployeeFormationTab";
 import { EmployeeDocumentsTab } from "@/components/staff/EmployeeDocumentsTab";
 import { EmployeeProposalsCard } from "@/components/staff/EmployeeProposalsCard";
-import { AdminEditEmployeeSheet, type AdminEmployeePatch } from "@/components/staff/AdminEditEmployeeSheet";
+import { AdminEditEmployeeSheet } from "@/components/staff/AdminEditEmployeeSheet";
 import { countUnviewedDocuments } from "@/lib/documents.functions";
 
 export const Route = createFileRoute("/staff/$id")({
