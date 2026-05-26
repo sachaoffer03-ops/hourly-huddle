@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Mail, Phone, MapPin, Star, Download, UserX, MessageSquare, AlertCircle, Clock, Plus } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, Star, Download, UserX, MessageSquare, AlertCircle, Clock, Plus, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { roleColors, type Role } from "@/lib/role-colors";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,6 +15,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { EmployeeFormationTab } from "@/components/staff/EmployeeFormationTab";
 import { EmployeeDocumentsTab } from "@/components/staff/EmployeeDocumentsTab";
 import { EmployeeProposalsCard } from "@/components/staff/EmployeeProposalsCard";
+import { AdminEditEmployeeSheet, type AdminEmployeePatch } from "@/components/staff/AdminEditEmployeeSheet";
 import { countUnviewedDocuments } from "@/lib/documents.functions";
 
 export const Route = createFileRoute("/staff/$id")({
