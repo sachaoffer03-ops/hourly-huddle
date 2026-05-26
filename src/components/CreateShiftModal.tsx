@@ -71,10 +71,11 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
   const resetAll = () => {
     setStep("form");
     setNotes(""); setStartTime("10:00"); setEndTime("15:00");
-    setRecurrence("none"); setUntil("");
+    setRecurrence("none"); setUntil(""); setExtraWeekdays(new Set());
     setShiftId(null); setCreatedCount(0);
     setEligible([]); setPartial([]); setSelected(new Set()); setShowPartial(false);
   };
+
 
   const handleClose = () => {
     if (step === "recipients" && shiftId && selected.size === 0) {
