@@ -7,8 +7,8 @@ import { toast } from "sonner";
 import { useStudioBusinessRoles } from "@/hooks/use-studio-business-roles";
 import { getRoleStyle, fullName } from "@/lib/staff-helpers";
 import { getEligibleEmployeesForShift, type EligibleEmployee } from "@/lib/shift-eligibility.functions";
-import { sendProposals } from "@/lib/proposals.functions";
-import { assignShiftDirect } from "@/lib/shifts.functions";
+import { sendProposalsToShifts } from "@/lib/proposals.functions";
+import { assignShiftsDirect } from "@/lib/shifts.functions";
 
 interface Studio { id: string; name: string }
 
@@ -20,10 +20,23 @@ interface Props {
 
 type Step = "form" | "recipients";
 
+function timeToMin(t: string): number {
+  const [h, m] = String(t).split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+function isoWeekKey(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00Z");
+  const day = d.getUTCDay() || 7;
+  const monday = new Date(d);
+  monday.setUTCDate(d.getUTCDate() - (day - 1));
+  return monday.toISOString().slice(0, 10);
+}
+
 export function CreateShiftModal({ open, onClose, onCreated }: Props) {
   const eligibilityFn = useServerFn(getEligibleEmployeesForShift);
-  const sendFn = useServerFn(sendProposals);
-  const assignFn = useServerFn(assignShiftDirect);
+  const sendFn = useServerFn(sendProposalsToShifts);
+  const assignFn = useServerFn(assignShiftsDirect);
 
 
   const [studios, setStudios] = useState<Studio[]>([]);
@@ -44,7 +57,7 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
 
 
   // step 2 state
-  const [shiftId, setShiftId] = useState<string | null>(null);
+  const [shiftIds, setShiftIds] = useState<string[]>([]);
   const [createdCount, setCreatedCount] = useState(0);
   const [loadingElig, setLoadingElig] = useState(false);
   const [eligible, setEligible] = useState<EligibleEmployee[]>([]);
@@ -72,14 +85,14 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
     setStep("form");
     setNotes(""); setStartTime("10:00"); setEndTime("15:00");
     setRecurrence("none"); setUntil(""); setExtraWeekdays(new Set());
-    setShiftId(null); setCreatedCount(0);
+    setShiftIds([]); setCreatedCount(0);
     setEligible([]); setPartial([]); setSelected(new Set()); setShowPartial(false);
   };
 
 
   const handleClose = () => {
-    if (step === "recipients" && shiftId && selected.size === 0) {
-      toast("Shift créé comme trou", { description: "Tu peux le traiter dans l'écran Trous." });
+    if (step === "recipients" && shiftIds.length > 0 && selected.size === 0) {
+      toast(`${shiftIds.length > 1 ? "Shifts créés" : "Shift créé"} comme trou${shiftIds.length > 1 ? "s" : ""}`, { description: "Tu peux les traiter dans l'écran Trous." });
     }
     resetAll();
     onClose();
@@ -159,18 +172,71 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
       return toast.error(error?.message || "Erreur création");
     }
 
-    const firstId = data[0].id;
-    setShiftId(firstId);
+    const ids = data.map((row) => row.id);
+    setShiftIds(ids);
     setCreatedCount(data.length);
     onCreated?.();
     setStep("recipients");
 
-    // charge l'éligibilité pour le premier shift
+    // charge l'éligibilité pour toute la série créée
     setLoadingElig(true);
     try {
-      const r = await eligibilityFn({ data: { shiftId: firstId } });
-      setEligible(r.eligible);
-      setPartial(r.partial);
+      const results = await Promise.all(ids.map((id) => eligibilityFn({ data: { shiftId: id } })));
+      const shiftDurationH = Math.max(0, (timeToMin(endTime) - timeToMin(startTime)) / 60);
+      const seriesHoursByWeek = new Map<string, number>();
+      dates.forEach((d) => {
+        const key = isoWeekKey(d);
+        seriesHoursByWeek.set(key, (seriesHoursByWeek.get(key) ?? 0) + shiftDurationH);
+      });
+      const weeklyHoursByUser = new Map<string, Map<string, number>>();
+      const eligibleForAll = new Set(results[0]?.eligible.map((emp) => emp.id) ?? []);
+      results.slice(1).forEach((r) => {
+        const idsForShift = new Set(r.eligible.map((emp) => emp.id));
+        Array.from(eligibleForAll).forEach((id) => {
+          if (!idsForShift.has(id)) eligibleForAll.delete(id);
+        });
+      });
+
+      const byId = new Map<string, EligibleEmployee>();
+      results.forEach((r, index) => {
+        const weekKey = isoWeekKey(dates[index]);
+        [...r.eligible, ...r.partial].forEach((emp) => {
+          const weeks = weeklyHoursByUser.get(emp.id) ?? new Map<string, number>();
+          weeks.set(weekKey, emp.weekly_hours);
+          weeklyHoursByUser.set(emp.id, weeks);
+          const previous = byId.get(emp.id);
+          if (!previous) {
+            byId.set(emp.id, { ...emp, reasons: [...emp.reasons] });
+            return;
+          }
+          byId.set(emp.id, {
+            ...previous,
+            weekly_hours: Math.max(previous.weekly_hours, emp.weekly_hours),
+            max_weekly_hours: Math.min(previous.max_weekly_hours, emp.max_weekly_hours),
+            pending_proposal: previous.pending_proposal || emp.pending_proposal,
+            has_studio: previous.has_studio && emp.has_studio,
+            has_availability: previous.has_availability && emp.has_availability,
+            is_saturated: previous.is_saturated || emp.is_saturated,
+            not_trained: previous.not_trained || emp.not_trained,
+            reasons: Array.from(new Set([...previous.reasons, ...emp.reasons])),
+          });
+        });
+      });
+
+      const allRows = Array.from(byId.values()).map((emp) => {
+        const hasSeriesCapacity = Array.from(seriesHoursByWeek.entries()).every(([week, addedHours]) => {
+          const existingHours = weeklyHoursByUser.get(emp.id)?.get(week) ?? emp.weekly_hours;
+          return existingHours + addedHours <= emp.max_weekly_hours;
+        });
+        if (hasSeriesCapacity) return emp;
+        return {
+          ...emp,
+          is_saturated: true,
+          reasons: Array.from(new Set([...emp.reasons, "saturé sur la série complète"])),
+        };
+      });
+      setEligible(allRows.filter((emp) => eligibleForAll.has(emp.id) && !emp.pending_proposal && !emp.is_saturated));
+      setPartial(allRows.filter((emp) => !eligibleForAll.has(emp.id) || emp.pending_proposal || emp.is_saturated));
     } catch (err: any) {
       toast.error(err.message || "Erreur calcul éligibilité");
     } finally {
@@ -190,11 +256,11 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
   };
 
   const sendNow = async () => {
-    if (!shiftId || selected.size === 0) return;
+    if (shiftIds.length === 0 || selected.size === 0) return;
     setSubmitting(true);
     try {
-      await sendFn({ data: { shiftId, userIds: Array.from(selected) } });
-      toast.success(`Proposition envoyée à ${selected.size} employé${selected.size > 1 ? "s" : ""}`);
+      await sendFn({ data: { shiftIds, userIds: Array.from(selected) } });
+      toast.success(`${shiftIds.length} proposition${shiftIds.length > 1 ? "s" : ""} envoyée${shiftIds.length > 1 ? "s" : ""} à ${selected.size} employé${selected.size > 1 ? "s" : ""}`);
       resetAll();
       onClose();
     } catch (e: any) {
@@ -205,12 +271,12 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
   };
 
   const assignNow = async () => {
-    if (!shiftId || selected.size !== 1) return;
+    if (shiftIds.length === 0 || selected.size !== 1) return;
     const uid = Array.from(selected)[0];
     setSubmitting(true);
     try {
-      await assignFn({ data: { shiftId, userId: uid } });
-      toast.success("Shift assigné directement");
+      await assignFn({ data: { shiftIds, userId: uid } });
+      toast.success(`${shiftIds.length} shift${shiftIds.length > 1 ? "s" : ""} assigné${shiftIds.length > 1 ? "s" : ""} directement`);
       onCreated?.();
       resetAll();
       onClose();
@@ -403,7 +469,7 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
                 <div className="mt-2 rounded-md px-2.5 py-1.5 flex items-center gap-1.5"
                   style={{ fontSize: 11, backgroundColor: "var(--warning-bg)", color: "var(--warning-text)" }}>
                   <AlertTriangle size={12} />
-                  {createdCount - 1} shifts récurrents créés en plus. À traiter dans <Link to="/trous" style={{ textDecoration: "underline" }}>/trous</Link>.
+                  Série complète : les {createdCount} shifts seront proposés ou assignés ensemble.
                 </div>
               )}
             </div>
