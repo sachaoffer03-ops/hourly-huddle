@@ -40,6 +40,8 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
   const [notes, setNotes] = useState("");
   const [recurrence, setRecurrence] = useState<"none" | "weekly" | "biweekly" | "monthly">("none");
   const [until, setUntil] = useState("");
+  const [extraWeekdays, setExtraWeekdays] = useState<Set<number>>(new Set());
+
 
   // step 2 state
   const [shiftId, setShiftId] = useState<string | null>(null);
@@ -69,10 +71,11 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
   const resetAll = () => {
     setStep("form");
     setNotes(""); setStartTime("10:00"); setEndTime("15:00");
-    setRecurrence("none"); setUntil("");
+    setRecurrence("none"); setUntil(""); setExtraWeekdays(new Set());
     setShiftId(null); setCreatedCount(0);
     setEligible([]); setPartial([]); setSelected(new Set()); setShowPartial(false);
   };
+
 
   const handleClose = () => {
     if (step === "recipients" && shiftId && selected.size === 0) {
@@ -88,16 +91,40 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
     const end = new Date(until + "T00:00:00");
     if (end < start) return [date];
     const out: string[] = [];
-    const cur = new Date(start);
-    let safety = 0;
-    while (cur <= end && safety++ < 200) {
-      out.push(cur.toISOString().slice(0, 10));
-      if (recurrence === "weekly") cur.setDate(cur.getDate() + 7);
-      else if (recurrence === "biweekly") cur.setDate(cur.getDate() + 14);
-      else if (recurrence === "monthly") cur.setMonth(cur.getMonth() + 1);
+    const toIso = (d: Date) => d.toISOString().slice(0, 10);
+
+    if (recurrence === "monthly") {
+      const cur = new Date(start);
+      let safety = 0;
+      while (cur <= end && safety++ < 200) {
+        out.push(toIso(cur));
+        cur.setMonth(cur.getMonth() + 1);
+      }
+      return out;
     }
+
+    // weekly / biweekly — include start weekday + extraWeekdays
+    const startWd = start.getDay();
+    const wds = new Set<number>([startWd, ...Array.from(extraWeekdays)]);
+    const stepDays = recurrence === "weekly" ? 7 : 14;
+    // Anchor each weekday to its first occurrence on/after start, then repeat by stepDays
+    const seen = new Set<string>();
+    wds.forEach((wd) => {
+      const first = new Date(start);
+      const diff = (wd - startWd + 7) % 7;
+      first.setDate(first.getDate() + diff);
+      const cur = new Date(first);
+      let safety = 0;
+      while (cur <= end && safety++ < 200) {
+        const iso = toIso(cur);
+        if (!seen.has(iso)) { seen.add(iso); out.push(iso); }
+        cur.setDate(cur.getDate() + stepDays);
+      }
+    });
+    out.sort();
     return out;
   };
+
 
   const submitForm = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -294,7 +321,54 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
                     className={inputCls} style={inputStyle} required />
                 </div>
               )}
+              {(recurrence === "weekly" || recurrence === "biweekly") && (() => {
+                const days = [
+                  { wd: 1, label: "Lun" },
+                  { wd: 2, label: "Mar" },
+                  { wd: 3, label: "Mer" },
+                  { wd: 4, label: "Jeu" },
+                  { wd: 5, label: "Ven" },
+                  { wd: 6, label: "Sam" },
+                  { wd: 0, label: "Dim" },
+                ];
+                const startWd = new Date(date + "T00:00:00").getDay();
+                return (
+                  <div className="mt-3">
+                    <label style={labelStyle}>Jours répétés (en plus du jour de base)</label>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {days.map((d) => {
+                        const isBase = d.wd === startWd;
+                        const active = isBase || extraWeekdays.has(d.wd);
+                        return (
+                          <button
+                            key={d.wd}
+                            type="button"
+                            disabled={isBase}
+                            title={isBase ? "Jour de base (date sélectionnée)" : ""}
+                            onClick={() => {
+                              setExtraWeekdays((prev) => {
+                                const n = new Set(prev);
+                                if (n.has(d.wd)) n.delete(d.wd);
+                                else n.add(d.wd);
+                                return n;
+                              });
+                            }}
+                            className="rounded-full px-2.5 py-1 transition-colors"
+                            style={{ ...chip(active), opacity: isBase ? 0.6 : 1, cursor: isBase ? "default" : "pointer" }}
+                          >
+                            {d.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 6 }}>
+                      Ex : lundi + jeudi {recurrence === "weekly" ? "chaque semaine" : "toutes les 2 semaines"}.
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
+
 
             <div>
               <label style={labelStyle}>Note (optionnel)</label>
