@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
-import { X, Send, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import { X, Send, AlertTriangle, ChevronDown, ChevronUp, UserCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useStudioBusinessRoles } from "@/hooks/use-studio-business-roles";
 import { getRoleStyle, fullName } from "@/lib/staff-helpers";
 import { getEligibleEmployeesForShift, type EligibleEmployee } from "@/lib/shift-eligibility.functions";
 import { sendProposals } from "@/lib/proposals.functions";
+import { assignShiftDirect } from "@/lib/shifts.functions";
 
 interface Studio { id: string; name: string }
 
