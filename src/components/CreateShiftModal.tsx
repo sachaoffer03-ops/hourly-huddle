@@ -367,9 +367,8 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
                   </div>
                 );
               })()}
-
-              )}
             </div>
+
 
             <div>
               <label style={labelStyle}>Note (optionnel)</label>
