@@ -7,8 +7,8 @@ import { toast } from "sonner";
 import { useStudioBusinessRoles } from "@/hooks/use-studio-business-roles";
 import { getRoleStyle, fullName } from "@/lib/staff-helpers";
 import { getEligibleEmployeesForShift, type EligibleEmployee } from "@/lib/shift-eligibility.functions";
-import { sendProposals } from "@/lib/proposals.functions";
-import { assignShiftDirect } from "@/lib/shifts.functions";
+import { sendProposalsToShifts } from "@/lib/proposals.functions";
+import { assignShiftsDirect } from "@/lib/shifts.functions";
 
 interface Studio { id: string; name: string }
 
@@ -22,8 +22,8 @@ type Step = "form" | "recipients";
 
 export function CreateShiftModal({ open, onClose, onCreated }: Props) {
   const eligibilityFn = useServerFn(getEligibleEmployeesForShift);
-  const sendFn = useServerFn(sendProposals);
-  const assignFn = useServerFn(assignShiftDirect);
+  const sendFn = useServerFn(sendProposalsToShifts);
+  const assignFn = useServerFn(assignShiftsDirect);
 
 
   const [studios, setStudios] = useState<Studio[]>([]);
@@ -44,7 +44,7 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
 
 
   // step 2 state
-  const [shiftId, setShiftId] = useState<string | null>(null);
+  const [shiftIds, setShiftIds] = useState<string[]>([]);
   const [createdCount, setCreatedCount] = useState(0);
   const [loadingElig, setLoadingElig] = useState(false);
   const [eligible, setEligible] = useState<EligibleEmployee[]>([]);
@@ -72,14 +72,14 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
     setStep("form");
     setNotes(""); setStartTime("10:00"); setEndTime("15:00");
     setRecurrence("none"); setUntil(""); setExtraWeekdays(new Set());
-    setShiftId(null); setCreatedCount(0);
+    setShiftIds([]); setCreatedCount(0);
     setEligible([]); setPartial([]); setSelected(new Set()); setShowPartial(false);
   };
 
 
   const handleClose = () => {
-    if (step === "recipients" && shiftId && selected.size === 0) {
-      toast("Shift créé comme trou", { description: "Tu peux le traiter dans l'écran Trous." });
+    if (step === "recipients" && shiftIds.length > 0 && selected.size === 0) {
+      toast(`${shiftIds.length > 1 ? "Shifts créés" : "Shift créé"} comme trou${shiftIds.length > 1 ? "s" : ""}`, { description: "Tu peux les traiter dans l'écran Trous." });
     }
     resetAll();
     onClose();
