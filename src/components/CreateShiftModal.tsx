@@ -177,6 +177,24 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
     }
   };
 
+  const assignNow = async () => {
+    if (!shiftId || selected.size !== 1) return;
+    const uid = Array.from(selected)[0];
+    setSubmitting(true);
+    try {
+      await assignFn({ data: { shiftId, userId: uid } });
+      toast.success("Shift assigné directement");
+      onCreated?.();
+      resetAll();
+      onClose();
+    } catch (e: any) {
+      toast.error(e.message || "Erreur assignation");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+
   if (!open) return null;
 
   const labelStyle = { fontSize: 12, fontWeight: 500 as const, color: "var(--muted-foreground)" };
