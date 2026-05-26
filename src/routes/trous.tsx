@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { UserPlus, ChevronDown, ChevronUp, Check, AlertTriangle, Send, Clock, X } from "lucide-react";
+import { UserPlus, UserCheck, ChevronDown, ChevronUp, Check, AlertTriangle, Send, Clock, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getRoleStyle, hhmm, fullName } from "@/lib/staff-helpers";
 import { useBusinessRoles } from "@/hooks/use-business-roles";
 import { sendProposals, cancelProposals } from "@/lib/proposals.functions";
+import { assignShiftDirect, deleteShift } from "@/lib/shifts.functions";
 
 interface TrousSearch {
   studios?: string;
