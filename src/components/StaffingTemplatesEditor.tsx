@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Plus, Trash2, Info, ChevronDown, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -43,56 +43,75 @@ export function StaffingTemplatesEditor({ lockedStudioName, hideHint }: Props) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const reload = async () => {
-    const [s, t] = await Promise.all([
-      supabase.from("studios").select("id, name").order("name"),
-      supabase.from("staffing_templates").select("*").order("day_of_week").order("start_time"),
-    ]);
-    if (s.data) {
-      setStudios(s.data);
-      if (s.data.length) {
-        if (lockedStudioName) {
-          const m = s.data.find((x) => x.name === lockedStudioName);
-          if (m) setStudioId(m.id);
-        } else if (!studioId) {
-          setStudioId(s.data[0].id);
+    try {
+      const [s, t] = await Promise.all([
+        supabase.from("studios").select("id, name").order("name"),
+        supabase.from("staffing_templates").select("*").order("day_of_week").order("start_time"),
+      ]);
+      if (s.error) throw new Error(s.error.message);
+      if (t.error) throw new Error(t.error.message);
+      if (s.data) {
+        setStudios(s.data);
+        if (s.data.length) {
+          if (lockedStudioName) {
+            const m = s.data.find((x) => x.name === lockedStudioName);
+            if (m) setStudioId(m.id);
+          } else if (!studioId) {
+            setStudioId(s.data[0].id);
+          }
         }
       }
+      if (t.data) setTemplates(t.data as Template[]);
+    } catch (e: any) {
+      toast.error("Erreur de chargement des besoins", { description: e?.message });
+    } finally {
+      setLoading(false);
     }
-    if (t.data) setTemplates(t.data as Template[]);
-    setLoading(false);
   };
 
   useEffect(() => { reload(); /* eslint-disable-next-line */ }, [lockedStudioName]);
 
   const addRow = async () => {
     if (!studioId) return toast.error("Aucun studio");
+    if (ROLES.length === 0) return toast.error("Configure d'abord un rôle métier pour ce studio");
     const { error } = await supabase.from("staffing_templates").insert({
       studio_id: studioId,
       day_of_week: 0,
       start_time: "10:00",
       end_time: "15:00",
-      business_role: ROLES[0] ?? "Barista",
+      business_role: ROLES[0],
       required_count: 1,
       is_optional: false,
       required_contract: null,
       allowed_contracts: [],
       allowed_roles: [],
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error("Ajout impossible", { description: error.message });
     reload();
   };
 
   const updateRow = async (id: string, patch: Partial<Template>) => {
+    const prev = templates;
     setTemplates((p) => p.map((t) => (t.id === id ? { ...t, ...patch } : t)));
     const { error } = await supabase.from("staffing_templates").update(patch as any).eq("id", id);
-    if (error) toast.error(error.message);
+    if (error) {
+      toast.error("Modification non enregistrée", { description: error.message });
+      setTemplates(prev); // rollback optimistic update
+    }
   };
 
   const deleteRow = async (id: string) => {
+    const prev = templates;
     setTemplates((p) => p.filter((t) => t.id !== id));
-    await supabase.from("staffing_templates").delete().eq("id", id);
+    const { error } = await supabase.from("staffing_templates").delete().eq("id", id);
+    if (error) {
+      toast.error("Suppression impossible", { description: error.message });
+      setTemplates(prev);
+      return;
+    }
     toast.success("Besoin supprimé");
   };
+
 
   const toggleExpanded = (id: string) => {
     setExpanded((p) => {
@@ -185,8 +204,8 @@ export function StaffingTemplatesEditor({ lockedStudioName, hideHint }: Props) {
                   const allowedContracts = t.allowed_contracts ?? [];
                   const hasAdvanced = allowedRoles.length > 0 || allowedContracts.length > 0;
                   return (
-                    <>
-                      <tr key={t.id}>
+                    <Fragment key={t.id}>
+                      <tr>
                         <td className="px-1">
                           <button onClick={() => toggleExpanded(t.id)}
                             className="rounded-md p-1 transition-colors"
@@ -195,6 +214,7 @@ export function StaffingTemplatesEditor({ lockedStudioName, hideHint }: Props) {
                             {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                           </button>
                         </td>
+
                         <td className="px-2 py-1">
                           <Dropdown value={DAYS[t.day_of_week]} options={DAYS} onChange={(v) => updateRow(t.id, { day_of_week: DAYS.indexOf(v) })} minWidth={120} />
                         </td>
@@ -240,7 +260,7 @@ export function StaffingTemplatesEditor({ lockedStudioName, hideHint }: Props) {
                         </td>
                       </tr>
                       {isOpen && (
-                        <tr key={t.id + "-adv"}>
+                        <tr>
                           <td></td>
                           <td colSpan={8} className="px-2 py-2">
                             <div className="rounded-lg p-3" style={{ backgroundColor: "var(--muted)" }}>
@@ -293,8 +313,9 @@ export function StaffingTemplatesEditor({ lockedStudioName, hideHint }: Props) {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
+
                 })}
               </tbody>
             </table>
