@@ -208,6 +208,78 @@ export const createShift = createServerFn({ method: "POST" })
     return { ok: true, id: row?.id };
   });
 
+// ---------- ASSIGN DIRECT (admin) ----------
+// Assigne directement un employé à un shift libre (hole), sans passer par les propositions.
+// - Vérifie qu'il n'y a pas de conflit horaire pour l'employé
+// - Annule les propositions pending pour ce shift
+// - Marque le shift publié (si pas déjà) + assigné + verrouillé
+// - Notifie l'employé qu'il a un nouveau shift
+export const assignShiftDirect = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      shiftId: z.string().uuid(),
+      userId: z.string().uuid(),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+
+    const { data: cur, error: eCur } = await supabase
+      .from("shifts")
+      .select("id, user_id, shift_date, start_time, end_time, business_role, studio_id, published_at")
+      .eq("id", data.shiftId)
+      .single();
+    if (eCur) throw new Error(eCur.message);
+    if (cur.user_id && cur.user_id !== data.userId) {
+      throw new Error("Ce shift est déjà attribué à quelqu'un d'autre");
+    }
+
+    await assertNoOverlap(supabase, data.userId, cur.shift_date, cur.start_time, cur.end_time, data.shiftId);
+
+    // Attribution atomique : ne réussit que si encore libre
+    const nowIso = new Date().toISOString();
+    const { data: updated, error: eUp } = await supabase
+      .from("shifts")
+      .update({
+        user_id: data.userId,
+        is_manual: true,
+        is_locked: true,
+        published_at: cur.published_at ?? nowIso,
+        status: "scheduled",
+        updated_at: nowIso,
+      })
+      .eq("id", data.shiftId)
+      .is("user_id", null)
+      .select("id")
+      .maybeSingle();
+    if (eUp) throw new Error(eUp.message);
+    if (!updated) throw new Error("Ce shift vient d'être attribué par quelqu'un d'autre");
+
+    // Annule toutes les propositions pending pour ce shift
+    await supabase
+      .from("shift_proposals")
+      .update({ status: "cancelled", responded_at: nowIso })
+      .eq("shift_id", data.shiftId)
+      .eq("status", "pending");
+
+    // Notifie l'employé
+    const dateLabel = new Date(cur.shift_date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+    await supabase.from("notifications").insert({
+      user_id: data.userId,
+      type: "shift_assigned",
+      title: "Nouveau shift assigné",
+      body: `${cur.business_role} · ${dateLabel} · ${String(cur.start_time).slice(0,5)}–${String(cur.end_time).slice(0,5)}`,
+      link: employeeLink({ kind: "shift", shiftId: data.shiftId }),
+      priority: "normal",
+      category: "shift",
+    });
+
+    return { ok: true };
+  });
+
+
 // ---------- DELETE ----------
 export const deleteShift = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
