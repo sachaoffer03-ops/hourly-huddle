@@ -281,7 +281,16 @@ export function EditShiftModal({ shift, onClose, onSaved, onDeleted }: Props) {
           </div>
         </div>
 
-        <div className="flex gap-2 px-5 py-3" style={{ borderTop: "0.5px solid var(--border)" }}>
+        <div className="flex gap-2 px-5 py-3 items-center" style={{ borderTop: "0.5px solid var(--border)" }}>
+          <button
+            onClick={handleDelete}
+            disabled={saving}
+            title="Supprimer ce shift"
+            className="rounded-md px-3 py-2 flex items-center gap-1.5"
+            style={{ fontSize: 12, fontWeight: 500, border: "0.5px solid var(--border)", color: "var(--danger-text)" }}
+          >
+            <Trash2 size={13} /> Supprimer
+          </button>
           <button
             onClick={onClose}
             className="flex-1 rounded-md px-3 py-2"
@@ -293,13 +302,7 @@ export function EditShiftModal({ shift, onClose, onSaved, onDeleted }: Props) {
             onClick={handleSave}
             disabled={saving}
             className="flex-1 rounded-md px-3 py-2"
-            style={{
-              fontSize: 12,
-              fontWeight: 500,
-              backgroundColor: "var(--coral)",
-              color: "#fff",
-              opacity: saving ? 0.6 : 1,
-            }}
+            style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--coral)", color: "#fff", opacity: saving ? 0.6 : 1 }}
           >
             {saving ? "Enregistrement…" : "Enregistrer"}
           </button>
