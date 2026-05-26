@@ -237,8 +237,19 @@ function EmployeeDetailPage() {
                   ? <img src={emp.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   : initials(emp.first_name, emp.last_name)}
               </div>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 500 }}>{emp.first_name} {emp.last_name}</div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div style={{ fontSize: 18, fontWeight: 500 }}>{emp.first_name} {emp.last_name}</div>
+                  {canEditProfile && (
+                    <button
+                      onClick={() => setEditOpen(true)}
+                      className="rounded-md inline-flex items-center gap-1 px-2 py-1"
+                      style={{ fontSize: 11, fontWeight: 500, border: "0.5px solid var(--border)", color: "var(--foreground)" }}
+                    >
+                      <Pencil size={11} /> Modifier
+                    </button>
+                  )}
+                </div>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   {(userContracts.length > 0 ? userContracts : emp.contract ? [emp.contract] : []).map(c => (
                     <span key={c} className="rounded-full px-2 py-0.5" style={{ fontSize: 10, backgroundColor: "var(--muted)", color: "var(--muted-foreground)" }}>{c}</span>
