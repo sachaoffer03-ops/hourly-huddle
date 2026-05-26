@@ -68,8 +68,10 @@ function EmployeeDetailPage() {
   const [breakdown, setBreakdown] = useState<Awaited<ReturnType<typeof getScoreBreakdown>> | null>(null);
   const [tab, setTab] = useState("profil");
   const [unviewedDocs, setUnviewedDocs] = useState(0);
+  const [editOpen, setEditOpen] = useState(false);
   const fetchBreakdown = useServerFn(getScoreBreakdown);
   const fetchUnviewed = useServerFn(countUnviewedDocuments);
+  const canEditProfile = appRole === "admin";
 
   const load = async () => {
     const [{ data: p }, { data: br }, { data: sts }, { data: us }, { data: uc }, { data: sh }, { data: sg }] = await Promise.all([
