@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Mail, Phone, MapPin, Star, Download, UserX, MessageSquare, AlertCircle, Clock, Plus } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, Star, Download, UserX, MessageSquare, AlertCircle, Clock, Plus, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { roleColors, type Role } from "@/lib/role-colors";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,6 +15,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { EmployeeFormationTab } from "@/components/staff/EmployeeFormationTab";
 import { EmployeeDocumentsTab } from "@/components/staff/EmployeeDocumentsTab";
 import { EmployeeProposalsCard } from "@/components/staff/EmployeeProposalsCard";
+import { AdminEditEmployeeSheet } from "@/components/staff/AdminEditEmployeeSheet";
 import { countUnviewedDocuments } from "@/lib/documents.functions";
 
 export const Route = createFileRoute("/staff/$id")({
@@ -67,8 +68,10 @@ function EmployeeDetailPage() {
   const [breakdown, setBreakdown] = useState<Awaited<ReturnType<typeof getScoreBreakdown>> | null>(null);
   const [tab, setTab] = useState("profil");
   const [unviewedDocs, setUnviewedDocs] = useState(0);
+  const [editOpen, setEditOpen] = useState(false);
   const fetchBreakdown = useServerFn(getScoreBreakdown);
   const fetchUnviewed = useServerFn(countUnviewedDocuments);
+  const canEditProfile = appRole === "admin";
 
   const load = async () => {
     const [{ data: p }, { data: br }, { data: sts }, { data: us }, { data: uc }, { data: sh }, { data: sg }] = await Promise.all([
@@ -234,8 +237,19 @@ function EmployeeDetailPage() {
                   ? <img src={emp.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   : initials(emp.first_name, emp.last_name)}
               </div>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 500 }}>{emp.first_name} {emp.last_name}</div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div style={{ fontSize: 18, fontWeight: 500 }}>{emp.first_name} {emp.last_name}</div>
+                  {canEditProfile && (
+                    <button
+                      onClick={() => setEditOpen(true)}
+                      className="rounded-md inline-flex items-center gap-1 px-2 py-1"
+                      style={{ fontSize: 11, fontWeight: 500, border: "0.5px solid var(--border)", color: "var(--foreground)" }}
+                    >
+                      <Pencil size={11} /> Modifier
+                    </button>
+                  )}
+                </div>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   {(userContracts.length > 0 ? userContracts : emp.contract ? [emp.contract] : []).map(c => (
                     <span key={c} className="rounded-full px-2 py-0.5" style={{ fontSize: 10, backgroundColor: "var(--muted)", color: "var(--muted-foreground)" }}>{c}</span>
@@ -481,6 +495,35 @@ function EmployeeDetailPage() {
           <EmployeeFormationTab userId={emp.id} />
         </TabsContent>
       </Tabs>
+
+      {canEditProfile && (
+        <AdminEditEmployeeSheet
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          userId={emp.id}
+          initial={{
+            first_name: emp.first_name,
+            last_name: emp.last_name,
+            email: emp.email,
+            phone: emp.phone,
+            birth_date: emp.birth_date,
+            hire_date: emp.hire_date,
+            nationality: emp.nationality,
+            city: emp.city,
+            address: emp.address,
+            niss: emp.niss,
+            iban: emp.iban,
+            hourly_rate: emp.hourly_rate,
+            quota_max: emp.quota_max,
+            student_card_valid: emp.student_card_valid,
+            status: emp.status,
+            contracts: userContracts.length > 0 ? userContracts : (emp.contract ? [emp.contract] : []),
+            studio_ids: userStudioIds.length > 0 ? userStudioIds : (emp.studio_id ? [emp.studio_id] : []),
+            business_roles: businessRoles,
+          }}
+          onSaved={() => load()}
+        />
+      )}
     </div>
   );
 }
