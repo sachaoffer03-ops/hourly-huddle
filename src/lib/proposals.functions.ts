@@ -108,6 +108,63 @@ export const sendProposals = createServerFn({ method: "POST" })
     return { ok: true, count: data.userIds.length };
   });
 
+export const sendProposalsToShifts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      shiftIds: z.array(z.string().uuid()).min(1).max(200),
+      userIds: z.array(z.string().uuid()).min(1).max(50),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+
+    const shiftIds = Array.from(new Set(data.shiftIds));
+    const userIds = Array.from(new Set(data.userIds));
+
+    const { data: shifts, error: e1 } = await supabaseAdmin
+      .from("shifts")
+      .select("id, user_id, shift_date, start_time, end_time, business_role")
+      .in("id", shiftIds);
+    if (e1) throw new Error(e1.message);
+    if (!shifts || shifts.length !== shiftIds.length) throw new Error("Certains shifts sont introuvables");
+    if (shifts.some((shift: any) => shift.user_id)) throw new Error("Un des shifts est déjà attribué");
+
+    const now = new Date().toISOString();
+    const rows = shifts.flatMap((shift: any) =>
+      userIds.map((uid) => ({
+        shift_id: shift.id,
+        user_id: uid,
+        sent_by: userId,
+        status: "pending",
+        sent_at: now,
+        responded_at: null,
+      })),
+    );
+
+    const { error: e2 } = await supabaseAdmin
+      .from("shift_proposals")
+      .upsert(rows, { onConflict: "shift_id,user_id" });
+    if (e2) throw new Error(e2.message);
+
+    const notifs = shifts.flatMap((shift: any) => {
+      const dateLabel = new Date(shift.shift_date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+      return userIds.map((uid) => ({
+        user_id: uid,
+        type: "shift_proposal",
+        title: "Nouvelle proposition de shift",
+        body: `${shift.business_role} · ${dateLabel} · ${String(shift.start_time).slice(0,5)}–${String(shift.end_time).slice(0,5)}`,
+        link: `/staff-app/propositions`,
+        priority: "normal",
+        category: "shift",
+      }));
+    });
+    if (notifs.length > 0) await supabaseAdmin.from("notifications").insert(notifs);
+
+    return { ok: true, shiftCount: shifts.length, recipientCount: userIds.length, count: rows.length };
+  });
+
 // ----- ACCEPTER UNE PROPOSITION (race-safe) -----
 export const acceptProposal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
