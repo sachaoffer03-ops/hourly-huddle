@@ -108,8 +108,8 @@ export function EditProfileSheet({ open, onClose, userId, profile, onSaved }: Pr
         avatar_url: avatarUrl,
       };
 
-      const { error } = await supabase.from("profiles").update(patch).eq("id", userId);
-      if (error) throw error;
+      const { updateOwnProfile } = await import("@/lib/profile-self.functions");
+      await updateOwnProfile({ data: patch as any });
 
       toast.success("Profil mis à jour");
       onSaved(patch);
