@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Send, Bot, Sparkles } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { askKadenceAI, getChatHistory } from "@/lib/ai-chat.functions";
 
 interface Msg {
@@ -142,11 +143,29 @@ export function AIChatPanel() {
                 backgroundColor: mine ? "var(--coral)" : "#fff",
                 color: mine ? "var(--coral-text)" : "var(--foreground)",
                 border: mine ? "none" : "0.5px solid rgba(0,0,0,0.08)",
-                whiteSpace: "pre-wrap",
+                whiteSpace: mine ? "pre-wrap" : "normal",
                 wordBreak: "break-word",
                 opacity: m.loading ? 0.7 : 1,
               }}>
-                {m.loading ? <TypingDots /> : m.content}
+                {m.loading ? <TypingDots /> : (
+                  mine ? m.content : (
+                    <div className="kadence-md">
+                      <ReactMarkdown
+                        components={{
+                          p: ({ children }) => <p style={{ margin: "0 0 8px" }}>{children}</p>,
+                          ul: ({ children }) => <ul style={{ margin: "4px 0 8px", paddingLeft: 18 }}>{children}</ul>,
+                          ol: ({ children }) => <ol style={{ margin: "4px 0 8px", paddingLeft: 18 }}>{children}</ol>,
+                          li: ({ children }) => <li style={{ margin: "2px 0" }}>{children}</li>,
+                          strong: ({ children }) => <strong style={{ fontWeight: 600 }}>{children}</strong>,
+                          a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer" style={{ color: "var(--coral)", textDecoration: "underline" }}>{children}</a>,
+                          code: ({ children }) => <code style={{ backgroundColor: "rgba(0,0,0,0.05)", padding: "1px 4px", borderRadius: 4, fontSize: 12 }}>{children}</code>,
+                        }}
+                      >
+                        {m.content}
+                      </ReactMarkdown>
+                    </div>
+                  )
+                )}
               </div>
             </div>
           );
