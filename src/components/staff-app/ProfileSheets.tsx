@@ -128,6 +128,14 @@ export function ShiftDetailSheet({ open, onClose, shift, studios, onClockIn, onE
             </span>
           </PrimaryButton>
         )}
+        {tooEarly && (
+          <div
+            className="rounded-md px-3 py-2.5 inline-flex items-center gap-1.5"
+            style={{ fontSize: 12, fontWeight: 500, backgroundColor: "var(--muted)", color: "var(--muted-foreground)", border: "1px solid rgba(0,0,0,0.08)" }}
+          >
+            <Clock size={13} /> Pointage disponible dans {minsUntilStart - 5} min
+          </div>
+        )}
         {isInService && onEndShift && (
           <PrimaryButton onClick={onEndShift}>
             <span className="inline-flex items-center justify-center gap-1.5">
