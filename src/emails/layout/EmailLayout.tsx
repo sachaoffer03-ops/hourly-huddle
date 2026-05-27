@@ -13,7 +13,7 @@ import {
 } from "@react-email/components";
 
 export const KADENCE_LOGO_URL =
-  "https://vqejayodpprbfgwaejmb.supabase.co/storage/v1/object/public/avatars/_brand/kadence-logo.png";
+  "https://vqejayodpprbfgwaejmb.supabase.co/storage/v1/object/public/avatars/_brand%2Fkadence-logo.png";
 
 export const SKULT_LOGO_URL =
   "https://vqejayodpprbfgwaejmb.supabase.co/storage/v1/object/public/avatars/_brand%2Fskult-logo.jpg";
