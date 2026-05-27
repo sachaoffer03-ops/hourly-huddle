@@ -16,6 +16,7 @@ import {
   Settings,
   Bell,
   Eye,
+  Bot,
   X,
 } from "lucide-react";
 import logo from "@/assets/kadence-logo.png";
@@ -68,7 +69,7 @@ const navSections: NavSection[] = [
     title: "Configuration",
     items: [
       { label: "Studios & postes", to: "/studios", icon: Building2 },
-      
+      { label: "Assistant IA", to: "/assistant-ia", icon: Bot },
       { label: "Réglages", to: "/reglages", icon: Settings },
     ],
   },

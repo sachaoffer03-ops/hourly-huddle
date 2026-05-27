@@ -168,7 +168,7 @@ Réponds à sa question en utilisant uniquement ces informations + tes connaissa
         { type: "text", text: SYSTEM_PROMPT },
         {
           type: "text",
-          text: SKULT_KNOWLEDGE_BASE,
+          text: SKULT_KNOWLEDGE_BASE + adminKnowledge,
           cache_control: { type: "ephemeral" },
         },
         { type: "text", text: contextBlock },
