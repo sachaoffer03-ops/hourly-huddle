@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Send, Bot, Sparkles } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { askKadenceAI, getChatHistory } from "@/lib/ai-chat.functions";
 
 interface Msg {
