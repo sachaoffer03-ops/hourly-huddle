@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import {
   Bot, Plus, Search, Pencil, Trash2, Power, Sparkles, BookOpen, Tag, X,
   Loader2, CheckCircle2, Circle, MessageSquare, BarChart3, ThumbsUp, ThumbsDown,
-  Type, HelpCircle, Link2, FileUp, Table2, Send, User, Download, ExternalLink, Wand2,
+  Type, HelpCircle, Link2, FileUp, Table2, Send, User, Download, ExternalLink, Wand2, ChevronDown,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import {
@@ -197,12 +197,10 @@ function KnowledgeTab() {
             className="flex-1 py-2 outline-none bg-transparent" style={{ fontSize: 13 }} />
           {q && <button onClick={() => setQ("")}><X size={14} color="var(--muted-foreground)" /></button>}
         </div>
-        <select value={cat} onChange={(e) => setCat(e.target.value)}
-          className="px-3 py-2 rounded-md outline-none"
-          style={{ fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "#fff" }}>
-          <option value={ALL}>Toutes catégories</option>
-          {KNOWLEDGE_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-        </select>
+        <div className="sm:w-64">
+          <Select value={cat} onChange={setCat}
+            options={[{ value: ALL, label: "Toutes catégories" }, ...KNOWLEDGE_CATEGORIES.map((c) => ({ value: c.value, label: c.label }))]} />
+        </div>
         <button onClick={() => setEditing({ entry_type: "text", category: "general", tags: [], priority: 0, is_active: true, data: {} })}
           className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md"
           style={{ fontSize: 13, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--coral)" }}>
@@ -1043,14 +1041,71 @@ function Textarea({ value, onChange, rows, placeholder }: any) {
       style={{ fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "#fff", lineHeight: 1.5 }} />
   );
 }
-function Select({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
+function Select({ value, onChange, options, placeholder }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[]; placeholder?: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onKey); };
+  }, [open]);
+  const current = options.find((o) => o.value === value);
   return (
-    <select value={value} onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2 rounded-md outline-none"
-      style={{ fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "#fff" }}>
-      {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-    </select>
+    <div ref={ref} className="relative w-full">
+      <button type="button" onClick={() => setOpen((v) => !v)}
+        className="w-full inline-flex items-center justify-between gap-2 px-3 py-2 rounded-md outline-none transition"
+        style={{
+          fontSize: 13, lineHeight: 1.2,
+          border: `0.5px solid ${open ? "var(--foreground)" : "var(--border)"}`,
+          backgroundColor: "#fff", color: current ? "var(--foreground)" : "var(--muted-foreground)",
+          textAlign: "left",
+        }}>
+        <span className="truncate">{current?.label ?? placeholder ?? "Choisir…"}</span>
+        <ChevronDown size={14} color="var(--muted-foreground)"
+          style={{ transition: "transform 0.15s ease", transform: open ? "rotate(180deg)" : "none", flexShrink: 0 }} />
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 z-50 mt-1 rounded-md overflow-hidden"
+          style={{
+            backgroundColor: "#fff",
+            border: "0.5px solid var(--border)",
+            boxShadow: "0 8px 24px -8px rgba(0,0,0,0.12), 0 2px 6px -2px rgba(0,0,0,0.05)",
+            maxHeight: 280, overflowY: "auto",
+            animation: "kadence-dropdown-in 0.12s ease-out",
+          }}>
+          {options.map((o) => {
+            const selected = o.value === value;
+            return (
+              <button key={o.value} type="button"
+                onClick={() => { onChange(o.value); setOpen(false); }}
+                className="w-full text-left px-3 py-2 inline-flex items-center justify-between gap-2 transition"
+                style={{
+                  fontSize: 13,
+                  color: selected ? "var(--coral-text, var(--foreground))" : "var(--foreground)",
+                  backgroundColor: selected ? "color-mix(in oklab, var(--coral) 18%, transparent)" : "transparent",
+                  fontWeight: selected ? 500 : 400,
+                }}
+                onMouseEnter={(e) => { if (!selected) (e.currentTarget as HTMLButtonElement).style.backgroundColor = "rgba(0,0,0,0.035)"; }}
+                onMouseLeave={(e) => { if (!selected) (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"; }}>
+                <span className="truncate">{o.label}</span>
+                {selected && <CheckCircle2 size={13} color="var(--coral)" style={{ flexShrink: 0 }} />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
+}
+
+if (typeof document !== "undefined" && !document.getElementById("kadence-dropdown-style")) {
+  const s = document.createElement("style");
+  s.id = "kadence-dropdown-style";
+  s.textContent = `@keyframes kadence-dropdown-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`;
+  document.head.appendChild(s);
 }
 function timeAgo(iso: string) {
   const ms = Date.now() - new Date(iso).getTime();
