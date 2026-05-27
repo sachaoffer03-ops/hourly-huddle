@@ -64,7 +64,7 @@ export const completeActivationProfile = createServerFn({ method: "POST" })
     if (typeof data.student_card_valid === "boolean") patch.student_card_valid = data.student_card_valid;
     if (data.avatar_url) patch.avatar_url = data.avatar_url;
 
-    const { error } = await supabaseAdmin.from("profiles").update(patch).eq("id", userId);
+    const { error } = await supabaseAdmin.from("profiles").update(patch as any).eq("id", userId);
     if (error) throw new Error(error.message);
 
     return { ok: true };
