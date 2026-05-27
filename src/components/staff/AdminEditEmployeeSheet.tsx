@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { Sheet, PrimaryButton, SecondaryButton, FormField } from "@/components/staff-app/shared";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useBusinessRoles } from "@/hooks/use-business-roles";
 import { useStudios } from "@/hooks/use-studios";
+import { regenerateEmployeeAccessLink } from "@/lib/employee-access.functions";
+import { Link2, Copy } from "lucide-react";
 
 const CONTRACTS = ["Étudiant", "Flexi", "CDI"] as const;
 
@@ -75,8 +78,41 @@ export function AdminEditEmployeeSheet({ open, onClose, userId, initial, onSaved
   const { studios } = useStudios();
   const [s, setS] = useState<AdminEmployeePatch>(initial);
   const [saving, setSaving] = useState(false);
+  const [generatedLink, setGeneratedLink] = useState<string | null>(null);
+  const [regenerating, setRegenerating] = useState(false);
+  const regenFn = useServerFn(regenerateEmployeeAccessLink);
 
-  useEffect(() => { if (open) setS(initial); }, [open, initial]);
+  useEffect(() => { if (open) { setS(initial); setGeneratedLink(null); } }, [open, initial]);
+
+  const regenerateLink = async () => {
+    if (!confirm("Générer un nouveau lien d'accès unique pour cet employé ?\n\nLe lien permettra à l'employé de se connecter et choisir un nouveau mot de passe. Il fonctionne partout (WhatsApp, mail, SMS) et est valide une seule fois.")) return;
+    setRegenerating(true);
+    try {
+      const res = await regenFn({ data: { userId } });
+      setGeneratedLink(res.url);
+      try {
+        await navigator.clipboard.writeText(res.url);
+        toast.success("Lien généré et copié dans le presse-papier");
+      } catch {
+        toast.success("Lien généré");
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Erreur lors de la génération du lien");
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
+  const copyLink = async () => {
+    if (!generatedLink) return;
+    try {
+      await navigator.clipboard.writeText(generatedLink);
+      toast.success("Lien copié");
+    } catch {
+      toast.error("Impossible de copier");
+    }
+  };
+
 
   const toggle = <K extends keyof AdminEmployeePatch>(key: K, v: string) => {
     setS((p) => {
@@ -229,6 +265,49 @@ export function AdminEditEmployeeSheet({ open, onClose, userId, initial, onSaved
           onToggle={(v) => setS({ ...s, status: v })}
         />
       </FormField>
+
+      <div
+        className="mt-5 rounded-lg p-3 flex flex-col gap-2"
+        style={{ border: "0.5px solid rgba(0,0,0,0.12)", backgroundColor: "rgba(0,0,0,0.02)" }}
+      >
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--foreground)" }}>
+          Accès au compte
+        </div>
+        <div style={{ fontSize: 11, color: "var(--muted-foreground)", lineHeight: 1.5 }}>
+          Génère un lien d'accès unique pour cet employé. Utile s'il a perdu son mot de passe ou n'arrive pas à se connecter. Le lien fonctionne partout (WhatsApp, mail, SMS).
+        </div>
+        <button
+          type="button"
+          onClick={regenerateLink}
+          disabled={regenerating}
+          className="inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-2"
+          style={{
+            fontSize: 12,
+            fontWeight: 500,
+            backgroundColor: "#fff",
+            color: "var(--foreground)",
+            border: "0.5px solid rgba(0,0,0,0.18)",
+            opacity: regenerating ? 0.5 : 1,
+          }}
+        >
+          <Link2 size={13} /> {regenerating ? "Génération…" : "Régénérer un lien d'accès"}
+        </button>
+        {generatedLink && (
+          <div className="flex items-center gap-1.5 rounded-md px-2 py-1.5" style={{ backgroundColor: "#fff", border: "0.5px solid rgba(0,0,0,0.12)" }}>
+            <span className="truncate flex-1" style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
+              {generatedLink}
+            </span>
+            <button
+              type="button"
+              onClick={copyLink}
+              className="inline-flex items-center gap-1 rounded px-2 py-1 shrink-0"
+              style={{ fontSize: 11, fontWeight: 500, border: "0.5px solid rgba(0,0,0,0.18)" }}
+            >
+              <Copy size={11} /> Copier
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="flex flex-col gap-2 mt-5">
         <PrimaryButton onClick={save} disabled={saving}>{saving ? "Enregistrement…" : "Enregistrer"}</PrimaryButton>
