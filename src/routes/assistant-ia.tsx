@@ -197,12 +197,10 @@ function KnowledgeTab() {
             className="flex-1 py-2 outline-none bg-transparent" style={{ fontSize: 13 }} />
           {q && <button onClick={() => setQ("")}><X size={14} color="var(--muted-foreground)" /></button>}
         </div>
-        <select value={cat} onChange={(e) => setCat(e.target.value)}
-          className="px-3 py-2 rounded-md outline-none"
-          style={{ fontSize: 13, border: "0.5px solid var(--border)", backgroundColor: "#fff" }}>
-          <option value={ALL}>Toutes catégories</option>
-          {KNOWLEDGE_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-        </select>
+        <div className="sm:w-64">
+          <Select value={cat} onChange={setCat}
+            options={[{ value: ALL, label: "Toutes catégories" }, ...KNOWLEDGE_CATEGORIES.map((c) => ({ value: c.value, label: c.label }))]} />
+        </div>
         <button onClick={() => setEditing({ entry_type: "text", category: "general", tags: [], priority: 0, is_active: true, data: {} })}
           className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md"
           style={{ fontSize: 13, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--coral)" }}>
