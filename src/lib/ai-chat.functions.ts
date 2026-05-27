@@ -203,7 +203,7 @@ Réponds à sa question en utilisant uniquement ces informations + tes connaissa
         { type: "text", text: SYSTEM_PROMPT },
         {
           type: "text",
-          text: SKULT_KNOWLEDGE_BASE + adminKnowledge,
+          text: SKULT_KNOWLEDGE_BASE + adminKnowledge + learningBlock,
           cache_control: { type: "ephemeral" },
         },
         { type: "text", text: contextBlock },
