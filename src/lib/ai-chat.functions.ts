@@ -82,7 +82,7 @@ export const askKadenceAI = createServerFn({ method: "POST" })
     const pad = (n: number) => String(n).padStart(2, "0");
     const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-    const [profileRes, shiftsRes, rolesRes, formationsRes, contractRes] = await Promise.all([
+    const [profileRes, shiftsRes, rolesRes, formationsRes, contractRes, knowledgeRes] = await Promise.all([
       supabaseAdmin.from("profiles").select("first_name, last_name, contract, score").eq("id", userId).maybeSingle(),
       supabaseAdmin.from("shifts")
         .select("shift_date, start_time, end_time, business_role, studios(name)")
@@ -95,7 +95,21 @@ export const askKadenceAI = createServerFn({ method: "POST" })
       supabaseAdmin.from("training_course_completions")
         .select("training_courses(title)").eq("user_id", userId),
       supabaseAdmin.from("user_contracts").select("contract").eq("user_id", userId),
+      supabaseAdmin.from("ai_knowledge_entries")
+        .select("title, content, category, priority")
+        .eq("is_active", true)
+        .order("priority", { ascending: false })
+        .order("updated_at", { ascending: false })
+        .limit(200),
     ]);
+
+    const adminKnowledge = (knowledgeRes.data ?? []).length === 0
+      ? ""
+      : "\n\n# CONNAISSANCES COMPLÉMENTAIRES (ajoutées par l'admin Skult)\n\n" +
+        (knowledgeRes.data ?? []).map((k: any) =>
+          `## ${k.title}\n_Catégorie : ${k.category}_\n\n${k.content}`
+        ).join("\n\n---\n\n");
+
 
     const profile = profileRes.data as any;
     const contracts = (contractRes.data ?? []).map((c: any) => c.contract).filter(Boolean).join(", ")
@@ -154,7 +168,7 @@ Réponds à sa question en utilisant uniquement ces informations + tes connaissa
         { type: "text", text: SYSTEM_PROMPT },
         {
           type: "text",
-          text: SKULT_KNOWLEDGE_BASE,
+          text: SKULT_KNOWLEDGE_BASE + adminKnowledge,
           cache_control: { type: "ephemeral" },
         },
         { type: "text", text: contextBlock },
