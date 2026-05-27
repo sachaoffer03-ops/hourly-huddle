@@ -78,8 +78,41 @@ export function AdminEditEmployeeSheet({ open, onClose, userId, initial, onSaved
   const { studios } = useStudios();
   const [s, setS] = useState<AdminEmployeePatch>(initial);
   const [saving, setSaving] = useState(false);
+  const [generatedLink, setGeneratedLink] = useState<string | null>(null);
+  const [regenerating, setRegenerating] = useState(false);
+  const regenFn = useServerFn(regenerateEmployeeAccessLink);
 
-  useEffect(() => { if (open) setS(initial); }, [open, initial]);
+  useEffect(() => { if (open) { setS(initial); setGeneratedLink(null); } }, [open, initial]);
+
+  const regenerateLink = async () => {
+    if (!confirm("Générer un nouveau lien d'accès unique pour cet employé ?\n\nLe lien permettra à l'employé de se connecter et choisir un nouveau mot de passe. Il fonctionne partout (WhatsApp, mail, SMS) et est valide une seule fois.")) return;
+    setRegenerating(true);
+    try {
+      const res = await regenFn({ data: { userId } });
+      setGeneratedLink(res.url);
+      try {
+        await navigator.clipboard.writeText(res.url);
+        toast.success("Lien généré et copié dans le presse-papier");
+      } catch {
+        toast.success("Lien généré");
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Erreur lors de la génération du lien");
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
+  const copyLink = async () => {
+    if (!generatedLink) return;
+    try {
+      await navigator.clipboard.writeText(generatedLink);
+      toast.success("Lien copié");
+    } catch {
+      toast.error("Impossible de copier");
+    }
+  };
+
 
   const toggle = <K extends keyof AdminEmployeePatch>(key: K, v: string) => {
     setS((p) => {
