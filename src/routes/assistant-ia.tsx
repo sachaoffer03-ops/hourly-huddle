@@ -288,7 +288,7 @@ function EditSheet({ initial, onClose, onSave }:
   const [title, setTitle] = useState(initial.title || "");
   const [content, setContent] = useState(initial.content || "");
   const [category, setCategory] = useState(initial.category || "general");
-  const [tagsStr, setTagsStr] = useState((initial.tags || []).join(", "));
+  
   const [priority, setPriority] = useState(initial.priority ?? 0);
   const [isActive, setIsActive] = useState(initial.is_active ?? true);
   const [saving, setSaving] = useState(false);
