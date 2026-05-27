@@ -104,7 +104,12 @@ export function CreateShiftModal({ open, onClose, onCreated }: Props) {
     const end = new Date(until + "T00:00:00");
     if (end < start) return [date];
     const out: string[] = [];
-    const toIso = (d: Date) => d.toISOString().slice(0, 10);
+    const toIso = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    };
 
     if (recurrence === "monthly") {
       const cur = new Date(start);
