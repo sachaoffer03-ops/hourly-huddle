@@ -315,7 +315,60 @@ function ShiftDetailModal({ shift, employee, onClose, onDelete, onConfirm, onUnl
               </div>
             </div>
           )}
+
+          {/* Note manager */}
+          {canRate && (
+            <div className="rounded-lg p-3 flex flex-col gap-2" style={{ backgroundColor: "var(--muted)" }}>
+              <div className="flex items-center justify-between">
+                <span style={{ fontSize: 11, fontWeight: 500, color: "var(--muted-foreground)" }}>
+                  Note manager
+                </span>
+                {alreadyRated && !rateOpen && (
+                  <span style={{ fontSize: 10, color: "var(--muted-foreground)" }}>Déjà noté</span>
+                )}
+              </div>
+              {!rateOpen ? (
+                <button
+                  onClick={() => setRateOpen(true)}
+                  className="rounded-md px-3 py-1.5"
+                  style={{ fontSize: 11, fontWeight: 500, border: "0.5px solid var(--border)", backgroundColor: "var(--card)" }}
+                >
+                  {alreadyRated ? "Ajouter une nouvelle note" : "Noter ce shift"}
+                </button>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <RatingInput value={rateValue} onChange={setRateValue} size="md" />
+                  <textarea
+                    value={rateMsg}
+                    onChange={(e) => setRateMsg(e.target.value)}
+                    placeholder="Commentaire (optionnel)"
+                    rows={2}
+                    className="rounded-md border px-2 py-1.5 outline-none"
+                    style={{ fontSize: 12, borderColor: "var(--border)", backgroundColor: "var(--card)" }}
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      onClick={() => { setRateOpen(false); setRateMsg(""); setRateValue(7); }}
+                      className="rounded-md px-2.5 py-1"
+                      style={{ fontSize: 11, border: "0.5px solid var(--border)" }}
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      onClick={submitRate}
+                      disabled={rateSaving}
+                      className="rounded-md px-2.5 py-1"
+                      style={{ fontSize: 11, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)" }}
+                    >
+                      {rateSaving ? "..." : "Enregistrer"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
+
 
         {/* Footer */}
         <div className="flex flex-wrap gap-2 px-5 py-3" style={{ borderTop: "0.5px solid var(--border)" }}>
