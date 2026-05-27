@@ -402,7 +402,7 @@ function EditSheet({ initial, onClose, onSave }:
                 options={KNOWLEDGE_CATEGORIES.map((c) => ({ value: c.value, label: c.label }))} />
             </Field>
             <Field label="Priorité" hint="0–100, plus haut = plus important">
-              <Input type="number" value={String(priority)} onChange={(v) => setPriority(parseInt(v || "0", 10))} />
+              <Input type="number" value={String(priority)} onChange={(v: string) => setPriority(parseInt(v || "0", 10))} />
             </Field>
           </div>
 
