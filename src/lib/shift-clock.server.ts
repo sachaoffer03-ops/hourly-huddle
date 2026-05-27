@@ -71,7 +71,8 @@ export async function completeShiftClockOut(input: CompleteShiftClockOutInput) {
     const { error } = await supabaseAdmin.from("feedbacks").insert({
       shift_id: input.shiftId,
       author_id: input.actorId,
-      rating: input.rating && input.rating > 0 ? input.rating : 3,
+      // Échelle 0..10 (alignée sur la nouvelle UI RatingInput).
+      rating: input.rating && input.rating > 0 ? Math.min(Math.max(input.rating, 0), 10) : 7,
       message: feedbackMsg,
     });
     if (error) throw new Error(error.message);
