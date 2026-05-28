@@ -310,14 +310,18 @@ function DemandesPage() {
 
             return (
               <div key={req.id} style={{ borderBottom: "0.5px solid var(--border)" }}>
-                <div className="grid px-5 py-3 items-center gap-2"
-                  style={{ gridTemplateColumns: "1fr 180px 160px 160px 40px", cursor: "pointer" }}
+                <div className="flex flex-col gap-2 px-4 md:px-5 py-3 md:grid md:items-center md:gap-2"
+                  style={{ cursor: "pointer" }}
+                  data-md-cols
                   onClick={() => setExpandedId(isExpanded ? null : req.id)}>
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="rounded-full flex items-center justify-center shrink-0" style={{ width: 30, height: 30, backgroundColor: "var(--muted)", fontSize: 10, fontWeight: 500 }}>{initials}</div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div style={{ fontSize: 13, fontWeight: 500 }} className="truncate">{emp ? `${emp.first_name} ${emp.last_name}` : "—"}</div>
                       <div style={{ fontSize: 11, color: "var(--muted-foreground)" }} className="truncate">{elapsed(req.created_at)}</div>
+                    </div>
+                    <div className="flex md:hidden items-center justify-end shrink-0">
+                      <ChevronDown size={14} style={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }} />
                     </div>
                   </div>
                   <div className="min-w-0">
@@ -345,10 +349,11 @@ function DemandesPage() {
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center justify-end">
+                  <div className="hidden md:flex items-center justify-end">
                     <ChevronDown size={14} style={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }} />
                   </div>
                 </div>
+
 
                 {isExpanded && (
                   <div className="px-5 pb-4" style={{ backgroundColor: "var(--muted)" }}>
