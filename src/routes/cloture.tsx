@@ -211,7 +211,8 @@ function ClotureePage() {
             Configure le parcours de pointage, les checklists par moment de service, et la notation.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+
           {dirtyCount > 0 ? (
             <span
               className="rounded-full px-2.5 py-1 flex items-center gap-1.5"
@@ -253,7 +254,8 @@ function ClotureePage() {
         onValueChange={(v) => navigate({ search: (prev: any) => ({ ...prev, tab: v as "config" | "checklists" | "notation" }) })}
         className="w-full"
       >
-        <TabsList className="mb-5">
+        <TabsList className="mb-5 max-w-full overflow-x-auto">
+
           <TabsTrigger value="config" className="gap-2">
             <SettingsIcon size={14} strokeWidth={1.8} />
             Configuration
@@ -461,7 +463,8 @@ function SectionCard({ icon: Icon, title, subtitle, right, children }: {
 }) {
   return (
     <section className="rounded-lg border" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
-      <div className="px-5 py-4 border-b flex items-start justify-between gap-4" style={{ borderColor: "var(--border)" }}>
+      <div className="px-5 py-4 border-b flex items-start justify-between gap-4 flex-wrap" style={{ borderColor: "var(--border)" }}>
+
         <div className="flex items-start gap-3">
           <div className="rounded-md p-2" style={{ backgroundColor: "var(--muted)" }}>
             <Icon size={16} strokeWidth={1.8} />

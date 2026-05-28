@@ -100,20 +100,21 @@ function FeedbacksPage() {
   };
 
   return (
-    <div className="p-6 max-w-5xl">
+    <div className="p-4 md:p-6 max-w-5xl">
+
       <div className="mb-5">
         <h1 style={{ fontSize: 18, fontWeight: 500, marginBottom: 2 }}>Feedbacks</h1>
         <p style={{ fontSize: 13, color: "var(--muted-foreground)" }}>
           {items.length} retour{items.length > 1 ? "s" : ""} · {unread} non lu{unread > 1 ? "s" : ""} · note moyenne {avg}/5 · {lowCount} note{lowCount > 1 ? "s" : ""} basse{lowCount > 1 ? "s" : ""}
         </p>
       </div>
-
       <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <div className="flex items-center gap-2 rounded-md border px-3 py-1.5" style={{ borderColor: "var(--border)" }}>
-          <Search size={13} style={{ color: "var(--muted-foreground)" }} />
+        <div className="flex items-center gap-2 rounded-md border px-3 py-1.5 flex-1 min-w-0 sm:flex-none" style={{ borderColor: "var(--border)" }}>
+          <Search size={13} style={{ color: "var(--muted-foreground)" }} className="shrink-0" />
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher un employé"
-            className="outline-none bg-transparent" style={{ fontSize: 12, width: 200 }} />
+            className="outline-none bg-transparent w-full sm:w-[200px]" style={{ fontSize: 12 }} />
         </div>
+
         <button onClick={() => setMinRating(minRating === "low" ? "tous" : "low")}
           className="rounded-md px-3 py-1.5"
           style={{
