@@ -310,10 +310,10 @@ function DemandesPage() {
 
             return (
               <div key={req.id} style={{ borderBottom: "0.5px solid var(--border)" }}>
-                <div className="flex flex-col gap-2 px-4 md:px-5 py-3 md:grid md:items-center md:gap-2"
+                <div className="flex flex-col gap-2 px-4 md:px-5 py-3 md:grid md:items-center md:gap-2 md:grid-cols-[1fr_180px_160px_160px_40px]"
                   style={{ cursor: "pointer" }}
-                  data-md-cols
                   onClick={() => setExpandedId(isExpanded ? null : req.id)}>
+
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="rounded-full flex items-center justify-center shrink-0" style={{ width: 30, height: 30, backgroundColor: "var(--muted)", fontSize: 10, fontWeight: 500 }}>{initials}</div>
                     <div className="min-w-0 flex-1">
