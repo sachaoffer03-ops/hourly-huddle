@@ -115,7 +115,6 @@ function FeedbacksPage() {
             className="outline-none bg-transparent w-full sm:w-[200px]" style={{ fontSize: 12 }} />
         </div>
 
-        </div>
         <button onClick={() => setMinRating(minRating === "low" ? "tous" : "low")}
           className="rounded-md px-3 py-1.5"
           style={{
