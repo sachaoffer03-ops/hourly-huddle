@@ -242,6 +242,59 @@ function TodayTab() {
         />
       </div>
 
+      {/* Date picker (planning-style) */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center rounded-md" style={{ border: "0.5px solid var(--border)" }}>
+          <button onClick={() => setSelectedDate((d) => shiftIso(d, -1))} className="p-1.5" style={{ color: "var(--muted-foreground)" }} aria-label="Jour précédent">
+            <ChevronLeft size={14} />
+          </button>
+          <Popover open={calOpen} onOpenChange={setCalOpen}>
+            <PopoverTrigger asChild>
+              <button className="px-3 py-1.5 hover:bg-[var(--muted)] transition-colors capitalize" style={{ fontSize: 12, fontWeight: 500, borderLeft: "0.5px solid var(--border)", borderRight: "0.5px solid var(--border)", minWidth: 200 }}>
+                {isToday ? "Aujourd'hui · " : ""}{formatLongDate(selectedDate)}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="center" className="w-auto p-2 pointer-events-auto">
+              <div className="flex items-center justify-between px-2 pb-2 gap-2">
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--muted-foreground)" }}>Choisir une date</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => { setSelectedDate(shiftIso(todayIsoLocal(), -1)); setCalOpen(false); }}
+                    className="rounded-md px-2 py-1"
+                    style={{ fontSize: 11, fontWeight: 500, backgroundColor: "var(--muted)", color: "var(--foreground)" }}
+                  >
+                    Hier
+                  </button>
+                  <button
+                    onClick={() => { setSelectedDate(todayIsoLocal()); setCalOpen(false); }}
+                    className="rounded-md px-2 py-1"
+                    style={{ fontSize: 11, fontWeight: 500, backgroundColor: "var(--coral)", color: "#fff" }}
+                  >
+                    Aujourd'hui
+                  </button>
+                </div>
+              </div>
+              <Calendar
+                mode="single"
+                weekStartsOn={1}
+                selected={dateFromIso(selectedDate)}
+                defaultMonth={dateFromIso(selectedDate)}
+                onSelect={(d) => { if (d) { setSelectedDate(isoFromDate(d)); setCalOpen(false); } }}
+                className="p-3 pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+          <button onClick={() => setSelectedDate((d) => shiftIso(d, 1))} className="p-1.5" style={{ color: "var(--muted-foreground)" }} aria-label="Jour suivant">
+            <ChevronRight size={14} />
+          </button>
+        </div>
+        {!isToday && (
+          <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
+            Vue historique — temps réel désactivé
+          </span>
+        )}
+      </div>
+
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 rounded-md px-2.5 py-1.5" style={{ border: "0.5px solid var(--border)", backgroundColor: "var(--card)" }}>
@@ -286,7 +339,7 @@ function TodayTab() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border p-10 text-center" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", fontSize: 13, color: "var(--muted-foreground)" }}>
-          Aucun shift correspondant aujourd'hui.
+          {isToday ? "Aucun shift correspondant aujourd'hui." : "Aucun shift pour cette date."}
         </div>
       ) : (
         <div className="flex flex-col gap-2">
