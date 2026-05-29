@@ -96,6 +96,7 @@ export const getConversation = createServerFn({ method: "POST" })
         .from("ai_chat_messages")
         .select("id, role, content, created_at")
         .eq("user_id", data.userId)
+        .eq("is_test", false)
         .order("created_at", { ascending: true })
         .limit(500),
       supabaseAdmin
