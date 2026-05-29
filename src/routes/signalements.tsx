@@ -39,6 +39,18 @@ function SignalementsPage() {
   const [studio, setStudio] = useState<string>("Tous");
   const [cat, setCat] = useState<string>("Toutes");
   const [dismissing, setDismissing] = useState<Record<string, "strike" | "fade">>({});
+  const [lightbox, setLightbox] = useState<{ urls: string[]; index: number } | null>(null);
+
+  useEffect(() => {
+    if (!lightbox) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightbox(null);
+      else if (e.key === "ArrowRight") setLightbox((l) => l ? { ...l, index: (l.index + 1) % l.urls.length } : l);
+      else if (e.key === "ArrowLeft") setLightbox((l) => l ? { ...l, index: (l.index - 1 + l.urls.length) % l.urls.length } : l);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightbox]);
 
   useEffect(() => {
     const load = async () => {
@@ -151,11 +163,12 @@ function SignalementsPage() {
                   {s.photos && s.photos.length > 0 && (
                     <div className="flex gap-1.5 mt-2 flex-wrap">
                       {s.photos.map((url, idx) => (
-                        <a key={idx} href={url} target="_blank" rel="noopener noreferrer"
-                          className="block rounded-md overflow-hidden"
+                        <button key={idx} type="button"
+                          onClick={() => setLightbox({ urls: s.photos!, index: idx })}
+                          className="block rounded-md overflow-hidden hover:opacity-80 transition-opacity"
                           style={{ width: 56, height: 56, border: "0.5px solid var(--border)" }}>
                           <img src={url} alt="" className="w-full h-full object-cover" />
-                        </a>
+                        </button>
                       ))}
                     </div>
                   )}
@@ -174,6 +187,55 @@ function SignalementsPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {lightbox && (
+        <div
+          onClick={() => setLightbox(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(4px)" }}
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); setLightbox(null); }}
+            className="absolute top-4 right-4 rounded-full flex items-center justify-center"
+            style={{ width: 36, height: 36, backgroundColor: "rgba(255,255,255,0.1)", color: "#fff", fontSize: 18 }}
+            aria-label="Fermer"
+          >✕</button>
+
+          {lightbox.urls.length > 1 && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); setLightbox((l) => l ? { ...l, index: (l.index - 1 + l.urls.length) % l.urls.length } : l); }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full flex items-center justify-center"
+                style={{ width: 40, height: 40, backgroundColor: "rgba(255,255,255,0.1)", color: "#fff", fontSize: 20 }}
+                aria-label="Précédent"
+              >‹</button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setLightbox((l) => l ? { ...l, index: (l.index + 1) % l.urls.length } : l); }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full flex items-center justify-center"
+                style={{ width: 40, height: 40, backgroundColor: "rgba(255,255,255,0.1)", color: "#fff", fontSize: 20 }}
+                aria-label="Suivant"
+              >›</button>
+            </>
+          )}
+
+          <img
+            src={lightbox.urls[lightbox.index]}
+            alt=""
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-full max-h-full object-contain rounded-md"
+            style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }}
+          />
+
+          {lightbox.urls.length > 1 && (
+            <div
+              className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full"
+              style={{ backgroundColor: "rgba(255,255,255,0.1)", color: "#fff", fontSize: 12, fontVariantNumeric: "tabular-nums" }}
+            >
+              {lightbox.index + 1} / {lightbox.urls.length}
+            </div>
+          )}
         </div>
       )}
     </div>
