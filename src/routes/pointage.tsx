@@ -676,6 +676,7 @@ const ACTION_LABELS: Record<string, string> = {
   undo_no_show: "No-show annulé",
   add_note: "Note ajoutée",
   edit_note: "Note modifiée",
+  edit_clock_times: "Pointages modifiés",
 };
 
 function HistoryDialog({ shift }: { shift: PointageShift }) {
