@@ -516,6 +516,7 @@ function ConversationsTab() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
   const [q, setQ] = useState("");
+  const [testOpen, setTestOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
