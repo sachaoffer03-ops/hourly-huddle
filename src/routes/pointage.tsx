@@ -330,7 +330,7 @@ function Chips({ value, onChange, options }: { value: string; onChange: (v: stri
 // SHIFT ROW
 // ============================================================
 
-type DialogKind = null | "clock_in" | "clock_out" | "edit_late" | "no_show" | "note" | "history";
+type DialogKind = null | "clock_in" | "clock_out" | "edit_late" | "edit_times" | "no_show" | "note" | "history";
 
 function ShiftRow({ shift, onChanged }: { shift: PointageShift; onChanged: () => void }) {
   const meta = STATUS_META[shift.computed_status];
