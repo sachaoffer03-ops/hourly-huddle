@@ -5,8 +5,9 @@ import { toast } from "sonner";
 import {
   Bot, Plus, Search, Pencil, Trash2, Power, Sparkles, BookOpen, Tag, X,
   Loader2, CheckCircle2, Circle, MessageSquare, BarChart3, ThumbsUp, ThumbsDown,
-  Type, HelpCircle, Link2, FileUp, Table2, Send, User, Download, ExternalLink, Wand2, ChevronDown,
+  Type, HelpCircle, Link2, FileUp, Table2, Send, User, Download, ExternalLink, Wand2, ChevronDown, Sparkle,
 } from "lucide-react";
+import { TestBotSheet } from "@/components/ai-test/TestBotSheet";
 import ReactMarkdown from "react-markdown";
 import {
   listKnowledgeEntries, upsertKnowledgeEntry, toggleKnowledgeEntry, deleteKnowledgeEntry,
