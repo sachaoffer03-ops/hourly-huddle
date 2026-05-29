@@ -622,6 +622,8 @@ function ConversationsTab() {
             </div>}
       </div>
     </div>
+    <TestBotSheet open={testOpen} onClose={() => setTestOpen(false)} />
+    </>
   );
 }
 
