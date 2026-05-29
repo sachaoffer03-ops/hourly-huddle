@@ -186,22 +186,25 @@ export const getBotStats = createServerFn({ method: "POST" })
     const sinceIso = since.toISOString();
 
     const [allMsgsRes, recentMsgsRes, fbRes, kbRes, usersRes] = await Promise.all([
-      supabaseAdmin.from("ai_chat_messages").select("id, role", { count: "exact", head: true }),
+      supabaseAdmin.from("ai_chat_messages").select("id, role", { count: "exact", head: true }).eq("is_test", false),
       supabaseAdmin
         .from("ai_chat_messages")
         .select("id, role, user_id, created_at")
+        .eq("is_test", false)
         .gte("created_at", sinceIso)
         .order("created_at", { ascending: true })
         .limit(5000),
       supabaseAdmin
         .from("ai_message_feedback")
-        .select("rating, created_at, comment, corrected_answer"),
+        .select("rating, created_at, comment, corrected_answer, ai_chat_messages!inner(is_test)")
+        .eq("ai_chat_messages.is_test", false),
       supabaseAdmin
         .from("ai_knowledge_entries")
         .select("id, is_active, entry_type, category"),
       supabaseAdmin
         .from("ai_chat_messages")
-        .select("user_id"),
+        .select("user_id")
+        .eq("is_test", false),
     ]);
 
     const recent = recentMsgsRes.data ?? [];
