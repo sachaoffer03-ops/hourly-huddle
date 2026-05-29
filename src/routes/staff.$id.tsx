@@ -744,3 +744,60 @@ function PunctualityCard({ shifts }: { shifts: ShiftRow[] }) {
     </div>
   );
 }
+
+function EditClockInline({
+  initialIn,
+  initialOut,
+  onCancel,
+  onSubmit,
+}: {
+  initialIn: string;
+  initialOut: string;
+  onCancel: () => void;
+  onSubmit: (inT: string, outT: string, recompute: boolean, reason: string) => Promise<void>;
+}) {
+  const [inT, setInT] = useState(initialIn);
+  const [outT, setOutT] = useState(initialOut);
+  const [recompute, setRecompute] = useState(true);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    if (reason.trim().length < 5) { toast.error("Raison obligatoire (min 5 caractères)"); return; }
+    if (outT && !inT) { toast.error("Renseigne d'abord l'heure d'arrivée"); return; }
+    if (inT && outT && outT < inT) { toast.error("La sortie doit être après l'arrivée"); return; }
+    setBusy(true);
+    try { await onSubmit(inT, outT, recompute, reason.trim()); }
+    finally { setBusy(false); }
+  };
+
+  const inputStyle: React.CSSProperties = { fontSize: 12, borderColor: "var(--border)", backgroundColor: "var(--card)" };
+  return (
+    <div className="mt-2 pt-2 flex flex-col gap-2" style={{ borderTop: "0.5px solid var(--border)" }}>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="flex flex-col gap-1" style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
+          Arrivée
+          <input type="time" value={inT} onChange={e => { setInT(e.target.value); if (!e.target.value) setOutT(""); }}
+            className="rounded-md border px-2 py-1.5 outline-none" style={inputStyle} />
+        </label>
+        <label className="flex flex-col gap-1" style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
+          Sortie
+          <input type="time" value={outT} onChange={e => setOutT(e.target.value)} disabled={!inT}
+            className="rounded-md border px-2 py-1.5 outline-none disabled:opacity-50" style={inputStyle} />
+        </label>
+      </div>
+      <label className="flex items-center gap-2" style={{ fontSize: 11 }}>
+        <input type="checkbox" checked={recompute} onChange={e => setRecompute(e.target.checked)} />
+        Recalculer le retard automatiquement
+      </label>
+      <textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Raison de la modification (obligatoire, min 5 caractères)" rows={2} maxLength={500}
+        className="rounded-md border px-2 py-1.5 outline-none" style={inputStyle} />
+      <div className="flex gap-2 justify-end">
+        <button onClick={onCancel} className="rounded-md px-2.5 py-1" style={{ fontSize: 11, border: "0.5px solid var(--border)" }}>Annuler</button>
+        <button onClick={submit} disabled={busy} className="rounded-md px-2.5 py-1" style={{ fontSize: 11, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)" }}>
+          {busy ? "..." : "Enregistrer"}
+        </button>
+      </div>
+    </div>
+  );
+}
