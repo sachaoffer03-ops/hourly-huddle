@@ -39,6 +39,18 @@ function SignalementsPage() {
   const [studio, setStudio] = useState<string>("Tous");
   const [cat, setCat] = useState<string>("Toutes");
   const [dismissing, setDismissing] = useState<Record<string, "strike" | "fade">>({});
+  const [lightbox, setLightbox] = useState<{ urls: string[]; index: number } | null>(null);
+
+  useEffect(() => {
+    if (!lightbox) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightbox(null);
+      else if (e.key === "ArrowRight") setLightbox((l) => l ? { ...l, index: (l.index + 1) % l.urls.length } : l);
+      else if (e.key === "ArrowLeft") setLightbox((l) => l ? { ...l, index: (l.index - 1 + l.urls.length) % l.urls.length } : l);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightbox]);
 
   useEffect(() => {
     const load = async () => {
