@@ -15,9 +15,10 @@ const CAT_LABEL: Record<Category, string> = { stock: "Stock", materiel: "Matéri
 
 interface Row {
   id: string; category: Category; message: string; studio_id: string | null;
-  author_id: string; created_at: string; resolved: boolean;
+  author_id: string; created_at: string; resolved: boolean; photos: string[] | null;
 }
 interface ProfileLite { id: string; first_name: string; last_name: string; }
+
 interface StudioLite { id: string; name: string; }
 
 const formatRelative = (iso: string) => {
@@ -147,6 +148,17 @@ function SignalementsPage() {
                     <span>·</span><span>{CAT_LABEL[s.category]}</span>
                   </div>
                   <div style={{ fontSize: 13 }}>{s.message}</div>
+                  {s.photos && s.photos.length > 0 && (
+                    <div className="flex gap-1.5 mt-2 flex-wrap">
+                      {s.photos.map((url, idx) => (
+                        <a key={idx} href={url} target="_blank" rel="noopener noreferrer"
+                          className="block rounded-md overflow-hidden"
+                          style={{ width: 56, height: 56, border: "0.5px solid var(--border)" }}>
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <button onClick={() => setResolved(s.id, !s.resolved)}
                   disabled={!!dismissing[s.id]}

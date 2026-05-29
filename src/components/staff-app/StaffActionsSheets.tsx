@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Sheet, FormField, TextArea, PrimaryButton, fmtRelative } from "./shared";
-import { AlertCircle, GraduationCap, Check, Play, Clock, X as XIcon, ChevronDown, CalendarOff } from "lucide-react";
+import { AlertCircle, GraduationCap, Check, Play, Clock, X as XIcon, ChevronDown, CalendarOff, Camera } from "lucide-react";
 import { createModificationRequest, cancelMyRequest } from "@/lib/demandes.functions";
 
 type SignalCategory = "stock" | "materiel" | "hygiene" | "autre";
@@ -14,24 +14,87 @@ const CATS: { key: SignalCategory; label: string }[] = [
   { key: "autre", label: "Autre" },
 ];
 
+const MAX_PHOTOS = 3;
+const MAX_BYTES = 5 * 1024 * 1024;
+
 export function SignalementSheet({ open, onClose, userId, studioId }: { open: boolean; onClose: () => void; userId: string; studioId: string | null }) {
   const [cat, setCat] = useState<SignalCategory>("stock");
   const [msg, setMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [photos, setPhotos] = useState<{ file: File; preview: string }[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { if (open) { setCat("stock"); setMsg(""); } }, [open]);
+  useEffect(() => {
+    if (open) {
+      setCat("stock"); setMsg("");
+      photos.forEach(p => URL.revokeObjectURL(p.preview));
+      setPhotos([]);
+      setUploadProgress(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const onPickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!files.length) return;
+    const remaining = MAX_PHOTOS - photos.length;
+    if (remaining <= 0) { toast.error(`Max ${MAX_PHOTOS} photos`); return; }
+    const accepted: { file: File; preview: string }[] = [];
+    for (const f of files.slice(0, remaining)) {
+      if (!f.type.startsWith("image/")) { toast.error("Images uniquement"); continue; }
+      if (f.size > MAX_BYTES) { toast.error(`${f.name} dépasse 5 Mo`); continue; }
+      accepted.push({ file: f, preview: URL.createObjectURL(f) });
+    }
+    if (accepted.length) setPhotos(prev => [...prev, ...accepted]);
+  };
+
+  const removePhoto = (i: number) => {
+    setPhotos(prev => {
+      URL.revokeObjectURL(prev[i].preview);
+      return prev.filter((_, idx) => idx !== i);
+    });
+  };
 
   const submit = async () => {
     if (!msg.trim()) { toast.error("Décris le problème"); return; }
     setSubmitting(true);
+
+    const urls: string[] = [];
+    try {
+      for (let i = 0; i < photos.length; i++) {
+        setUploadProgress({ current: i + 1, total: photos.length });
+        const f = photos[i].file;
+        const ext = (f.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+        const path = `signalements/${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("chat-attachments").upload(path, f, {
+          contentType: f.type, upsert: false,
+        });
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage.from("chat-attachments").getPublicUrl(path);
+        urls.push(pub.publicUrl);
+      }
+    } catch (err) {
+      setSubmitting(false);
+      setUploadProgress(null);
+      toast.error("Erreur d'upload photo");
+      return;
+    }
+
+    setUploadProgress(null);
     const { error } = await supabase.from("signalements").insert({
-      author_id: userId, studio_id: studioId, category: cat, message: msg.trim(),
+      author_id: userId, studio_id: studioId, category: cat, message: msg.trim(), photos: urls,
     });
     setSubmitting(false);
     if (error) { toast.error("Erreur d'envoi"); return; }
     toast.success("Signalement envoyé");
     onClose();
   };
+
+  const btnLabel = submitting
+    ? (uploadProgress ? `Envoi photo ${uploadProgress.current}/${uploadProgress.total}…` : "Envoi…")
+    : "Envoyer";
 
   return (
     <Sheet open={open} onClose={onClose} title="Signaler un problème">
@@ -56,10 +119,35 @@ export function SignalementSheet({ open, onClose, userId, studioId }: { open: bo
         <TextArea value={msg} onChange={setMsg} rows={5}
           placeholder="Ex: Plus de lait avoine, prévoir réassort / Moulin chauffe / WC à nettoyer..." />
       </FormField>
-      <div className="mt-2"><PrimaryButton onClick={submit} disabled={submitting}>{submitting ? "Envoi…" : "Envoyer"}</PrimaryButton></div>
+      <FormField label={`Photos (optionnel · ${photos.length}/${MAX_PHOTOS})`}>
+        <div className="grid grid-cols-3 gap-2">
+          {photos.map((p, i) => (
+            <div key={i} className="relative rounded-md overflow-hidden" style={{ aspectRatio: "1/1", border: "0.5px solid rgba(0,0,0,0.12)" }}>
+              <img src={p.preview} alt="" className="w-full h-full object-cover" />
+              <button type="button" onClick={() => removePhoto(i)} disabled={submitting}
+                className="absolute top-1 right-1 rounded-full flex items-center justify-center"
+                style={{ width: 20, height: 20, backgroundColor: "rgba(0,0,0,0.6)", color: "#fff" }}>
+                <XIcon size={12} />
+              </button>
+            </div>
+          ))}
+          {photos.length < MAX_PHOTOS && (
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={submitting}
+              className="rounded-md flex flex-col items-center justify-center gap-1"
+              style={{ aspectRatio: "1/1", border: "0.5px dashed rgba(0,0,0,0.25)", backgroundColor: "#fff", color: "var(--muted-foreground)", fontSize: 10 }}>
+              <Camera size={18} />
+              Ajouter
+            </button>
+          )}
+        </div>
+        <input ref={fileInputRef} type="file" accept="image/*" capture="environment" multiple
+          onChange={onPickFiles} style={{ display: "none" }} />
+      </FormField>
+      <div className="mt-2"><PrimaryButton onClick={submit} disabled={submitting}>{btnLabel}</PrimaryButton></div>
     </Sheet>
   );
 }
+
 
 type ReqType = "cancel" | "time_change" | "unavailable";
 type Urgency = "normal" | "urgent" | "critique";
