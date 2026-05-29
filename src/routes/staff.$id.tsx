@@ -9,6 +9,7 @@ import { computePunctuality, punctualityColor } from "@/lib/staff-helpers";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, ReferenceLine } from "recharts";
 import { useServerFn } from "@tanstack/react-start";
 import { getScoreBreakdown } from "@/lib/scoring.functions";
+import { editClockTimesFn } from "@/lib/pointage.functions";
 import { WorkedHoursAdminCard, ClockedShiftsTable } from "@/components/WorkedHoursCard";
 import { EmployeeStatsCard } from "@/components/EmployeeStatsCard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -66,13 +67,16 @@ function EmployeeDetailPage() {
   const [rateValue, setRateValue] = useState(7);
   const [rateMsg, setRateMsg] = useState("");
   const [saving, setSaving] = useState(false);
+  const [editClockShiftId, setEditClockShiftId] = useState<string | null>(null);
   const [breakdown, setBreakdown] = useState<Awaited<ReturnType<typeof getScoreBreakdown>> | null>(null);
   const [tab, setTab] = useState("profil");
   const [unviewedDocs, setUnviewedDocs] = useState(0);
   const [editOpen, setEditOpen] = useState(false);
   const fetchBreakdown = useServerFn(getScoreBreakdown);
   const fetchUnviewed = useServerFn(countUnviewedDocuments);
+  const editClockTimes = useServerFn(editClockTimesFn);
   const canEditProfile = appRole === "admin";
+  const canEditClock = appRole === "admin" || appRole === "manager";
 
   const load = async () => {
     const [{ data: p }, { data: br }, { data: sts }, { data: us }, { data: uc }, { data: sh }, { data: sg }] = await Promise.all([
@@ -382,6 +386,9 @@ function EmployeeDetailPage() {
                   const sname = s.studio_id ? studios[s.studio_id] : "—";
                   const shiftFbs = fbsByShift[s.id] || [];
                   const isRating = rateShiftId === s.id;
+                  const isEditingClock = editClockShiftId === s.id;
+                  const inHHMM = s.clocked_in_at ? new Date(s.clocked_in_at).toTimeString().slice(0, 5) : "";
+                  const outHHMM = s.clocked_out_at ? new Date(s.clocked_out_at).toTimeString().slice(0, 5) : "";
                   return (
                     <div key={s.id} className="rounded-lg px-3 py-2" style={{ backgroundColor: "var(--background)" }}>
                       <div className="flex items-center gap-3">
@@ -389,6 +396,11 @@ function EmployeeDetailPage() {
                         <div className="flex-1">
                           <div style={{ fontSize: 12, fontWeight: 500 }}>{new Date(s.shift_date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</div>
                           <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{fmtTime(s.start_time)} — {fmtTime(s.end_time)} · {s.business_role} · {sname?.replace?.("Skult ", "")}</div>
+                          {(s.clocked_in_at || s.clocked_out_at) && (
+                            <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 2 }}>
+                              Pointé : {inHHMM || "—"} → {outHHMM || "—"}
+                            </div>
+                          )}
                         </div>
                         {shiftFbs.length > 0 && (
                           <RatingBadge value={shiftFbs[0].rating} />
@@ -398,6 +410,14 @@ function EmployeeDetailPage() {
                           backgroundColor: s.status === "completed" ? "var(--success-bg)" : s.status === "cancelled" ? "var(--danger-bg)" : "var(--muted)",
                           color: s.status === "completed" ? "var(--success-text)" : s.status === "cancelled" ? "var(--danger-text)" : "var(--muted-foreground)",
                         }}>{s.status}</span>
+                        {canEditClock && !isEditingClock && (
+                          <button onClick={() => setEditClockShiftId(s.id)}
+                            className="rounded-md px-2 py-1 inline-flex items-center gap-1"
+                            style={{ fontSize: 11, fontWeight: 500, border: "0.5px solid var(--border)" }}
+                            title="Modifier les heures de pointage">
+                            <Pencil size={11} /> Pointage
+                          </button>
+                        )}
                         {canRate && !isRating && (
                           <button onClick={() => { setRateShiftId(s.id); setRateValue(7); setRateMsg(""); }}
                             className="rounded-md px-2 py-1 inline-flex items-center gap-1"
@@ -406,6 +426,23 @@ function EmployeeDetailPage() {
                           </button>
                         )}
                       </div>
+                      {isEditingClock && (
+                        <EditClockInline
+                          initialIn={inHHMM}
+                          initialOut={outHHMM}
+                          onCancel={() => setEditClockShiftId(null)}
+                          onSubmit={async (inT, outT, recompute, reason) => {
+                            try {
+                              await editClockTimes({ data: { shiftId: s.id, clockedInTime: inT || null, clockedOutTime: outT || null, recomputeLate: recompute, reason } });
+                              toast.success("Pointages mis à jour");
+                              setEditClockShiftId(null);
+                              await load();
+                            } catch (e: any) {
+                              toast.error(e?.message || "Échec");
+                            }
+                          }}
+                        />
+                      )}
                       {isRating && (
                         <div className="mt-2 pt-2 flex flex-col gap-2" style={{ borderTop: "0.5px solid var(--border)" }}>
                           <RatingInput value={rateValue} onChange={setRateValue} size="md" />
@@ -704,6 +741,63 @@ function PunctualityCard({ shifts }: { shifts: ShiftRow[] }) {
           </ResponsiveContainer>
         </div>
       )}
+    </div>
+  );
+}
+
+function EditClockInline({
+  initialIn,
+  initialOut,
+  onCancel,
+  onSubmit,
+}: {
+  initialIn: string;
+  initialOut: string;
+  onCancel: () => void;
+  onSubmit: (inT: string, outT: string, recompute: boolean, reason: string) => Promise<void>;
+}) {
+  const [inT, setInT] = useState(initialIn);
+  const [outT, setOutT] = useState(initialOut);
+  const [recompute, setRecompute] = useState(true);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    if (reason.trim().length < 5) { toast.error("Raison obligatoire (min 5 caractères)"); return; }
+    if (outT && !inT) { toast.error("Renseigne d'abord l'heure d'arrivée"); return; }
+    if (inT && outT && outT < inT) { toast.error("La sortie doit être après l'arrivée"); return; }
+    setBusy(true);
+    try { await onSubmit(inT, outT, recompute, reason.trim()); }
+    finally { setBusy(false); }
+  };
+
+  const inputStyle: React.CSSProperties = { fontSize: 12, borderColor: "var(--border)", backgroundColor: "var(--card)" };
+  return (
+    <div className="mt-2 pt-2 flex flex-col gap-2" style={{ borderTop: "0.5px solid var(--border)" }}>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="flex flex-col gap-1" style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
+          Arrivée
+          <input type="time" value={inT} onChange={e => { setInT(e.target.value); if (!e.target.value) setOutT(""); }}
+            className="rounded-md border px-2 py-1.5 outline-none" style={inputStyle} />
+        </label>
+        <label className="flex flex-col gap-1" style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
+          Sortie
+          <input type="time" value={outT} onChange={e => setOutT(e.target.value)} disabled={!inT}
+            className="rounded-md border px-2 py-1.5 outline-none disabled:opacity-50" style={inputStyle} />
+        </label>
+      </div>
+      <label className="flex items-center gap-2" style={{ fontSize: 11 }}>
+        <input type="checkbox" checked={recompute} onChange={e => setRecompute(e.target.checked)} />
+        Recalculer le retard automatiquement
+      </label>
+      <textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Raison de la modification (obligatoire, min 5 caractères)" rows={2} maxLength={500}
+        className="rounded-md border px-2 py-1.5 outline-none" style={inputStyle} />
+      <div className="flex gap-2 justify-end">
+        <button onClick={onCancel} className="rounded-md px-2.5 py-1" style={{ fontSize: 11, border: "0.5px solid var(--border)" }}>Annuler</button>
+        <button onClick={submit} disabled={busy} className="rounded-md px-2.5 py-1" style={{ fontSize: 11, fontWeight: 500, backgroundColor: "var(--foreground)", color: "var(--card)" }}>
+          {busy ? "..." : "Enregistrer"}
+        </button>
+      </div>
     </div>
   );
 }
