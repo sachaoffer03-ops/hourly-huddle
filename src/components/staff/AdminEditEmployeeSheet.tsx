@@ -81,9 +81,33 @@ export function AdminEditEmployeeSheet({ open, onClose, userId, initial, onSaved
   const [saving, setSaving] = useState(false);
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState(false);
+  const [aiContributor, setAiContributor] = useState(false);
+  const [aiSaving, setAiSaving] = useState(false);
   const regenFn = useServerFn(regenerateEmployeeAccessLink);
+  const setContribFn = useServerFn(setContributorStatus);
 
-  useEffect(() => { if (open) { setS(initial); setGeneratedLink(null); } }, [open, initial]);
+  useEffect(() => {
+    if (open) {
+      setS(initial);
+      setGeneratedLink(null);
+      supabase.from("profiles").select("ai_contributor").eq("id", userId).maybeSingle()
+        .then(({ data }) => setAiContributor(Boolean((data as any)?.ai_contributor)));
+    }
+  }, [open, initial, userId]);
+
+  const toggleAiContributor = async () => {
+    setAiSaving(true);
+    const next = !aiContributor;
+    try {
+      await setContribFn({ data: { userId, is_contributor: next } });
+      setAiContributor(next);
+      toast.success(next ? "Contributeur IA activé" : "Contributeur IA désactivé");
+    } catch (e: any) {
+      toast.error(e?.message || "Erreur");
+    } finally {
+      setAiSaving(false);
+    }
+  };
 
   const regenerateLink = async () => {
     if (!confirm("Générer un nouveau lien d'accès unique pour cet employé ?\n\nLe lien permettra à l'employé de se connecter et choisir un nouveau mot de passe. Il fonctionne partout (WhatsApp, mail, SMS) et est valide une seule fois.")) return;
