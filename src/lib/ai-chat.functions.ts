@@ -110,12 +110,14 @@ export const askKadenceAI = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Mode test + impersonation : seul un admin peut le faire, et on charge le contexte de l'employé ciblé
+    // Vérifie le rôle admin une seule fois (utilisé pour l'impersonation ET l'exposition des remarques admin)
+    const { data: roleRow } = await supabaseAdmin
+      .from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
+    const isAdmin = !!roleRow;
+
     let contextUserId = userId;
     if (data.is_test && data.impersonate_user_id) {
-      const { data: roleRow } = await supabaseAdmin
-        .from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
-      if (!roleRow) throw new Error("Réservé aux administrateurs");
+      if (!isAdmin) throw new Error("Réservé aux administrateurs");
       contextUserId = data.impersonate_user_id;
     }
 
