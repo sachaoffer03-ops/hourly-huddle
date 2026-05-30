@@ -6,6 +6,7 @@ import {
   Bot, Plus, Search, Pencil, Trash2, Power, Sparkles, BookOpen, Tag, X,
   Loader2, CheckCircle2, Circle, MessageSquare, BarChart3, ThumbsUp, ThumbsDown,
   Type, HelpCircle, Link2, FileUp, Table2, Send, User, Download, ExternalLink, Wand2, ChevronDown, Sparkle,
+  Inbox, Check, XCircle, Users as UsersIcon,
 } from "lucide-react";
 import { TestBotSheet } from "@/components/ai-test/TestBotSheet";
 import ReactMarkdown from "react-markdown";
@@ -16,6 +17,9 @@ import {
 import {
   listChatConversations, getConversation, rateMessage, deleteMessageFeedback, getBotStats,
 } from "@/lib/ai-admin.functions";
+import {
+  listSuggestions, reviewSuggestion, listContributors, setContributorStatus,
+} from "@/lib/ai-suggestions.functions";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/assistant-ia")({
