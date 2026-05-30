@@ -38,6 +38,24 @@ export const updateStudioClosureConfig = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const getStudioQrCode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ studioId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertCanConfigureClosure(context.userId);
+    const { data: row, error } = await supabaseAdmin
+      .from("studios")
+      .select("current_qr_code, qr_renewal_seconds, qr_generated_at")
+      .eq("id", data.studioId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return {
+      currentCode: (row as any)?.current_qr_code ?? "",
+      renewal: (row as any)?.qr_renewal_seconds ?? 60,
+      generatedAt: (row as any)?.qr_generated_at ?? null,
+    };
+  });
+
 const closureQuestionSchema = z.object({
   studioId: z.string().uuid(),
   questions: z.array(z.object({

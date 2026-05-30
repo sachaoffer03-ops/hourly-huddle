@@ -10,7 +10,7 @@ import {
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { notifyOverdueClockOutsFn } from "@/lib/closure-flow.functions";
-import { saveClosureQuestionsConfig, updateStudioClosureConfig } from "@/lib/cloture-config.functions";
+import { saveClosureQuestionsConfig, updateStudioClosureConfig, getStudioQrCode } from "@/lib/cloture-config.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useStudios } from "@/hooks/use-studios";
@@ -1433,12 +1433,27 @@ const QR_RENEWAL_OPTIONS = [
 
 function QrSection({ studio }: { studio: any }) {
   const updateStudioConfig = useServerFn(updateStudioClosureConfig);
+  const fetchQrCode = useServerFn(getStudioQrCode);
+  const [serverCode, setServerCode] = useState<string>("");
   const initial = useMemo(() => ({
     renewal: studio.qr_renewal_seconds ?? 60,
-    currentCode: studio.current_qr_code ?? "",
-  }), [studio.id, studio.qr_renewal_seconds, studio.current_qr_code]);
+    currentCode: serverCode,
+  }), [studio.id, studio.qr_renewal_seconds, serverCode]);
   const { draft, setDraft, isDirty, confirmSaved, revert, reset } = useDraftState(initial);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetchQrCode({ data: { studioId: studio.id } });
+        if (!cancelled) setServerCode(r.currentCode ?? "");
+      } catch {
+        if (!cancelled) setServerCode("");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [studio.id, fetchQrCode]);
 
   useEffect(() => { reset(initial); }, [initial, reset]);
   useDirtySection(`qr-${studio.id}`, isDirty);
@@ -1450,6 +1465,7 @@ function QrSection({ studio }: { studio: any }) {
         qr_renewal_seconds: draft.renewal,
         current_qr_code: draft.currentCode || null,
       } } });
+      setServerCode(draft.currentCode || "");
       confirmSaved(draft);
       flashSaved();
       toast.success("✓ QR code enregistré");

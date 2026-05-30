@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { assertAdminOrManager } from "./formation.server";
 
 // ============================================
@@ -263,7 +264,7 @@ export const getEmployeeTrainingProgress = createServerFn({ method: "POST" })
       supabase.from("training_contents").select("*").order("position"),
       supabase.from("training_quizzes").select("*"),
       supabase.from("training_quiz_questions").select("*").order("position"),
-      supabase.from("training_quiz_options").select("*").order("position"),
+      supabaseAdmin.from("training_quiz_options").select("*").order("position"),
       supabase.from("training_content_progress").select("*").eq("user_id", data.userId),
       supabase.from("training_quiz_attempts").select("*").eq("user_id", data.userId).order("attempt_number"),
       supabase.from("training_quiz_answers").select("*"),
@@ -428,7 +429,7 @@ export const getCourseFullStructure = createServerFn({ method: "POST" })
       supabase.from("training_contents").select("*").order("position"),
       supabase.from("training_quizzes").select("*"),
       supabase.from("training_quiz_questions").select("*").order("position"),
-      supabase.from("training_quiz_options").select("*").order("position"),
+      supabaseAdmin.from("training_quiz_options").select("*").order("position"),
       supabase.from("business_roles").select("id, name"),
     ]);
     if (!courseRes.data) throw new Error("Parcours introuvable");
@@ -971,7 +972,7 @@ export const getCourseForEmployee = createServerFn({ method: "POST" })
       moduleIds.length > 0 ? supabase.from("training_contents").select("*").in("module_id", moduleIds).order("position") : Promise.resolve({ data: [] }),
       moduleIds.length > 0 ? supabase.from("training_quizzes").select("*").in("module_id", moduleIds) : Promise.resolve({ data: [] }),
       supabase.from("training_quiz_questions").select("*").order("position"),
-      supabase.from("training_quiz_options").select("*").order("position"),
+      supabase.from("training_quiz_options").select("id, question_id, option_text, position").order("position"),
       supabase.from("training_content_progress").select("*").eq("user_id", userId),
       supabase.from("training_quiz_attempts").select("*").eq("user_id", userId).order("attempt_number"),
     ]);
@@ -1135,7 +1136,7 @@ export const submitQuizAttempt = createServerFn({ method: "POST" })
     const { data: questions } = await supabase.from("training_quiz_questions").select("*").eq("quiz_id", (attempt as any).quiz_id);
     const qIds = ((questions ?? []) as any[]).map((q: any) => q.id);
     const { data: options } = qIds.length > 0
-      ? await supabase.from("training_quiz_options").select("*").in("question_id", qIds)
+      ? await supabaseAdmin.from("training_quiz_options").select("*").in("question_id", qIds)
       : { data: [] as any[] };
 
     const optByQ = new Map<string, any[]>();
