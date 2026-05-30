@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import { useBusinessRoles } from "@/hooks/use-business-roles";
 import { useStudios } from "@/hooks/use-studios";
 import { regenerateEmployeeAccessLink } from "@/lib/employee-access.functions";
-import { Link2, Copy } from "lucide-react";
+import { setContributorStatus } from "@/lib/ai-suggestions.functions";
+import { Link2, Copy, Sparkles } from "lucide-react";
 
 const CONTRACTS = ["Étudiant", "Flexi", "CDI"] as const;
 
