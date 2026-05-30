@@ -140,6 +140,26 @@ function StaffAppPage() {
     }
   }, [navigate]);
 
+  // Actions déclenchées depuis le chat IA (kadence:chat-action)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onAction = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { type?: string } | undefined;
+      const type = detail?.type;
+      if (!type) return;
+      if (type === "open_planning") setTab("planning");
+      else if (type === "open_formation") setTab("formation");
+      else if (type === "open_proposals") navigate({ to: "/staff-app/propositions" } as any);
+      else if (type === "open_dispos" || type === "open_signalement") {
+        setTab("accueil");
+        // L'AccueilTab écoute aussi l'event et ouvrira la bonne sheet
+      }
+    };
+    window.addEventListener("kadence:chat-action", onAction as EventListener);
+    return () => window.removeEventListener("kadence:chat-action", onAction as EventListener);
+  }, [navigate]);
+
+
   if (loading || !user) return <div className="p-8" style={{ fontSize: 13 }}>Chargement…</div>;
 
   return (
@@ -245,6 +265,19 @@ function AccueilTab({ profile, studios, studioClockOut, userId, onOpenNotifs, on
       navigate({ to: "/staff-app/propositions" });
     }
   }, [navigate]);
+
+  // Ouverture de sheets déclenchée par l'assistant IA
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onAction = (e: Event) => {
+      const type = (e as CustomEvent).detail?.type as string | undefined;
+      if (type === "open_dispos") setDisposOpen(true);
+      else if (type === "open_signalement") setSignalOpen(true);
+    };
+    window.addEventListener("kadence:chat-action", onAction as EventListener);
+    return () => window.removeEventListener("kadence:chat-action", onAction as EventListener);
+  }, []);
+
 
   function handleStartClockIn(s: ShiftRow) {
     if (s.clocked_in_at) { toast.info("Arrivée déjà pointée"); return; }
