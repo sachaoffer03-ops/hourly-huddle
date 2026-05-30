@@ -10,7 +10,7 @@ import {
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { notifyOverdueClockOutsFn } from "@/lib/closure-flow.functions";
-import { saveClosureQuestionsConfig, updateStudioClosureConfig } from "@/lib/cloture-config.functions";
+import { saveClosureQuestionsConfig, updateStudioClosureConfig, getStudioQrCode } from "@/lib/cloture-config.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useStudios } from "@/hooks/use-studios";
