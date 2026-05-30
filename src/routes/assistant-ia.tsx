@@ -194,7 +194,7 @@ function SuggestionsTab() {
       ) : items.length === 0 ? (
         <div className="rounded-lg p-10 text-center" style={{ border: "0.5px dashed var(--border)" }}>
           <Inbox size={28} className="mx-auto mb-2" style={{ color: "var(--muted-foreground)" }} />
-          <div style={{ fontSize: 13, color: "var(--muted-foreground)" }}>Aucune suggestion {status === "pending" ? "en attente" : ""}.</div>
+          <div style={{ fontSize: 13, color: "var(--muted-foreground)" }}>Aucune suggestion à traiter.</div>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
