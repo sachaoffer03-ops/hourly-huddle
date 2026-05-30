@@ -292,7 +292,40 @@ export function AdminEditEmployeeSheet({ open, onClose, userId, initial, onSaved
       </FormField>
 
       <div
-        className="mt-5 rounded-lg p-3 flex flex-col gap-2"
+        className="mt-5 rounded-lg p-3 flex items-start gap-3"
+        style={{ border: "0.5px solid rgba(0,0,0,0.12)", backgroundColor: "rgba(240,153,123,0.06)" }}
+      >
+        <div
+          className="rounded-md flex items-center justify-center shrink-0"
+          style={{ width: 32, height: 32, backgroundColor: "color-mix(in oklch, #F0997B 18%, transparent)" }}
+        >
+          <Sparkles size={15} style={{ color: "#F0997B" }} />
+        </div>
+        <div className="flex-1">
+          <div style={{ fontSize: 12, fontWeight: 500 }}>Contributeur IA</div>
+          <div style={{ fontSize: 11, color: "var(--muted-foreground)", lineHeight: 1.5, marginTop: 2 }}>
+            Autorise cet employé à envoyer des suggestions (FAQ, infos) pour améliorer l'assistant. Tu valides chaque envoi.
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={toggleAiContributor}
+          disabled={aiSaving}
+          className="rounded-full px-3 py-1 shrink-0"
+          style={{
+            fontSize: 11, fontWeight: 500,
+            border: aiContributor ? "1px solid var(--coral)" : "0.5px solid rgba(0,0,0,0.18)",
+            backgroundColor: aiContributor ? "var(--coral)" : "#fff",
+            color: aiContributor ? "var(--coral-text)" : "var(--foreground)",
+            opacity: aiSaving ? 0.5 : 1,
+          }}
+        >
+          {aiContributor ? "Activé" : "Désactivé"}
+        </button>
+      </div>
+
+      <div
+        className="mt-3 rounded-lg p-3 flex flex-col gap-2"
         style={{ border: "0.5px solid rgba(0,0,0,0.12)", backgroundColor: "rgba(0,0,0,0.02)" }}
       >
         <div style={{ fontSize: 12, fontWeight: 500, color: "var(--foreground)" }}>
