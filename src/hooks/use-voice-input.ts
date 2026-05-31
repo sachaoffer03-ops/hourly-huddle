@@ -40,7 +40,7 @@ export function useVoiceInput(opts: {
       const rec = new SR();
       rec.lang = lang;
       rec.interimResults = true;
-      rec.continuous = false;
+      rec.continuous = continuous;
       rec.maxAlternatives = 1;
       rec.onresult = (e: any) => {
         let text = "";
