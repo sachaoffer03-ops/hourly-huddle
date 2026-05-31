@@ -10,10 +10,11 @@ function getSR(): SR | null {
 
 export function useVoiceInput(opts: {
   lang?: string;
+  continuous?: boolean;
   onResult?: (text: string, isFinal: boolean) => void;
   onError?: (msg: string) => void;
 }) {
-  const { lang = "fr-FR", onResult, onError } = opts;
+  const { lang = "fr-FR", continuous = false, onResult, onError } = opts;
   const [supported, setSupported] = useState(false);
   const [listening, setListening] = useState(false);
   const recRef = useRef<any>(null);
