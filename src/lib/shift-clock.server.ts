@@ -257,6 +257,16 @@ export async function validateClockIn(input: ValidateClockInInput) {
     .is("clocked_in_at", null);
   if (upErr) throw new Error(upErr.message);
 
+  await supabaseAdmin.from("shift_clock_audit").insert({
+    shift_id: input.shiftId,
+    actor_id: input.actorId,
+    action: "self_clock_in",
+    before_value: null,
+    after_value: { clocked_in_at: clockedInAt, minutes_late: minutesLate, distance_m },
+    note: null,
+  } as any);
+
+
   const { data: shiftFull } = await supabaseAdmin
     .from("shifts")
     .select("business_role")
