@@ -105,6 +105,44 @@ export async function completeShiftClockOut(input: CompleteShiftClockOutInput) {
   if (updateError) throw new Error(updateError.message);
   if (!updated) return { alreadyCompleted: true, completedAt };
 
+  // ─── Notification handoff → prochain employé du même studio/poste ───
+  if (handoffMsg && shift.studio_id && shift.business_role) {
+    try {
+      const { data: nextShift } = await supabaseAdmin
+        .from("shifts")
+        .select("id,user_id,shift_date,start_time")
+        .eq("studio_id", shift.studio_id)
+        .eq("business_role", shift.business_role)
+        .not("user_id", "is", null)
+        .or(`shift_date.gt.${shift.shift_date},and(shift_date.eq.${shift.shift_date},start_time.gte.${shift.end_time})`)
+        .lte("shift_date", new Date(new Date(shift.shift_date).getTime() + 7 * 86_400_000).toISOString().slice(0, 10))
+        .order("shift_date", { ascending: true })
+        .order("start_time", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (nextShift?.user_id && nextShift.user_id !== input.actorId) {
+        const { data: author } = await supabaseAdmin
+          .from("profiles")
+          .select("first_name")
+          .eq("id", input.actorId)
+          .maybeSingle();
+        const fromName = author?.first_name || "Un collègue";
+        await supabaseAdmin.from("notifications").insert({
+          user_id: nextShift.user_id,
+          type: "shift_handoff_received",
+          title: "Message du shift précédent",
+          body: `${fromName} t'a laissé un mot avant son départ.`,
+          link: "/staff-app",
+          priority: "normal",
+          category: "shift",
+        });
+      }
+    } catch {
+      // best-effort
+    }
+  }
+
+
   // ─── Notification "shift_to_rate" pour les admins/managers du studio ───
   // Déclenché à chaque clôture pour rappeler à l'équipe d'attribuer une note manager.
   // On évite de notifier si l'employé s'auto-note (cas rare) — on cible seulement les admins/managers.
