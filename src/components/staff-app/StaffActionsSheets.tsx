@@ -57,10 +57,40 @@ async function compressImage(file: File): Promise<File> {
 export function SignalementSheet({ open, onClose, userId, studioId }: { open: boolean; onClose: () => void; userId: string; studioId: string | null }) {
   const [cat, setCat] = useState<SignalCategory>("stock");
   const [msg, setMsg] = useState("");
+  const [interim, setInterim] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [photos, setPhotos] = useState<{ file: File; preview: string }[]>([]);
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const msgAtStartRef = useRef("");
+
+  const voice = useVoiceInput({
+    lang: "fr-FR",
+    continuous: true,
+    onResult: (text, isFinal) => {
+      if (isFinal) {
+        const sep = msgAtStartRef.current && !/\s$/.test(msgAtStartRef.current) ? " " : "";
+        const next = (msgAtStartRef.current + sep + text).trim();
+        msgAtStartRef.current = next;
+        setMsg(next);
+        setInterim("");
+      } else {
+        setInterim(text);
+      }
+    },
+    onError: (m) => { toast.error(m); setInterim(""); },
+  });
+
+  const toggleMic = () => {
+    if (voice.listening) {
+      voice.stop();
+      setInterim("");
+    } else {
+      msgAtStartRef.current = msg;
+      setInterim("");
+      voice.start();
+    }
+  };
 
   useEffect(() => {
     if (open) {
