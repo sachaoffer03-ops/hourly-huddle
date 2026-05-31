@@ -211,8 +211,43 @@ export function SignalementSheet({ open, onClose, userId, studioId }: { open: bo
         </div>
       </FormField>
       <FormField label="Message">
-        <TextArea value={msg} onChange={setMsg} rows={5}
-          placeholder="Ex: Plus de lait avoine, prévoir réassort / Moulin chauffe / WC à nettoyer..." />
+        <div className="relative">
+          <TextArea
+            value={msg + (interim ? (msg && !/\s$/.test(msg) ? " " : "") + interim : "")}
+            onChange={(v) => { if (!voice.listening) { setMsg(v); msgAtStartRef.current = v; } }}
+            rows={5}
+            placeholder="Ex: Plus de lait avoine, prévoir réassort / Moulin chauffe / WC à nettoyer..."
+          />
+          {voice.supported && (
+            <button
+              type="button"
+              onClick={toggleMic}
+              aria-label={voice.listening ? "Arrêter la dictée" : "Dicter le message"}
+              className="absolute flex items-center justify-center rounded-full transition-all"
+              style={{
+                bottom: 8, right: 8, width: 36, height: 36,
+                backgroundColor: voice.listening ? "var(--coral)" : "#fff",
+                color: voice.listening ? "var(--coral-text)" : "var(--foreground)",
+                border: `0.5px solid ${voice.listening ? "var(--coral)" : "rgba(0,0,0,0.18)"}`,
+                boxShadow: voice.listening ? "0 0 0 4px rgba(240,153,123,0.22)" : "none",
+                animation: voice.listening ? "pulse 1.4s ease-in-out infinite" : "none",
+              }}
+            >
+              {voice.listening ? <MicOff size={16} /> : <Mic size={16} />}
+            </button>
+          )}
+        </div>
+        {voice.listening && (
+          <div className="mt-1.5 flex items-center gap-1.5" style={{ fontSize: 11, color: "var(--coral)" }}>
+            <span className="inline-block rounded-full" style={{ width: 6, height: 6, backgroundColor: "var(--coral)", animation: "pulse 1s ease-in-out infinite" }} />
+            Écoute en cours… parle naturellement
+          </div>
+        )}
+        {!voice.supported && (
+          <div className="mt-1" style={{ fontSize: 10, color: "var(--muted-foreground)" }}>
+            Dictée vocale non disponible sur ce navigateur
+          </div>
+        )}
       </FormField>
       <FormField label={`Photos (optionnel · ${photos.length}/${MAX_PHOTOS})`}>
         <div className="grid grid-cols-3 gap-2">
