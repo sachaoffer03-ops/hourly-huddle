@@ -3,8 +3,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Sheet, FormField, TextArea, PrimaryButton, fmtRelative } from "./shared";
-import { AlertCircle, GraduationCap, Check, Play, Clock, X as XIcon, ChevronDown, CalendarOff, Camera } from "lucide-react";
+import { AlertCircle, GraduationCap, Check, Play, Clock, X as XIcon, ChevronDown, CalendarOff, Camera, Mic, MicOff } from "lucide-react";
 import { createModificationRequest, cancelMyRequest } from "@/lib/demandes.functions";
+import { useVoiceInput } from "@/hooks/use-voice-input";
 
 type SignalCategory = "stock" | "materiel" | "hygiene" | "autre";
 const CATS: { key: SignalCategory; label: string }[] = [
