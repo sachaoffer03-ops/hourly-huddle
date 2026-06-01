@@ -57,6 +57,8 @@ function ActivationPage() {
   const [done, setDone] = useState(false);
   const [invitation, setInvitation] = useState<Invitation | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [resumingSession, setResumingSession] = useState(false);
+
 
   // Fields
   const [password, setPassword] = useState("");
