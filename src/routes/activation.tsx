@@ -212,15 +212,21 @@ function ActivationPage() {
   const validateStep = () => {
     if (isPreview) return goNext(); // skip validation in preview mode
     if (step === 1) {
-      if (password.length < 1) return toast.error("Choisissez un mot de passe");
-      if (password !== confirm) return toast.error("Les mots de passe ne correspondent pas");
+      // Si l'employé reprend une session existante, le mot de passe
+      // a déjà été créé : on laisse passer sans le redemander.
+      if (!resumingSession) {
+        if (password.length < 1) return toast.error("Choisissez un mot de passe");
+        if (password !== confirm) return toast.error("Les mots de passe ne correspondent pas");
+      }
     }
     if (step === 2) {
       if (!phone || !birthDate || !nationality) return toast.error("Tous les champs sont requis");
     }
     if (step === 3) {
-      if (!photoFile && !isPreview) return toast.error("Ajoutez une photo de profil");
+      // Accepte aussi une photo déjà uploadée précédemment.
+      if (!photoFile && !photoPreview && !isPreview) return toast.error("Ajoutez une photo de profil");
     }
+
     if (step === 4) {
       if (!city || !address) return toast.error("Tous les champs sont requis");
     }
