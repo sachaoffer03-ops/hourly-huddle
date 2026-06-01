@@ -57,6 +57,8 @@ function ActivationPage() {
   const [done, setDone] = useState(false);
   const [invitation, setInvitation] = useState<Invitation | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [resumingSession, setResumingSession] = useState(false);
+
 
   // Fields
   const [password, setPassword] = useState("");
@@ -122,15 +124,76 @@ function ActivationPage() {
       }
       if (error || !data) {
         setError("Invitation introuvable");
-      } else if (!isPreview && data.status !== "pending") {
-        setError("Cette invitation a déjà été utilisée ou révoquée");
-      } else {
-        setInvitation(data);
-        if (data.phone) setPhone(data.phone);
+        setLoading(false);
+        return;
       }
+      if (!isPreview && data.status !== "pending") {
+        setError("Cette invitation a déjà été utilisée ou révoquée");
+        setLoading(false);
+        return;
+      }
+
+      setInvitation(data);
+      if (data.phone) setPhone(data.phone);
+
+      // Reprise : si l'employé a déjà commencé (mot de passe créé),
+      // on récupère les infos déjà saisies et on l'envoie directement
+      // à la première étape encore à remplir.
+      if (!isPreview) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const sessionEmail = sessionData.session?.user?.email?.toLowerCase();
+        const invEmail = (data.email || "").toLowerCase();
+
+        if (sessionEmail && sessionEmail === invEmail) {
+          // Mot de passe déjà créé → on lit le profil existant
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select(
+              "phone, birth_date, nationality, city, address, niss, iban, emergency_contact_name, emergency_contact_phone, emergency_contact_relation, student_card_valid, avatar_url",
+            )
+            .eq("id", sessionData.session!.user.id)
+            .maybeSingle();
+
+          if (prof) {
+            setResumingSession(true);
+            if (prof.phone) setPhone(prof.phone);
+
+            if (prof.birth_date) setBirthDate(prof.birth_date);
+            if (prof.nationality) setNationality(prof.nationality);
+            if (prof.city) setCity(prof.city);
+            if (prof.address) setAddress(prof.address);
+            if (prof.niss) setNiss(prof.niss);
+            if (prof.iban) setIban(prof.iban);
+            if (prof.emergency_contact_name) setEmName(prof.emergency_contact_name);
+            if (prof.emergency_contact_phone) setEmPhone(prof.emergency_contact_phone);
+            if (prof.emergency_contact_relation) setEmRel(prof.emergency_contact_relation);
+            if (prof.student_card_valid) setStudentValid(true);
+            if (prof.avatar_url) setPhotoPreview(prof.avatar_url);
+
+            // Détecte la première étape non remplie
+            let resumeStep = 2; // après mot de passe
+            if (prof.birth_date && prof.nationality) resumeStep = 3;
+            if (resumeStep === 3 && prof.avatar_url) resumeStep = 4;
+            if (resumeStep === 4 && prof.city && prof.address) resumeStep = 5;
+            if (resumeStep === 5 && prof.niss && prof.iban) resumeStep = 6;
+            if (
+              resumeStep === 6 &&
+              prof.emergency_contact_name &&
+              prof.emergency_contact_phone &&
+              prof.emergency_contact_relation
+            ) {
+              resumeStep = 7;
+            }
+            setStep(resumeStep);
+            toast.info("Reprise de votre inscription là où vous l'aviez laissée");
+          }
+        }
+      }
+
       setLoading(false);
     })();
   }, [normalizedToken, preview, isPreview]);
+
 
   // Password strength
   const pwStrength = useMemo(() => {
@@ -149,15 +212,21 @@ function ActivationPage() {
   const validateStep = () => {
     if (isPreview) return goNext(); // skip validation in preview mode
     if (step === 1) {
-      if (password.length < 1) return toast.error("Choisissez un mot de passe");
-      if (password !== confirm) return toast.error("Les mots de passe ne correspondent pas");
+      // Si l'employé reprend une session existante, le mot de passe
+      // a déjà été créé : on laisse passer sans le redemander.
+      if (!resumingSession) {
+        if (password.length < 1) return toast.error("Choisissez un mot de passe");
+        if (password !== confirm) return toast.error("Les mots de passe ne correspondent pas");
+      }
     }
     if (step === 2) {
       if (!phone || !birthDate || !nationality) return toast.error("Tous les champs sont requis");
     }
     if (step === 3) {
-      if (!photoFile && !isPreview) return toast.error("Ajoutez une photo de profil");
+      // Accepte aussi une photo déjà uploadée précédemment.
+      if (!photoFile && !photoPreview && !isPreview) return toast.error("Ajoutez une photo de profil");
     }
+
     if (step === 4) {
       if (!city || !address) return toast.error("Tous les champs sont requis");
     }
@@ -192,37 +261,50 @@ function ActivationPage() {
     setSubmitting(true);
     const isAdmin = invitation.app_role === "admin" || invitation.app_role === "manager";
     const targetPath = isAdmin ? "/" : "/staff-app";
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email: invitation.email,
-      password,
-      options: {
-        data: {
-          invitation_token: normalizedToken,
-          first_name: invitation.first_name,
-          last_name: invitation.last_name,
+
+    // Si l'employé reprend une inscription en cours, il a déjà une session
+    // (mot de passe créé lors d'une visite précédente). On saute alors le
+    // signUp et on enchaîne directement sur la finalisation du profil.
+    let userId: string | undefined;
+    const { data: existingSession } = await supabase.auth.getSession();
+    const sessionEmail = existingSession.session?.user?.email?.toLowerCase();
+    const invEmail = (invitation.email || "").toLowerCase();
+    const alreadySignedIn = !!sessionEmail && sessionEmail === invEmail;
+
+    if (alreadySignedIn) {
+      userId = existingSession.session!.user.id;
+    } else {
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: invitation.email,
+        password,
+        options: {
+          data: {
+            invitation_token: normalizedToken,
+            first_name: invitation.first_name,
+            last_name: invitation.last_name,
+          },
         },
-      },
-    });
+      });
 
-    if (signUpError) {
-      setSubmitting(false);
-      return toast.error(signUpError.message);
+      if (signUpError) {
+        setSubmitting(false);
+        return toast.error(signUpError.message);
+      }
+
+      await new Promise((r) => setTimeout(r, 600));
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: invitation.email,
+        password,
+      });
+      if (signInError) {
+        setSubmitting(false);
+        setDone(true);
+        return toast.error(signInError.message);
+      }
+      userId = signUpData.user?.id;
     }
 
-    await new Promise((r) => setTimeout(r, 600));
-
-    // Connexion immédiate (pas de confirmation email tant que Resend n'est pas configuré)
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: invitation.email,
-      password,
-    });
-    if (signInError) {
-      setSubmitting(false);
-      setDone(true);
-      return toast.error(signInError.message);
-    }
-
-    const userId = signUpData.user?.id;
     if (userId) {
       let avatarUrl: string | null = null;
       if (photoFile) {
@@ -286,6 +368,7 @@ function ActivationPage() {
     toast.success("Compte activé");
     navigate({ to: targetPath });
   };
+
 
   // ───── render states ─────
   if (loading) {
