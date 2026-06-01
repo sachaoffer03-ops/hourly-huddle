@@ -155,7 +155,9 @@ function ActivationPage() {
             .maybeSingle();
 
           if (prof) {
+            setResumingSession(true);
             if (prof.phone) setPhone(prof.phone);
+
             if (prof.birth_date) setBirthDate(prof.birth_date);
             if (prof.nationality) setNationality(prof.nationality);
             if (prof.city) setCity(prof.city);
