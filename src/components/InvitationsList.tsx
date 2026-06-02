@@ -139,6 +139,13 @@ export function InvitationsList({ onInviteClick }: { onInviteClick: () => void }
 
   const resendEmail = async (inv: Invitation) => {
     const t = toast.loading("Renvoi de l'email...");
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (!token) {
+      toast.dismiss(t);
+      toast.error("Session expirée, reconnectez-vous");
+      return;
+    }
     const { error } = await supabase.functions.invoke("send-invitation", {
       body: {
         email: inv.email,
@@ -150,6 +157,7 @@ export function InvitationsList({ onInviteClick }: { onInviteClick: () => void }
         business_roles: inv.business_roles ?? [],
         app_role: inv.app_role,
       },
+      headers: { Authorization: `Bearer ${token}` },
     });
     toast.dismiss(t);
     if (error) {
