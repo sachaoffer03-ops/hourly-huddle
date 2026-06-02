@@ -46,6 +46,7 @@ export function TestBotSheet({ open, onClose }: Props) {
   const rate = useServerFn(rateMessage);
   const delFb = useServerFn(deleteMessageFeedback);
   const listEmp = useServerFn(listEmployeesForTest);
+  const clearHistory = useServerFn(clearMyChatHistory);
 
   const loadMessages = async () => {
     const r = await history({ data: { is_test: true } });
