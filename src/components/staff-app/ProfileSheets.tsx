@@ -470,24 +470,36 @@ export function NotificationsSheet({ open, onClose, userId, studios, onNavigate 
             const Icon = iconFor(n.kind);
             const clickable = !!(n.link || onNavigate);
             return (
-              <button key={n.id} type="button"
-                onClick={clickable ? () => handleNotifClick(n) : undefined}
-                className="rounded-xl px-4 py-3 flex gap-3 text-left transition-colors"
+              <div key={n.id}
+                className="rounded-xl px-4 py-3 flex gap-3 text-left transition-colors relative"
                 style={{
                   backgroundColor: n.read ? "#fff" : "var(--coral-light)",
                   border: "0.5px solid rgba(0,0,0,0.08)",
                   cursor: clickable ? "pointer" : "default",
-                }}>
+                }}
+                onClick={clickable ? () => handleNotifClick(n) : undefined}>
                 <div className="rounded-full flex items-center justify-center mt-0.5 shrink-0"
                   style={{ width: 28, height: 28, backgroundColor: n.read ? "var(--muted)" : "var(--coral)", color: n.read ? "var(--muted-foreground)" : "var(--coral-text)" }}>
                   {n.read ? <Check size={12} /> : <Icon size={12} />}
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0" style={{ paddingRight: 20 }}>
                   <div style={{ fontSize: 13, fontWeight: 500 }}>{n.title}</div>
                   <div style={{ fontSize: 12, color: "var(--muted-foreground)", marginTop: 2 }}>{n.body}</div>
                   <div style={{ fontSize: 10, color: "var(--muted-foreground)", marginTop: 4 }}>{fmtRelative(n.date)}</div>
                 </div>
-              </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); dismissNotif(n.id); }}
+                  className="shrink-0 flex items-center justify-center"
+                  style={{
+                    width: 22, height: 22, borderRadius: 6,
+                    color: "var(--muted-foreground)",
+                    marginLeft: "auto",
+                  }}
+                  aria-label="Fermer">
+                  <X size={14} />
+                </button>
+              </div>
             );
           })}
         </div>
