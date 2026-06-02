@@ -420,11 +420,14 @@ export function NotificationsSheet({ open, onClose, userId, studios, onNavigate 
             ? `${unread + proposals.length} à traiter`
             : "Tout est à jour"}
         </div>
-        {unread > 0 && (
-          <button onClick={markAllRead} style={{ fontSize: 11, fontWeight: 500, color: "var(--coral-dark)" }}>
-            Tout marquer lu
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          <PushPermissionButton />
+          {unread > 0 && (
+            <button onClick={markAllRead} style={{ fontSize: 11, fontWeight: 500, color: "var(--coral-dark)" }}>
+              Tout marquer lu
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Propositions de shift en attente — actionnables */}
