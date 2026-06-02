@@ -106,6 +106,12 @@ export function InviteEmployeeModal({ open, onClose, onCreated }: Props) {
     if (roles.size === 0) return toast.error("Sélectionnez au moins un rôle métier");
 
     setSubmitting(true);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (!token) {
+      setSubmitting(false);
+      return toast.error("Session expirée, reconnectez-vous");
+    }
     const { data, error } = await supabase.functions.invoke("send-invitation", {
       body: {
         email, first_name: firstName, last_name: lastName,
@@ -116,6 +122,7 @@ export function InviteEmployeeModal({ open, onClose, onCreated }: Props) {
         app_role: appRole,
         hire_date: hireDate || null,
       },
+      headers: { Authorization: `Bearer ${token}` },
     });
     setSubmitting(false);
 
