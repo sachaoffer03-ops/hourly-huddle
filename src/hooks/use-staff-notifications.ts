@@ -94,8 +94,10 @@ export function useStaffNotifications(userId: string | undefined) {
         .limit(30),
     ]);
 
-    const seenAt = Number(localStorage.getItem(lastSeenKey(userId)) || 0);
-    const dismissedIds = new Set<string>(JSON.parse(localStorage.getItem(dismissedKey(userId)) || "[]"));
+    const seenAt = Number(safeGet(lastSeenKey(userId)) || 0);
+    let dismissedIds: Set<string>;
+    try { dismissedIds = new Set<string>(JSON.parse(safeGet(dismissedKey(userId)) || "[]")); }
+    catch { dismissedIds = new Set<string>(); }
     const list: StaffNotif[] = [];
 
     (shifts || []).forEach((s) => {
