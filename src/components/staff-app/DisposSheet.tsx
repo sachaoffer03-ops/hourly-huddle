@@ -211,7 +211,7 @@ export function DisposSheet({ open, onClose, userId }: { open: boolean; onClose:
       toast.error("Indique au moins une disponibilité");
       return;
     }
-    localStorage.setItem(disposKey(userId, year, month), new Date().toISOString());
+    try { window.localStorage?.setItem(disposKey(userId, year, month), new Date().toISOString()); } catch {}
     setValidated(true);
     toast.success("Dispos envoyées pour " + monthLabel);
   };
