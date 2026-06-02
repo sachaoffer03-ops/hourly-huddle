@@ -246,7 +246,7 @@ export function useStaffNotifications(userId: string | undefined) {
       // Cap localStorage size: keep only the most recent MAX_DISMISSED ids
       const arr = [...next];
       const capped = arr.length > MAX_DISMISSED ? arr.slice(-MAX_DISMISSED) : arr;
-      localStorage.setItem(dismissedKey(userId), JSON.stringify(capped));
+      safeSet(dismissedKey(userId), JSON.stringify(capped));
       return new Set(capped);
     });
     setItems((prev) => prev.filter((n) => n.id !== id));
