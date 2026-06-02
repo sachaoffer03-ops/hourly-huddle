@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+const dismissedKey = (uid: string) => `staff-notif-dismissed:${uid}`;
+
 export type StaffNotifKind = "shift" | "request" | "message" | "proposal";
 
 export interface StaffNotif {
