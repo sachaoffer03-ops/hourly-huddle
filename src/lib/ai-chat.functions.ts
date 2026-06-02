@@ -162,7 +162,6 @@ export const askKadenceAI = createServerFn({ method: "POST" })
 
     const fbList = (feedbackRes.data ?? []) as any[];
     const corrections = fbList.filter((f) => f.rating === "correction" && f.corrected_answer);
-    const positives = fbList.filter((f) => f.rating === "up").slice(0, 8);
     const negatives = fbList.filter((f) => f.rating === "down" && f.comment).slice(0, 8);
 
     let learningBlock = "";
