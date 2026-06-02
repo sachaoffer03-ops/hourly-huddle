@@ -38,7 +38,8 @@ function readDraft(shiftId: string): Draft | null {
 }
 
 function clearDraft(shiftId: string) {
-  if (typeof window !== "undefined") window.sessionStorage.removeItem(`${DRAFT_PREFIX}${shiftId}`);
+  if (typeof window === "undefined") return;
+  try { window.sessionStorage.removeItem(`${DRAFT_PREFIX}${shiftId}`); } catch {}
 }
 
 const STEPS: Step[] = ["feedback", "report", "handoff"];
