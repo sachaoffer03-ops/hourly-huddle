@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Send, Bot, X, Sparkles, ThumbsUp, ThumbsDown, Pencil, Trash2, UserCircle2, ChevronDown } from "lucide-react";
+import { Send, Bot, X, Sparkles, ThumbsUp, ThumbsDown, Pencil, Trash2, UserCircle2, ChevronDown, Eraser } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { askKadenceAI, getChatHistory } from "@/lib/ai-chat.functions";
+import { askKadenceAI, getChatHistory, clearMyChatHistory } from "@/lib/ai-chat.functions";
 import { rateMessage, deleteMessageFeedback, listEmployeesForTest } from "@/lib/ai-admin.functions";
 import { supabase } from "@/integrations/supabase/client";
 
