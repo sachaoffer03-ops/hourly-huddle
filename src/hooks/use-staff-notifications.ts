@@ -77,12 +77,15 @@ export function useStaffNotifications(userId: string | undefined) {
     ]);
 
     const seenAt = Number(localStorage.getItem(lastSeenKey(userId)) || 0);
+    const dismissedIds = new Set<string>(JSON.parse(localStorage.getItem(dismissedKey(userId)) || "[]"));
     const list: StaffNotif[] = [];
 
     (shifts || []).forEach((s) => {
       const ts = new Date(s.created_at).getTime();
+      const id = `shift-${s.id}`;
+      if (dismissedIds.has(id)) return;
       list.push({
-        id: `shift-${s.id}`,
+        id,
         kind: "shift",
         title: "Planning généré",
         body: `Nouveau shift ${fmtShiftDate(s.shift_date, s.start_time)} · ${s.business_role}`,
