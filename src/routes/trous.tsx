@@ -67,6 +67,7 @@ function TrousPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [selected, setSelected] = useState<Record<string, Set<string>>>({});
   const [filterRole, setFilterRole] = useState<string>("tous");
+  const [filterStudio, setFilterStudio] = useState<string>("tous");
   const [tick, setTick] = useState(0);
 
   // Tick chaque seconde pour le chronomètre live
