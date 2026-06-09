@@ -139,9 +139,21 @@ function TrousPage() {
     });
   }, [holes, studioIdsFilter, weekRange]);
 
+  const studioOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    scoped.forEach((h) => {
+      if (h.studio_id) map.set(h.studio_id, studios.get(h.studio_id) || h.studio_id);
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [scoped, studios]);
+
   const filtered = useMemo(
-    () => scoped.filter((h) => filterRole === "tous" || h.business_role === filterRole),
-    [scoped, filterRole],
+    () => scoped.filter((h) => {
+      if (filterRole !== "tous" && h.business_role !== filterRole) return false;
+      if (filterStudio !== "tous" && h.studio_id !== filterStudio) return false;
+      return true;
+    }),
+    [scoped, filterRole, filterStudio],
   );
 
   const proposalsByShift = useMemo(() => {
