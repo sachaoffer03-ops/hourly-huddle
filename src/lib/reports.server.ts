@@ -181,7 +181,7 @@ export async function getTopAndBottomPerformers(f: Filters) {
       const u = map.get(r.shift_id);
       if (!u) continue;
       const e = acc.get(u) ?? { sum: 0, n: 0 };
-      e.sum += Number(r.rating) * 2; e.n++;
+      e.sum += Math.min(Math.max(Number(r.rating), 0), 10); e.n++;
       acc.set(u, e);
     }
     return acc;
