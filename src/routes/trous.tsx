@@ -279,7 +279,7 @@ function TrousPage() {
         })}
       </div>
 
-      {studioOptions.length > 0 && (
+      {studioOptions.length > 1 && (
         <div className="flex items-center gap-2 flex-wrap mb-4">
           <span style={{ fontSize: 11, color: "var(--muted-foreground)", fontWeight: 500, marginRight: 4 }}>Studio</span>
           {[{ id: "tous", name: "Tous" }, ...studioOptions].map((opt) => {
